@@ -132,7 +132,7 @@ export default function WorkoutsPage() {
 
 function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | null, onSave: (workout: CustomWorkout) => void, onCancel: () => void }) {
     const [name, setName] = useState(workout?.name || "");
-    const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(workout?.exercises || [{ exerciseId: '1', exerciseName: 'Barbell Bench Press', sets: 3, reps: '8-12' }]);
+    const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(workout?.exercises || []);
     const [selectedVideoExercise, setSelectedVideoExercise] = useState<string | null>(null);
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [isVideoLoading, setIsVideoLoading] = useState(false);
