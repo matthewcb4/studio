@@ -17,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
+import { findExerciseVideo } from '@/ai/flows/find-exercise-video-flow';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,8 @@ export default function GuidePage() {
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedVideoExercise, setSelectedVideoExercise] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,6 +80,23 @@ export default function GuidePage() {
       setIsLoading(false);
     }
   }
+  
+  const handleVideoClick = async (exerciseName: string) => {
+    setSelectedVideoExercise(exerciseName);
+    setIsVideoLoading(true);
+    setVideoUrl(null);
+    try {
+      const result = await findExerciseVideo({ exerciseName });
+      if (result.videoId) {
+        setVideoUrl(`https://www.youtube.com/embed/${result.videoId}`);
+      }
+    } catch (error) {
+      console.error('Failed to find video:', error);
+    } finally {
+      setIsVideoLoading(false);
+    }
+  };
+
 
   return (
     <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedVideoExercise(null)}>
@@ -264,7 +284,7 @@ export default function GuidePage() {
                                   <div className="flex justify-between items-center">
                                     <h4 className="font-semibold text-lg text-primary">{ex.name}</h4>
                                     <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" onClick={() => setSelectedVideoExercise(ex.name)}>
+                                      <Button variant="ghost" size="sm" onClick={() => handleVideoClick(ex.name)}>
                                         <Video className="mr-2 h-4 w-4" />
                                         View Video
                                       </Button>
@@ -306,7 +326,22 @@ export default function GuidePage() {
             </DialogDescription>
           </DialogHeader>
           <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-            <p className="text-muted-foreground">Video player will be here.</p>
+            {isVideoLoading ? (
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            ) : videoUrl ? (
+              <iframe
+                width="100%"
+                height="100%"
+                src={videoUrl}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="rounded-lg"
+              ></iframe>
+            ) : (
+              <p className="text-muted-foreground">No video found for this exercise.</p>
+            )}
           </div>
         </DialogContent>
       )}

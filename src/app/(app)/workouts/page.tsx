@@ -37,9 +37,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PlusCircle, Trash2, Edit, Video } from "lucide-react";
+import { PlusCircle, Trash2, Edit, Video, Loader2 } from "lucide-react";
 import { customWorkouts as initialWorkouts, exercises } from "@/lib/data";
 import type { CustomWorkout, WorkoutExercise } from "@/lib/types";
+import { findExerciseVideo } from "@/ai/flows/find-exercise-video-flow";
+
 
 export default function WorkoutsPage() {
   const [workouts, setWorkouts] = useState<CustomWorkout[]>(initialWorkouts);
@@ -132,6 +134,8 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
     const [name, setName] = useState(workout?.name || "");
     const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(workout?.exercises || []);
     const [selectedVideoExercise, setSelectedVideoExercise] = useState<string | null>(null);
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
+    const [isVideoLoading, setIsVideoLoading] = useState(false);
 
     const addExercise = () => {
         if(exercises.length > 0) {
@@ -167,6 +171,22 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
         };
         onSave(newWorkout);
     }
+
+    const handleVideoClick = async (exerciseName: string) => {
+        setSelectedVideoExercise(exerciseName);
+        setIsVideoLoading(true);
+        setVideoUrl(null);
+        try {
+          const result = await findExerciseVideo({ exerciseName });
+          if (result.videoId) {
+            setVideoUrl(`https://www.youtube.com/embed/${result.videoId}`);
+          }
+        } catch (error) {
+          console.error('Failed to find video:', error);
+        } finally {
+          setIsVideoLoading(false);
+        }
+      };
     
     return (
         <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedVideoExercise(null)}>
@@ -192,7 +212,7 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
                                 <div className="flex justify-between items-center">
                                     <Label>Exercise {index + 1}</Label>
                                     <DialogTrigger asChild>
-                                        <Button variant="outline" size="sm" onClick={() => setSelectedVideoExercise(ex.exerciseName)}>
+                                        <Button variant="outline" size="sm" onClick={() => handleVideoClick(ex.exerciseName)}>
                                             <Video className="h-4 w-4 mr-2"/>
                                             View Video
                                         </Button>
@@ -246,7 +266,22 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
                     </DialogDescription>
                 </DialogHeader>
                 <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground">Video player will be here.</p>
+                    {isVideoLoading ? (
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    ) : videoUrl ? (
+                        <iframe
+                        width="100%"
+                        height="100%"
+                        src={videoUrl}
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="rounded-lg"
+                        ></iframe>
+                    ) : (
+                        <p className="text-muted-foreground">No video found for this exercise.</p>
+                    )}
                 </div>
                 </DialogContent>
             )}
