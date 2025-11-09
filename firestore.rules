@@ -31,33 +31,29 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
     /**
      * @description Manages user identity data. Only the user with the matching {userId} can read or write their profile.
      * @path /users/{userId}
      */
     match /users/{userId} {
-      function isOwner() {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner() {
-        return isOwner() && resource != null;
-      }
-
-      allow get: if isOwner();
+      allow get: if isOwner(userId);
       allow list: if false; // User listing is disabled for privacy
 
-      allow create: if isSignedIn() && isOwner() && request.resource.data.id == userId;
-      allow update: if isExistingOwner() && request.resource.data.id == resource.data.id; //Immutable ID
-      allow delete: if isExistingOwner();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id; //Immutable ID
+      allow delete: if isOwner(userId);
 
       /**
        * @description Manages the user's fitness goals and profile settings.
        * @path /users/{userId}/profile/{profileId}
        */
       match /profile/{profileId} {
-        allow get, list, create, update: if isOwner();
-        allow delete: if isOwner();
+        allow get, list, create, update: if isOwner(userId);
+        allow delete: if isOwner(userId);
       }
 
       /**
@@ -65,10 +61,10 @@ service cloud.firestore {
        * @path /users/{userId}/equipment/{equipmentId}
        */
       match /equipment/{equipmentId} {
-        allow get, list: if isOwner();
-        allow create: if isSignedIn() && isOwner() && request.resource.data.keys().hasAll(['name']);
-        allow update: if isOwner(); // Can update name
-        allow delete: if isOwner();
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.keys().hasAll(['name']);
+        allow update: if isOwner(userId); // Can update name
+        allow delete: if isOwner(userId);
       }
 
       /**
@@ -76,12 +72,10 @@ service cloud.firestore {
        * @path /users/{userId}/customWorkouts/{customWorkoutId}
        */
       match /customWorkouts/{customWorkoutId} {
-        allow get: if isOwner();
-        allow list: if isOwner();
-
-        allow create: if isSignedIn() && isOwner() && request.resource.data.userId == userId;
-        allow update: if isOwner() && request.resource.data.userId == resource.data.userId; //Immutable user ID
-        allow delete: if isOwner();
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; //Immutable user ID
+        allow delete: if isOwner(userId);
       }
 
       /**
@@ -89,12 +83,10 @@ service cloud.firestore {
        * @path /users/{userId}/workoutLogs/{workoutLogId}
        */
       match /workoutLogs/{workoutLogId} {
-        allow get: if isOwner();
-        allow list: if isOwner();
-
-        allow create: if isSignedIn() && isOwner() && request.resource.data.userId == userId;
-        allow update: if isOwner() && request.resource.data.userId == resource.data.userId; //Immutable user ID
-        allow delete: if isOwner();
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; //Immutable user ID
+        allow delete: if isOwner(userId);
       }
     }
     
@@ -104,12 +96,9 @@ service cloud.firestore {
      * @path /exercises/{exerciseId}
      */
     match /exercises/{exerciseId} {
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       allow create, delete: if false;
       allow update: if isSignedIn() && request.resource.data.keys().hasOnly(['videoId']); // Only allow updating videoId
     }
   }
 }
-
-    
