@@ -5,17 +5,18 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Loader2, Settings, Target } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Settings, Target, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import type { UserEquipment, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { seedExercises } from '@/lib/seed-data';
 
 const equipmentFormSchema = z.object({
   name: z.string().min(2, { message: 'Equipment name must be at least 2 characters.' }),
@@ -35,6 +36,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [isSubmittingEquipment, setIsSubmittingEquipment] = useState(false);
   const [isSubmittingGoals, setIsSubmittingGoals] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const equipmentCollection = useMemoFirebase(() => 
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -103,6 +105,33 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSeedDatabase = async () => {
+    if (!firestore) return;
+    setIsSeeding(true);
+    try {
+      const exercisesRef = collection(firestore, 'exercises');
+      const batch = writeBatch(firestore);
+
+      seedExercises.forEach(exercise => {
+        const docRef = doc(exercisesRef); // Create a new doc with a unique ID
+        batch.set(docRef, exercise);
+      });
+      
+      await batch.commit();
+
+      toast({
+        title: 'Database Seeded!',
+        description: `${seedExercises.length} starter exercises have been added.`,
+      });
+
+    } catch (error) {
+      console.error("Error seeding database:", error);
+      toast({ title: 'Error', description: 'Failed to seed the database.', variant: 'destructive' });
+    } finally {
+      setIsSeeding(false);
+    }
+  }
+
 
   const handleDelete = (equipmentId: string) => {
     if (!equipmentCollection) return;
@@ -122,7 +151,7 @@ export default function SettingsPage() {
       </div>
       
       <Accordion type="multiple" defaultValue={[]} className="w-full space-y-4">
-        <AccordionItem value="item-1" className="border-none">
+        <AccordionItem value="fitness-goals" className="border-none">
             <Card>
             <AccordionTrigger className="p-6 text-left">
                 <div className="flex items-center gap-3">
@@ -224,7 +253,7 @@ export default function SettingsPage() {
             </AccordionContent>
             </Card>
         </AccordionItem>
-        <AccordionItem value="item-2" className="border-none">
+        <AccordionItem value="my-equipment" className="border-none">
             <Card>
             <AccordionTrigger className="p-6 text-left">
                 <div>
@@ -280,8 +309,34 @@ export default function SettingsPage() {
             </AccordionContent>
             </Card>
         </AccordionItem>
+        <AccordionItem value="database-seeding" className="border-none">
+          <Card>
+            <AccordionTrigger className="p-6 text-left">
+                <div className="flex items-center gap-3">
+                    <Database className="w-6 h-6 text-primary" />
+                    <div>
+                        <CardTitle>Advanced Settings</CardTitle>
+                        <CardDescription className="mt-1.5 text-left">Handle with care.</CardDescription>
+                    </div>
+                </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  If the exercise list is empty, you can populate it with a starter set of common exercises. This is a one-time action and may create duplicates if run more than once.
+                </p>
+                <Button onClick={handleSeedDatabase} disabled={isSeeding}>
+                  {isSeeding ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Seeding...</>
+                  ) : (
+                    "Seed Exercise Database"
+                  )}
+                </Button>
+              </CardContent>
+            </AccordionContent>
+          </Card>
+        </AccordionItem>
       </Accordion>
     </div>
   );
-
-    
+}
