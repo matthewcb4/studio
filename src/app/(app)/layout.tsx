@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useEffect } from "react";
@@ -149,16 +149,18 @@ function MobileNav() {
                 </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col bg-sidebar text-sidebar-foreground p-0">
-                <SidebarHeader className="p-2">
+                <SheetHeader className="p-2 border-b">
+                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                    <SheetDescription className="sr-only">Main navigation links for the application.</SheetDescription>
                     <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2">
                         <Logo className="h-6 w-6" />
                         <span>Tonal Tracker</span>
                     </Link>
-                </SidebarHeader>
+                </SheetHeader>
                 <SidebarContent className="p-2">
                     <Nav />
                 </SidebarContent>
-                 <SidebarFooter className="p-2">
+                 <SidebarFooter className="p-2 mt-auto border-t">
                     <SecondaryNav />
                 </SidebarFooter>
             </SheetContent>
