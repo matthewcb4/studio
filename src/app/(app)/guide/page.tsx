@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Bot, PlusCircle, Trash2, Wand2, Loader2, Dumbbell, Video } from 'lucide-react';
+import { Bot, PlusCircle, Trash2, Wand2, Loader2, Dumbbell } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from '@/components/ui/button';
@@ -22,13 +22,6 @@ import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { exercises as masterExerciseList } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const formSchema = z.object({
   availableEquipment: z.array(z.object({ value: z.string().min(1, { message: 'Equipment name cannot be empty.' }) })),
@@ -104,6 +97,7 @@ export default function GuidePage() {
                     exerciseName: ex.name,
                     sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
                     reps: ex.reps,
+                    videoId: masterExercise?.videoId || null
                 };
             }),
         };
@@ -352,5 +346,3 @@ export default function GuidePage() {
       </div>
   );
 }
-
-    

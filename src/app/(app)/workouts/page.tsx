@@ -37,6 +37,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogClose,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { PlusCircle, Trash2, Edit, Video, Loader2, Search } from 'lucide-react';
 import { exercises as masterExercises } from '@/lib/data';
@@ -189,7 +190,7 @@ function WorkoutForm({
   };
 
   const handleSave = () => {
-    const newWorkout: Omit<CustomWorkout, 'id'> = {
+    const newWorkout: Omit<CustomWorkout, 'id' | 'userId'> = {
       name,
       exercises: workoutExercises,
     };
@@ -239,7 +240,7 @@ function WorkoutForm({
                           {ex.videoId ? 'Change Video' : 'Find Video'}
                        </Button>
                     </DialogTrigger>
-                    <VideoSearchDialog exerciseName={ex.exerciseName} onSelectVideo={(videoId) => handleVideoIdUpdate(index, videoId)}/>
+                    {ex.exerciseName && <VideoSearchDialog exerciseName={ex.exerciseName} onSelectVideo={(videoId) => handleVideoIdUpdate(index, videoId)}/>}
                   </Dialog>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -346,12 +347,12 @@ export default function WorkoutsPage() {
     deleteDocumentNonBlocking(workoutDoc);
   };
 
-  const handleSaveWorkout = (workoutData: Omit<CustomWorkout, 'id'>) => {
+  const handleSaveWorkout = (workoutData: Omit<CustomWorkout, 'id' | 'userId'>) => {
     if (!user || !workoutsCollection) return;
   
     // Update the master exercise list with new video IDs
     workoutData.exercises.forEach(exercise => {
-      if (exercise.videoId) {
+      if (exercise.videoId && exercise.exerciseId) {
         const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
         // We use set with merge to not overwrite the whole document
         setDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId }, { merge: true });
@@ -396,9 +397,12 @@ export default function WorkoutsPage() {
       </div>
       {isLoading && <div className="text-center">Loading workouts...</div>}
       {!isLoading && workouts?.length === 0 && (
-        <div className="text-center text-muted-foreground">
-          No custom workouts created yet.
-        </div>
+        <Card className="flex items-center justify-center h-64">
+            <div className="text-center">
+                <h3 className="text-xl font-semibold">No Workouts Yet</h3>
+                <p className="text-muted-foreground">Click "Create New Workout" to get started.</p>
+            </div>
+        </Card>
       )}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {workouts?.map((workout) => (
@@ -432,14 +436,38 @@ export default function WorkoutsPage() {
               >
                 <Edit className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-destructive hover:text-destructive"
-                onClick={() => handleDelete(workout.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Are you sure?</DialogTitle>
+                    <DialogDescription>
+                      This action cannot be undone. This will permanently delete the workout "{workout.name}".
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <DialogClose asChild>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleDelete(workout.id)}
+                      >
+                        Delete
+                      </Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardFooter>
           </Card>
         ))}
@@ -447,5 +475,3 @@ export default function WorkoutsPage() {
     </div>
   );
 }
-
-    
