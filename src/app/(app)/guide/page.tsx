@@ -23,6 +23,8 @@ import { collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, WorkoutExercise } from '@/lib/types';
 
+const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Legs", "Shoulders", "Triceps"];
+
 const formSchema = z.object({
   availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "You have to select at least one piece of equipment.",
@@ -30,7 +32,9 @@ const formSchema = z.object({
   fitnessGoals: z.string().min(1, { message: 'Goal cannot be empty.' }),
   fitnessLevel: z.string().min(1, { message: 'Please select a fitness level.' }),
   workoutDuration: z.coerce.number().min(10, { message: 'Duration must be at least 10 minutes.' }),
-  focusArea: z.string().min(1, { message: 'Please select a focus area.' }),
+  focusArea: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "You have to select at least one muscle group.",
+  }),
   focusOnSupersets: z.boolean().default(false),
 });
 
@@ -69,7 +73,7 @@ export default function GuidePage() {
       fitnessGoals: 'Build Muscle',
       fitnessLevel: 'intermediate',
       workoutDuration: 45,
-      focusArea: 'Full Body',
+      focusArea: ["Full Body"],
       focusOnSupersets: false,
     },
   });
@@ -226,6 +230,57 @@ export default function GuidePage() {
                   />
 
                 <FormField
+                  control={form.control}
+                  name="focusArea"
+                  render={() => (
+                      <FormItem>
+                      <div className="mb-4">
+                          <FormLabel className="text-base">Muscle Group Focus</FormLabel>
+                          <FormDescription>
+                           Select one or more muscle groups to target.
+                          </FormDescription>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                      {focusAreas.map((item) => (
+                          <FormField
+                          key={item}
+                          control={form.control}
+                          name="focusArea"
+                          render={({ field }) => {
+                              return (
+                              <FormItem
+                                  key={item}
+                                  className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                  <FormControl>
+                                  <Checkbox
+                                      checked={field.value?.includes(item)}
+                                      onCheckedChange={(checked) => {
+                                      return checked
+                                          ? field.onChange([...(field.value || []), item])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                              (value) => value !== item
+                                              )
+                                          )
+                                      }}
+                                  />
+                                  </FormControl>
+                                  <FormLabel className="font-normal">
+                                      {item}
+                                  </FormLabel>
+                              </FormItem>
+                              )
+                          }}
+                          />
+                      ))}
+                      </div>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+
+                <FormField
                       control={form.control}
                       name="fitnessGoals"
                       render={({ field }) => (
@@ -275,60 +330,30 @@ export default function GuidePage() {
                     />
                     <FormField
                         control={form.control}
-                        name="focusArea"
+                        name="workoutDuration"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Focus Area</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
+                            <FormLabel>Duration (min)</FormLabel>
+                            <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={String(field.value)}>
+                                <FormControl>
                                 <SelectTrigger>
-                                <SelectValue placeholder="Select focus" />
+                                    <SelectValue placeholder="Select duration" />
                                 </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="Full Body">Full Body</SelectItem>
-                                <SelectItem value="Upper Body">Upper Body</SelectItem>
-                                <SelectItem value="Lower Body">Lower Body</SelectItem>
-                                <SelectItem value="Arms">Arms</SelectItem>
-                                <SelectItem value="Back">Back</SelectItem>
-                                <SelectItem value="Biceps">Biceps</SelectItem>
-                                <SelectItem value="Chest">Chest</SelectItem>
-                                <SelectItem value="Core">Core</SelectItem>
-                                <SelectItem value="Legs">Legs</SelectItem>
-                                <SelectItem value="Shoulders">Shoulders</SelectItem>
-                                <SelectItem value="Triceps">Triceps</SelectItem>
-                            </SelectContent>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="15">15</SelectItem>
+                                    <SelectItem value="30">30</SelectItem>
+                                    <SelectItem value="45">45</SelectItem>
+                                    <SelectItem value="60">60</SelectItem>
+                                    <SelectItem value="75">75</SelectItem>
+                                    <SelectItem value="90">90</SelectItem>
+                                </SelectContent>
                             </Select>
                             <FormMessage />
                         </FormItem>
                         )}
                     />
                 </div>
-                <FormField
-                    control={form.control}
-                    name="workoutDuration"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Workout Duration (minutes)</FormLabel>
-                        <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={String(field.value)}>
-                            <FormControl>
-                              <SelectTrigger>
-                                  <SelectValue placeholder="Select duration" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="15">15</SelectItem>
-                                <SelectItem value="30">30</SelectItem>
-                                <SelectItem value="45">45</SelectItem>
-                                <SelectItem value="60">60</SelectItem>
-                                <SelectItem value="75">75</SelectItem>
-                                <SelectItem value="90">90</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
 
                 <FormField
                   control={form.control}
@@ -444,3 +469,5 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    

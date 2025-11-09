@@ -1,3 +1,4 @@
+
 export type Exercise = {
   id: string;
   name: string;
@@ -45,3 +46,13 @@ export type UserEquipment = {
   id: string;
   name: string;
 };
+
+export type UserProfile = {
+    id: string;
+    targetWeight?: number;
+    strengthGoal?: string;
+    muscleGoal?: string;
+    fatLossGoal?: string;
+}
+
+    

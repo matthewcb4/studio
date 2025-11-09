@@ -1,13 +1,15 @@
+
 /**
  * @fileoverview Firestore Security Rules for the workout application.
  *
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for all user-generated data
- * (custom workouts, workout logs, equipment). The master exercise data is publicly
+ * (custom workouts, workout logs, equipment, profile). The master exercise data is publicly
  * readable, but authenticated users can update video links.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles. Only the authenticated user can read/write their own profile.
+ * - /users/{userId}: Stores user identity. Only the authenticated user can read/write their own identity doc.
+ * - /users/{userId}/profile/{profileId}: Stores user settings & goals. Owner-only access.
  * - /users/{userId}/equipment/{equipmentId}: Stores user's equipment list. Owner-only access.
  * - /exercises/{exerciseId}: Stores master exercise data. Publicly readable, but authenticated users can update video links.
  * - /users/{userId}/customWorkouts/{customWorkoutId}: Stores custom workouts. Only the owning user can read/write.
@@ -30,7 +32,7 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages user profile data. Only the user with the matching {userId} can read or write their profile.
+     * @description Manages user identity data. Only the user with the matching {userId} can read or write their profile.
      * @path /users/{userId}
      */
     match /users/{userId} {
@@ -48,27 +50,54 @@ service cloud.firestore {
       allow create: if isSignedIn() && isOwner() && request.resource.data.id == userId;
       allow update: if isExistingOwner() && request.resource.data.id == resource.data.id; //Immutable ID
       allow delete: if isExistingOwner();
+
+      /**
+       * @description Manages the user's fitness goals and profile settings.
+       * @path /users/{userId}/profile/{profileId}
+       */
+      match /profile/{profileId} {
+        allow get, list, create, update: if isOwner();
+        allow delete: if isOwner();
+      }
+
+      /**
+       * @description Manages the user's list of available equipment.
+       * @path /users/{userId}/equipment/{equipmentId}
+       */
+      match /equipment/{equipmentId} {
+        allow get, list: if isOwner();
+        allow create: if isSignedIn() && isOwner() && request.resource.data.keys().hasAll(['name']);
+        allow update: if isOwner(); // Can update name
+        allow delete: if isOwner();
+      }
+
+      /**
+       * @description Manages custom workout routines created by users.
+       * @path /users/{userId}/customWorkouts/{customWorkoutId}
+       */
+      match /customWorkouts/{customWorkoutId} {
+        allow get: if isOwner();
+        allow list: if isOwner();
+
+        allow create: if isSignedIn() && isOwner() && request.resource.data.userId == userId;
+        allow update: if isOwner() && request.resource.data.userId == resource.data.userId; //Immutable user ID
+        allow delete: if isOwner();
+      }
+
+      /**
+       * @description Manages workout logs for users.
+       * @path /users/{userId}/workoutLogs/{workoutLogId}
+       */
+      match /workoutLogs/{workoutLogId} {
+        allow get: if isOwner();
+        allow list: if isOwner();
+
+        allow create: if isSignedIn() && isOwner() && request.resource.data.userId == userId;
+        allow update: if isOwner() && request.resource.data.userId == resource.data.userId; //Immutable user ID
+        allow delete: if isOwner();
+      }
     }
     
-    /**
-     * @description Manages the user's list of available equipment.
-     * @path /users/{userId}/equipment/{equipmentId}
-     */
-    match /users/{userId}/equipment/{equipmentId} {
-      function isOwner() {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner() {
-        return isOwner() && resource != null;
-      }
-      
-      allow get, list: if isOwner();
-      allow create: if isSignedIn() && isOwner() && request.resource.data.keys().hasAll(['name']);
-      allow update: if isExistingOwner(); // Can update name
-      allow delete: if isExistingOwner();
-    }
-
     /**
      * @description Manages the master exercise list. This collection is pre-populated and read-only for all users,
      * but authenticated users can update the videoId.
@@ -80,47 +109,7 @@ service cloud.firestore {
       allow create, delete: if false;
       allow update: if isSignedIn() && request.resource.data.keys().hasOnly(['videoId']); // Only allow updating videoId
     }
-
-    /**
-     * @description Manages custom workout routines created by users.
-     * @path /users/{userId}/customWorkouts/{customWorkoutId}
-     */
-    match /users/{userId}/customWorkouts/{customWorkoutId} {
-       function isOwner() {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner() {
-        return isOwner() && resource != null;
-      }
-
-      allow get: if isOwner();
-      allow list: if isOwner();
-
-      allow create: if isSignedIn() && isOwner() && request.resource.data.userId == userId;
-      allow update: if isExistingOwner() && request.resource.data.userId == resource.data.userId; //Immutable user ID
-      allow delete: if isExistingOwner();
-    }
-
-    /**
-     * @description Manages workout logs for users.
-     * @path /users/{userId}/workoutLogs/{workoutLogId}
-     */
-    match /users/{userId}/workoutLogs/{workoutLogId} {
-      function isOwner() {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner() {
-        return isOwner() && resource != null;
-      }
-
-      allow get: if isOwner();
-      allow list: if isOwner();
-
-      allow create: if isSignedIn() && isOwner() && request.resource.data.userId == userId;
-      allow update: if isExistingOwner() && request.resource.data.userId == resource.data.userId; //Immutable user ID
-      allow delete: if isExistingOwner();
-    }
   }
 }
+
+    

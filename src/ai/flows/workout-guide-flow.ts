@@ -16,7 +16,7 @@ const GenerateWorkoutInputSchema = z.object({
   fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals."),
   fitnessLevel: z.string().describe("The user's current fitness level (e.g., beginner, intermediate, advanced)."),
   workoutDuration: z.number().describe("The desired workout duration in minutes."),
-  focusArea: z.string().describe("The primary muscle group or area to focus on (e.g., Full Body, Upper Body, Lower Body, Core, Arms, Legs, Chest, Back, Shoulders)."),
+  focusArea: z.array(z.string()).describe("The primary muscle group or area to focus on (e.g., Full Body, Upper Body, Lower Body, Core, Arms, Legs, Chest, Back, Shoulders)."),
   focusOnSupersets: z.boolean().describe("Whether to create supersets focusing on the chosen muscle group.")
 });
 export type GenerateWorkoutInput = z.infer<typeof GenerateWorkoutInputSchema>;
@@ -50,7 +50,7 @@ const prompt = ai.definePrompt({
   User's fitness goals: {{#each fitnessGoals}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
   User's fitness level: {{{fitnessLevel}}}
   Desired workout duration: {{{workoutDuration}}} minutes
-  Focus area: {{{focusArea}}}
+  Focus area: {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
   
   Generate a complete workout routine including a workout name, a short description, and a list of exercises.
   
@@ -85,3 +85,5 @@ const workoutGuideFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
