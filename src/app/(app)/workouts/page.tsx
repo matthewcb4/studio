@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -41,10 +42,9 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Loader2, Youtube } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Youtube } from 'lucide-react';
 import { exercises as masterExercises } from '@/lib/data';
 import type { CustomWorkout, WorkoutExercise } from '@/lib/types';
-import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import {
   useCollection,
   useUser,
@@ -55,87 +55,6 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
-
-type VideoResult = FindExerciseVideoOutput['videos'][0];
-
-
-function VideoSearchDialog({
-  exerciseName,
-  onSelectVideo,
-}: {
-  exerciseName: string;
-  onSelectVideo: (videoId: string) => void;
-}) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [videoResults, setVideoResults] = useState<VideoResult[]>([]);
-
-  const handleSearchClick = async () => {
-    if (!exerciseName) return;
-    setIsLoading(true);
-    setVideoResults([]);
-    try {
-      const result = await findExerciseVideo({ exerciseName });
-      setVideoResults(result.videos);
-    } catch (error) {
-      console.error('Failed to find videos:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button onClick={handleSearchClick} variant="outline" size="sm" disabled={!exerciseName}>
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Youtube className="h-4 w-4 mr-2" />
-          )}
-          Find Video
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Find Video for: {exerciseName}</DialogTitle>
-          <DialogDescription>
-            Select a video below to link it to this exercise.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-1">
-          {isLoading &&
-            Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="aspect-[9/16] w-full" />
-                <Skeleton className="h-4 w-5/6" />
-              </div>
-            ))}
-          {videoResults.map((video) => (
-            <DialogClose key={video.videoId} asChild>
-              <button
-                className="group relative text-left"
-                onClick={() => onSelectVideo(video.videoId)}
-              >
-                <div className="overflow-hidden rounded-lg relative">
-                    <Image
-                        src={`https://i.ytimg.com/vi/${video.videoId}/sddefault.jpg`}
-                        alt={video.title}
-                        width={240}
-                        height={426}
-                        className="aspect-[9/16] w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-                </div>
-                <p className="text-xs font-medium mt-1 truncate">{video.title}</p>
-              </button>
-            </DialogClose>
-          ))}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 
 function WorkoutForm({
@@ -179,12 +98,6 @@ function WorkoutForm({
     setWorkoutExercises(newExercises);
   };
   
-  const handleVideoIdUpdate = (index: number, videoId: string) => {
-     const newExercises = [...workoutExercises];
-     newExercises[index].videoId = videoId;
-     setWorkoutExercises(newExercises);
-  }
-
   const removeExercise = (index: number) => {
     setWorkoutExercises(workoutExercises.filter((_, i) => i !== index));
   };
@@ -195,6 +108,11 @@ function WorkoutForm({
       exercises: workoutExercises,
     };
     onSave(newWorkout);
+  };
+
+  const createYouTubeSearchUrl = (exerciseName: string) => {
+    const query = `how to do a ${exerciseName} #shorts`;
+    return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
   };
 
   return (
@@ -233,10 +151,12 @@ function WorkoutForm({
               >
                 <div className="flex justify-between items-center">
                   <Label>Exercise {index + 1}</Label>
-                  <VideoSearchDialog
-                    exerciseName={ex.exerciseName}
-                    onSelectVideo={(videoId) => handleVideoIdUpdate(index, videoId)}
-                  />
+                   <Button variant="outline" size="sm" asChild>
+                    <Link href={createYouTubeSearchUrl(ex.exerciseName)} target="_blank" rel="noopener noreferrer">
+                      <Youtube className="h-4 w-4 mr-2" />
+                      Find Video
+                    </Link>
+                  </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
@@ -295,7 +215,7 @@ function WorkoutForm({
                   <Label className="text-xs">Linked Video ID (11 characters)</Label>
                   <Input 
                     className="mt-1 h-7 text-xs"
-                    placeholder="Paste YouTube ID or use Find Video"
+                    placeholder="Paste YouTube ID here"
                     value={ex.videoId || ''}
                     onChange={(e) => updateExercise(index, 'videoId', e.target.value)}
                     maxLength={11}
