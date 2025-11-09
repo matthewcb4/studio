@@ -39,9 +39,8 @@ import {
   DialogTitle,
   DialogClose,
   DialogFooter,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Youtube, Layers } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Layers, Youtube } from 'lucide-react';
 import { exercises as masterExercises } from '@/lib/data';
 import type {
   CustomWorkout,
@@ -61,13 +60,27 @@ import { collection, doc } from 'firebase/firestore';
 const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
 
 // Group exercises by supersetId for display
-const groupExercises = (exercises: WorkoutExercise[]) => {
-    if (!exercises) return [];
+const groupExercises = (exercises: WorkoutExercise[] = []) => {
+    if (!exercises || exercises.length === 0) return [];
     const grouped = exercises.reduce((acc, ex) => {
         (acc[ex.supersetId] = acc[ex.supersetId] || []).push(ex);
         return acc;
     }, {} as Record<string, WorkoutExercise[]>);
-    return Object.values(grouped);
+    
+    // Sort outer groups, a bit tricky without a dedicated order field.
+    // Let's assume the first exercise's original index gives a hint.
+    const originalOrder: Record<string, number> = {};
+    exercises.forEach((ex, index) => {
+        if(!(ex.supersetId in originalOrder)) {
+            originalOrder[ex.supersetId] = index;
+        }
+    });
+
+    return Object.values(grouped).sort((a,b) => {
+        const orderA = originalOrder[a[0].supersetId];
+        const orderB = originalOrder[b[0].supersetId];
+        return orderA - orderB;
+    });
 };
 
 
@@ -109,7 +122,11 @@ function WorkoutForm({
       videoId: null,
       supersetId: supersetId,
     };
-    setExercises([...exercises, newExercise]);
+    // To maintain order, find the last index of an exercise with the same supersetId
+    const lastIndex = exercises.map(e => e.supersetId).lastIndexOf(supersetId);
+    const newExercises = [...exercises];
+    newExercises.splice(lastIndex + 1, 0, newExercise);
+    setExercises(newExercises);
   };
 
   const updateExercise = (
@@ -137,7 +154,17 @@ function WorkoutForm({
   };
 
   const removeExercise = (exerciseIdToRemove: string) => {
-    setExercises(exercises.filter(ex => ex.id !== exerciseIdToRemove));
+    const exerciseToRemove = exercises.find(ex => ex.id === exerciseIdToRemove);
+    if (!exerciseToRemove) return;
+  
+    const remainingExercises = exercises.filter(ex => ex.id !== exerciseIdToRemove);
+  
+    // Check if any other exercises share the same supersetId
+    const isGroupEmpty = !remainingExercises.some(ex => ex.supersetId === exerciseToRemove.supersetId);
+  
+    // If the group is now empty and it's not the only group, we could remove the group.
+    // However, the current logic re-creates groups dynamically, so just removing the exercise is sufficient.
+    setExercises(remainingExercises);
   };
 
   const handleSave = () => {
@@ -227,7 +254,7 @@ function WorkoutForm({
                            updateExercise(
                              ex.id,
                              'sets',
-                             parseInt(e.target.value)
+                             parseInt(e.target.value) || 0
                            )
                          }
                          placeholder="Sets"
@@ -327,12 +354,16 @@ export default function WorkoutsPage() {
   ) => {
     if (!user || !workoutsCollection) return;
     
+    // This logic to update master exercises is now removed to simplify and avoid potential side effects.
+    // The user can manage videoId directly.
+    /*
     (workoutData.exercises || []).forEach(exercise => {
       if (exercise.videoId && exercise.exerciseId) {
         const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
         updateDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId });
       }
     });
+    */
 
     const dataToSave = { ...workoutData, userId: user.uid };
 
@@ -392,7 +423,7 @@ export default function WorkoutsPage() {
             <CardHeader>
               <CardTitle>{workout.name}</CardTitle>
                <CardDescription>
-                {workout.exercises?.length || 0} exercises in {workout.groupedExercises.length} groups
+                {(workout.exercises?.length || 0)} exercises in {workout.groupedExercises?.length || 0} groups
               </CardDescription>
             </CardHeader>
             <CardContent>
