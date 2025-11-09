@@ -19,10 +19,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment, WorkoutExercise } from '@/lib/types';
+import type { UserEquipment, Exercise } from '@/lib/types';
 
 const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Legs", "Shoulders", "Triceps"];
 
@@ -116,37 +116,65 @@ export default function GuidePage() {
 
     const handleSaveWorkout = async () => {
     if (!generatedWorkout || !user || !firestore) return;
-
     setIsSaving(true);
+    
     try {
-        const workoutData = {
-            userId: user.uid,
-            name: generatedWorkout.workoutName,
-            exercises: generatedWorkout.exercises.map(ex => ({
-                    id: generateUniqueId(),
-                    // The AI doesn't know the master ID, so we use the name to find a match later.
-                    exerciseId: ex.name,
-                    exerciseName: ex.name,
-                    sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
-                    reps: ex.reps,
-                    videoId: null,
-                    supersetId: ex.supersetId, // Use the supersetId from the AI
-            })),
-        };
+      const masterExercisesRef = collection(firestore, 'exercises');
 
-        const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
-        const newDocRef = await addDocumentNonBlocking(workoutsCollection, workoutData);
+      // Process all exercises from the AI workout
+      const processedExercises = await Promise.all(
+        generatedWorkout.exercises.map(async (ex) => {
+          // Check if the exercise already exists in the master list
+          const q = query(masterExercisesRef, where("name", "==", ex.name));
+          const querySnapshot = await getDocs(q);
 
-        toast({
-            title: "Workout Saved!",
-            description: `"${generatedWorkout.workoutName}" has been added. Now navigating to edit.`,
-        });
+          let masterExerciseId: string;
 
-        if (newDocRef) {
-          router.push(`/workouts?edit=${newDocRef.id}`);
-        } else {
-          router.push('/workouts');
-        }
+          if (querySnapshot.empty) {
+            // Exercise does not exist, so create it in the master list
+            const newExerciseDocRef = doc(masterExercisesRef); // Auto-generate ID
+            const newExercise: Omit<Exercise, 'id'> = {
+              name: ex.name,
+              category: 'AI Generated', // Or derive a category if possible
+            };
+            await setDocumentNonBlocking(newExerciseDocRef, newExercise, { merge: false });
+            masterExerciseId = newExerciseDocRef.id;
+          } else {
+            // Exercise exists, use its ID
+            masterExerciseId = querySnapshot.docs[0].id;
+          }
+          
+          return {
+            id: generateUniqueId(),
+            exerciseId: masterExerciseId,
+            exerciseName: ex.name,
+            sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
+            reps: ex.reps,
+            videoId: null, // User can add this later
+            supersetId: ex.supersetId, // Use the supersetId from the AI
+          };
+        })
+      );
+      
+      const workoutData = {
+        userId: user.uid,
+        name: generatedWorkout.workoutName,
+        exercises: processedExercises,
+      };
+
+      const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
+      const newDocRef = await addDocumentNonBlocking(workoutsCollection, workoutData);
+
+      toast({
+        title: "Workout Saved!",
+        description: `"${generatedWorkout.workoutName}" has been added. Now navigating to edit.`,
+      });
+      
+      if (newDocRef) {
+        router.push(`/workouts?edit=${newDocRef.id}`);
+      } else {
+        router.push('/workouts');
+      }
 
     } catch (error) {
         console.error("Failed to save workout:", error);

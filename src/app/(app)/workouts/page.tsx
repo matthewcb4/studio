@@ -44,11 +44,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { PlusCircle, Trash2, Edit, Layers, Youtube, Search, Loader2 } from 'lucide-react';
-import { exercises as masterExercises } from '@/lib/data';
 import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import type {
   CustomWorkout,
   WorkoutExercise,
+  Exercise as MasterExercise,
 } from '@/lib/types';
 import {
   useCollection,
@@ -59,7 +59,7 @@ import {
   deleteDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query, orderBy } from 'firebase/firestore';
 
 const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -146,10 +146,12 @@ function VideoSearchDialog({ exerciseName, onSelectVideo }: { exerciseName: stri
 
 function WorkoutForm({
   workout,
+  masterExercises,
   onSave,
   onCancel,
 }: {
   workout: CustomWorkout | null;
+  masterExercises: MasterExercise[];
   onSave: (workout: Omit<CustomWorkout, 'id' | 'userId'>) => void;
   onCancel: () => void;
 }) {
@@ -209,13 +211,12 @@ function WorkoutForm({
         if (field === 'exerciseId') {
           // The `exerciseId` can come from the master list (e.g., '1') or be a name (e.g., from AI).
           // We find the master exercise by either `id` or `name`.
-          const selectedExercise = masterExercises.find(e => e.id === value || e.name === value);
+          const selectedExercise = masterExercises.find(e => e.id === value);
           if (selectedExercise) {
             updatedEx.exerciseId = selectedExercise.id;
             updatedEx.exerciseName = selectedExercise.name;
           } else {
-            // Handle cases where the exercise is not in the master list (e.g. from AI)
-            updatedEx.exerciseId = value; // Keep the value (which might be the name)
+            updatedEx.exerciseId = value; 
             updatedEx.exerciseName = value;
           }
         } else {
@@ -233,24 +234,17 @@ function WorkoutForm({
     if (!exerciseToRemove) return;
   
     const remainingExercises = exercises.filter(ex => ex.id !== exerciseIdToRemove);
-  
-    // Check if any other exercises share the same supersetId
-    const isGroupEmpty = !remainingExercises.some(ex => ex.supersetId === exerciseToRemove.supersetId);
-  
-    // If the group is now empty and it's not the only group, we could remove the group.
-    // However, the current logic re-creates groups dynamically, so just removing the exercise is sufficient.
     setExercises(remainingExercises);
   };
 
   const handleSave = () => {
     // Before saving, ensure any exercise that has a name but not an ID gets the ID from the master list
     const finalizedExercises = exercises.map(ex => {
-        if (!masterExercises.some(me => me.id === ex.exerciseId)) {
-            const matched = masterExercises.find(me => me.name === ex.exerciseName);
-            if (matched) {
-                return { ...ex, exerciseId: matched.id };
-            }
+        const matched = masterExercises.find(me => me.name === ex.exerciseName || me.id === ex.exerciseId);
+        if (matched) {
+            return { ...ex, exerciseId: matched.id, exerciseName: matched.name };
         }
+        // If not found (should be rare if list is up to date), save as is
         return ex;
     });
 
@@ -297,7 +291,6 @@ function WorkoutForm({
               >
                 <Label>Group {groupIndex + 1} {group.length > 1 && '(Superset)'}</Label>
                 {group.map((ex, exIndex) => {
-                  // Find the matching exercise from the master list by ID or name
                   const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId || masterEx.name === ex.exerciseName);
                   const selectValue = matchedExercise ? matchedExercise.id : ex.exerciseId;
 
@@ -426,11 +419,18 @@ function WorkoutsPageContent() {
     return collection(firestore, `users/${user.uid}/customWorkouts`);
   }, [firestore, user]);
 
-  const { data: workouts, isLoading } =
+  const { data: workouts, isLoading: isLoadingWorkouts } =
     useCollection<CustomWorkout>(workoutsCollection);
 
+  const masterExercisesQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, 'exercises'), orderBy('name', 'asc'));
+  }, [firestore]);
+  const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
+
+
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoadingWorkouts || isLoadingExercises) return;
 
     const editId = searchParams.get('edit');
     if (editId && workouts) {
@@ -440,7 +440,7 @@ function WorkoutsPageContent() {
         setIsSheetOpen(true);
       }
     }
-  }, [searchParams, workouts, isLoading]);
+  }, [searchParams, workouts, isLoadingWorkouts, isLoadingExercises]);
 
 
   const handleCreateNew = () => {
@@ -480,6 +480,7 @@ function WorkoutsPageContent() {
     return workouts?.map(w => ({ ...w, groupedExercises: groupExercises(w.exercises || [])})) || [];
   }, [workouts]);
 
+  const isLoading = isLoadingWorkouts || isLoadingExercises;
 
   return (
     <div className="flex flex-col gap-8">
@@ -503,6 +504,7 @@ function WorkoutsPageContent() {
           <SheetContent className="sm:max-w-2xl w-full flex flex-col">
             <WorkoutForm
               workout={editingWorkout}
+              masterExercises={masterExercises || []}
               onSave={handleSaveWorkout}
               onCancel={() => {
                 setIsSheetOpen(false)
@@ -611,5 +613,3 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
-
-    

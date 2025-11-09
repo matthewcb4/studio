@@ -12,13 +12,13 @@
  * - /users/{userId}/profile/{profileId}: Stores user settings & goals. Owner-only access.
  * - /users/{userId}/equipment/{equipmentId}: Stores user's equipment list. Owner-only access.
  * - /users/{userId}/progressLogs/{progressLogId}: Stores user's progress data (e.g. weight). Owner-only access.
- * - /exercises/{exerciseId}: Stores master exercise data. Publicly readable, but authenticated users can update video links.
+ * - /exercises/{exerciseId}: Stores master exercise data. Publicly readable, but authenticated users can update video links or create new exercises.
  * - /users/{userId}/customWorkouts/{customWorkoutId}: Stores custom workouts. Only the owning user can read/write.
  * - /users/{userId}/workoutLogs/{workoutLogId}: Stores workout logs. Only the owning user can read/write.
  *
  * Key Security Decisions:
  * - User listing is disallowed to prevent unauthorized data access.
- * - The /exercises collection is read-only for all users, except for the videoId field for authenticated users.
+ * - The /exercises collection is read-only for all users, except for the videoId field for authenticated users, and creation is allowed.
  * - Default security posture for ambiguous relationships is strict owner-only access.
  *
  * Denormalization for Authorization:
@@ -103,12 +103,13 @@ service cloud.firestore {
     
     /**
      * @description Manages the master exercise list. This collection is pre-populated and read-only for all users,
-     * but authenticated users can update the videoId.
+     * but authenticated users can update the videoId or create new exercises.
      * @path /exercises/{exerciseId}
      */
     match /exercises/{exerciseId} {
       allow get, list: if true;
-      allow create, delete: if false;
+      allow create: if isSignedIn();
+      allow delete: if false;
       allow update: if isSignedIn() && request.resource.data.keys().hasOnly(['videoId']); // Only allow updating videoId
     }
   }

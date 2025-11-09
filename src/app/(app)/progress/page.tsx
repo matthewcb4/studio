@@ -44,7 +44,6 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { format } from 'date-fns';
-import { exercises } from '@/lib/data';
 import type { ChartConfig } from '@/components/ui/chart';
 import {
   useCollection,
@@ -54,7 +53,7 @@ import {
   addDocumentNonBlocking,
 } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
-import type { WorkoutLog, ProgressLog } from '@/lib/types';
+import type { WorkoutLog, ProgressLog, Exercise } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import {
@@ -69,11 +68,24 @@ const weightLogSchema = z.object({
 });
 
 export default function ProgressPage() {
-  const [selectedExerciseId, setSelectedExerciseId] = useState(exercises[0].id);
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  
+  const exercisesQuery = useMemoFirebase(() => 
+      firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null,
+      [firestore]
+  );
+  const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
+  
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | undefined>(undefined);
   const [isSubmittingWeight, setIsSubmittingWeight] = useState(false);
+
+  useEffect(() => {
+    if (!selectedExerciseId && masterExercises && masterExercises.length > 0) {
+        setSelectedExerciseId(masterExercises[0].id);
+    }
+  }, [masterExercises, selectedExerciseId])
 
   const workoutLogsQuery = useMemoFirebase(
     () => {
@@ -164,7 +176,7 @@ export default function ProgressPage() {
     }));
   }, [progressLogs]);
 
-  const selectedExerciseName = exercises.find(
+  const selectedExerciseName = masterExercises?.find(
     (e) => e.id === selectedExerciseId
   )?.name;
 
@@ -182,7 +194,7 @@ export default function ProgressPage() {
     },
   } satisfies ChartConfig;
 
-  const isLoading = isLoadingWorkoutLogs || isLoadingProgressLogs;
+  const isLoading = isLoadingWorkoutLogs || isLoadingProgressLogs || isLoadingExercises;
 
   return (
     <div className="flex flex-col gap-8">
@@ -323,12 +335,13 @@ export default function ProgressPage() {
                   <Select
                     value={selectedExerciseId}
                     onValueChange={setSelectedExerciseId}
+                    disabled={isLoadingExercises || !masterExercises}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select an exercise" />
                     </SelectTrigger>
                     <SelectContent>
-                      {exercises.map((exercise) => (
+                      {masterExercises?.map((exercise) => (
                         <SelectItem key={exercise.id} value={exercise.id}>
                           {exercise.name}
                         </SelectItem>
@@ -404,5 +417,3 @@ export default function ProgressPage() {
     </div>
   );
 }
-
-    
