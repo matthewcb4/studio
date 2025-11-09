@@ -121,72 +121,16 @@ export default function SettingsPage() {
         </div>
       </div>
       
-      <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full space-y-4">
-        <AccordionItem value="item-1" className="border-none">
-          <Card>
-            <AccordionTrigger className="p-6 text-left">
-                <div>
-                    <CardTitle>My Equipment</CardTitle>
-                    <CardDescription className="mt-1.5">
-                        Add or remove the gym equipment you have access to. This will speed up workout generation.
-                    </CardDescription>
-                </div>
-            </AccordionTrigger>
-            <AccordionContent>
-                <CardContent className="space-y-6">
-                <Form {...equipmentForm}>
-                    <form onSubmit={equipmentForm.handleSubmit(onEquipmentSubmit)} className="flex gap-2">
-                    <FormField
-                        control={equipmentForm.control}
-                        name="name"
-                        render={({ field }) => (
-                        <FormItem className="flex-1">
-                            <FormControl>
-                            <Input placeholder="e.g., Barbell, Dumbbells, Tonal" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <Button type="submit" disabled={isSubmittingEquipment}>
-                        {isSubmittingEquipment ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                        <PlusCircle className="h-4 w-4" />
-                        )}
-                        <span className="ml-2 hidden sm:inline">Add</span>
-                    </Button>
-                    </form>
-                </Form>
-
-                <div className="space-y-2">
-                    {isLoadingEquipment && <p>Loading your equipment...</p>}
-                    {equipment && equipment.length > 0 ? (
-                    equipment.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                        <p className="font-medium">{item.name}</p>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                        </div>
-                    ))
-                    ) : (
-                    !isLoadingEquipment && <p className="text-sm text-muted-foreground text-center py-4">No equipment added yet.</p>
-                    )}
-                </div>
-                </CardContent>
-            </AccordionContent>
-          </Card>
-        </AccordionItem>
+      <Accordion type="multiple" defaultValue={[]} className="w-full space-y-4">
         <AccordionItem value="item-2" className="border-none">
-          <Card>
+            <Card>
             <AccordionTrigger className="p-6 text-left">
                 <div>
                     <div className="flex items-center gap-2">
-                      <Target className="w-6 h-6 text-primary" />
-                      <CardTitle>Fitness Goals</CardTitle>
+                        <Target className="w-6 h-6 text-primary" />
+                        <CardTitle>Fitness Goals</CardTitle>
                     </div>
-                    <CardDescription className="mt-1.5">Set your targets to help personalize your experience.</CardDescription>
+                    <CardDescription className="mt-1.5 text-left">Set your targets to help personalize your experience.</CardDescription>
                 </div>
             </AccordionTrigger>
             <AccordionContent>
@@ -278,7 +222,63 @@ export default function SettingsPage() {
                     </form>
                 </Form>
             </AccordionContent>
-          </Card>
+            </Card>
+        </AccordionItem>
+        <AccordionItem value="item-1" className="border-none">
+            <Card>
+            <AccordionTrigger className="p-6 text-left">
+                <div>
+                    <CardTitle>My Equipment</CardTitle>
+                    <CardDescription className="mt-1.5 text-left">
+                        Add or remove the gym equipment you have access to. This will speed up workout generation.
+                    </CardDescription>
+                </div>
+            </AccordionTrigger>
+            <AccordionContent>
+                <CardContent className="space-y-6">
+                <Form {...equipmentForm}>
+                    <form onSubmit={equipmentForm.handleSubmit(onEquipmentSubmit)} className="flex gap-2">
+                    <FormField
+                        control={equipmentForm.control}
+                        name="name"
+                        render={({ field }) => (
+                        <FormItem className="flex-1">
+                            <FormControl>
+                            <Input placeholder="e.g., Barbell, Dumbbells, Tonal" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <Button type="submit" disabled={isSubmittingEquipment}>
+                        {isSubmittingEquipment ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                        <PlusCircle className="h-4 w-4" />
+                        )}
+                        <span className="ml-2 hidden sm:inline">Add</span>
+                    </Button>
+                    </form>
+                </Form>
+
+                <div className="space-y-2">
+                    {isLoadingEquipment && <p>Loading your equipment...</p>}
+                    {equipment && equipment.length > 0 ? (
+                    equipment.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                        <p className="font-medium">{item.name}</p>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                        </div>
+                    ))
+                    ) : (
+                    !isLoadingEquipment && <p className="text-sm text-muted-foreground text-center py-4">No equipment added yet.</p>
+                    )}
+                </div>
+                </CardContent>
+            </AccordionContent>
+            </Card>
         </AccordionItem>
       </Accordion>
     </div>
