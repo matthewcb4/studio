@@ -53,6 +53,8 @@ import {
   setDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 function VideoSearchDialog({
   exerciseName,
@@ -78,9 +80,13 @@ function VideoSearchDialog({
       setIsLoading(false);
     }
   };
+  
+  React.useEffect(() => {
+    handleSearch();
+  }, []);
 
   return (
-    <DialogContent className="max-w-md md:max-w-4xl">
+    <DialogContent className="max-w-md md:max-w-3xl">
       <DialogHeader>
         <DialogTitle>Find Video for {exerciseName}</DialogTitle>
         <DialogDescription>
@@ -101,34 +107,30 @@ function VideoSearchDialog({
           )}
         </Button>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-1">
+        {isLoading &&
+          Array.from({ length: 8 }).map((_, i) => (
+             <div key={i} className="w-full aspect-[9/16] overflow-hidden rounded-lg">
+                <Skeleton className="h-full w-full" />
+            </div>
+          ))}
         {searchResults.map((video) => (
           <DialogClose key={video.videoId} asChild>
-            <div className="w-full aspect-[9/16] overflow-hidden rounded-lg group relative">
-                <button
-                onClick={() => onSelectVideo(video.videoId)}
-                className="w-full h-full"
-                >
+            <div 
+              className="w-full aspect-[9/16] overflow-hidden rounded-lg group relative cursor-pointer"
+              onClick={() => onSelectVideo(video.videoId)}
+            >
                 <img
                     src={video.thumbnailUrl}
                     alt={video.title}
-                    className="absolute top-0 left-0 w-full h-full object-cover"
+                    className="absolute top-0 left-0 w-full h-full object-cover transition-transform group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-white text-center text-xs p-1">{video.title}</p>
+                <div className="absolute inset-0 bg-black/50 flex items-end justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2">
+                    <p className="text-white text-center text-xs">{video.title}</p>
                 </div>
-                </button>
             </div>
           </DialogClose>
         ))}
-        {isLoading &&
-          Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="relative w-full rounded-lg bg-muted animate-pulse"
-              style={{ paddingBottom: '177.77%' }}
-            />
-          ))}
       </div>
     </DialogContent>
   );
@@ -445,3 +447,5 @@ export default function WorkoutsPage() {
     </div>
   );
 }
+
+    
