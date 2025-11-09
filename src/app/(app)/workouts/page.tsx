@@ -257,7 +257,7 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
                 </SheetClose>
                 <Button onClick={handleSave}>Save Workout</Button>
             </SheetFooter>
-             {selectedVideoExercise && (
+            {selectedVideoExercise && (
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{selectedVideoExercise}</DialogTitle>
