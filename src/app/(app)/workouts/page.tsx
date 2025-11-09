@@ -356,17 +356,6 @@ export default function WorkoutsPage() {
   ) => {
     if (!user || !workoutsCollection) return;
     
-    // This logic to update master exercises is now removed to simplify and avoid potential side effects.
-    // The user can manage videoId directly.
-    /*
-    (workoutData.exercises || []).forEach(exercise => {
-      if (exercise.videoId && exercise.exerciseId) {
-        const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
-        updateDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId });
-      }
-    });
-    */
-
     const dataToSave = { ...workoutData, userId: user.uid };
 
     if (editingWorkout) {
