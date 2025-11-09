@@ -40,7 +40,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Video, Loader2, Youtube } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Loader2, Youtube } from 'lucide-react';
 import { exercises as masterExercises } from '@/lib/data';
 import type { CustomWorkout, WorkoutExercise } from '@/lib/types';
 import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
@@ -74,7 +74,7 @@ function VideoSearchDialog({
       const result = await findExerciseVideo({ exerciseName });
       setVideoResults(result.videos);
     } catch (error) {
-      console.error('Failed to generate search URL:', error);
+      console.error('Failed to find videos:', error);
     } finally {
       setIsLoading(false);
     }
