@@ -55,4 +55,9 @@ export type UserProfile = {
     fatLossGoal?: string;
 }
 
-    
+export type ProgressLog = {
+  id: string;
+  userId: string;
+  date: string; // ISO string
+  weight: number;
+};

@@ -11,6 +11,7 @@
  * - /users/{userId}: Stores user identity. Only the authenticated user can read/write their own identity doc.
  * - /users/{userId}/profile/{profileId}: Stores user settings & goals. Owner-only access.
  * - /users/{userId}/equipment/{equipmentId}: Stores user's equipment list. Owner-only access.
+ * - /users/{userId}/progressLogs/{progressLogId}: Stores user's progress data (e.g. weight). Owner-only access.
  * - /exercises/{exerciseId}: Stores master exercise data. Publicly readable, but authenticated users can update video links.
  * - /users/{userId}/customWorkouts/{customWorkoutId}: Stores custom workouts. Only the owning user can read/write.
  * - /users/{userId}/workoutLogs/{workoutLogId}: Stores workout logs. Only the owning user can read/write.
@@ -21,7 +22,7 @@
  * - Default security posture for ambiguous relationships is strict owner-only access.
  *
  * Denormalization for Authorization:
- * - The 'userId' is stored within CustomWorkout, WorkoutLog, and UserEquipment documents to eliminate `get()` calls in security rules.
+ * - The 'userId' is stored within CustomWorkout, WorkoutLog, UserEquipment and ProgressLog documents to eliminate `get()` calls in security rules.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -52,8 +53,7 @@ service cloud.firestore {
        * @path /users/{userId}/profile/{profileId}
        */
       match /profile/{profileId} {
-        allow get, list, create, update: if isOwner(userId);
-        allow delete: if isOwner(userId);
+        allow get, list, create, update, delete: if isOwner(userId);
       }
 
       /**
@@ -64,6 +64,17 @@ service cloud.firestore {
         allow get, list: if isOwner(userId);
         allow create: if isOwner(userId) && request.resource.data.keys().hasAll(['name']);
         allow update: if isOwner(userId); // Can update name
+        allow delete: if isOwner(userId);
+      }
+
+      /**
+       * @description Manages user progress entries like body weight.
+       * @path /users/{userId}/progressLogs/{progressLogId}
+       */
+      match /progressLogs/{progressLogId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; //Immutable user ID
         allow delete: if isOwner(userId);
       }
 

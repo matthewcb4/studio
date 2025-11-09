@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -26,10 +27,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format, startOfWeek, isWithinInterval } from "date-fns";
-import { useCollection, useUser, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit } from "firebase/firestore";
-import type { CustomWorkout, WorkoutLog } from "@/lib/types";
-import { Dumbbell } from "lucide-react";
+import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, query, orderBy, limit, doc } from "firebase/firestore";
+import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
+import { Dumbbell, Target, TrendingDown, TrendingUp } from "lucide-react";
 
 const parseDuration = (duration: string): number => {
     const parts = duration.split(':');
@@ -39,6 +40,101 @@ const parseDuration = (duration: string): number => {
     }
     return 0;
 };
+
+function ProgressSummaryCard() {
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    const userProfileRef = useMemoFirebase(() => 
+        user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+    , [firestore, user]);
+    const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+
+    const progressLogsQuery = useMemoFirebase(() => 
+        user ? query(collection(firestore, `users/${user.uid}/progressLogs`), orderBy("date", "desc"), limit(1)) : null
+    , [firestore, user]);
+    const { data: latestProgress, isLoading: isLoadingProgress } = useCollection<ProgressLog>(progressLogsQuery);
+
+    const isLoading = isLoadingProfile || isLoadingProgress;
+    const currentWeight = latestProgress?.[0]?.weight;
+    const targetWeight = userProfile?.targetWeight;
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Progress Summary</CardTitle>
+                    <CardDescription>Loading your progress...</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-sm text-muted-foreground">Calculating...</div>
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    if (!targetWeight) {
+         return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Set Your Goal</CardTitle>
+                    <CardDescription>Add a target weight in settings to see your progress.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/settings">Go to Settings</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    if (!currentWeight) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Log Your Weight</CardTitle>
+                    <CardDescription>Log your weight on the progress page to see your status.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/progress">Log Progress</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    const diff = Math.round((currentWeight - targetWeight) * 10) / 10;
+    const isAbove = diff > 0;
+    const isAtGoal = diff === 0;
+
+    let message;
+    if (isAtGoal) {
+        message = "You've hit your target weight. Amazing work!";
+    } else if (isAbove) {
+        message = `You are ${diff} lbs above your target. Keep pushing!`;
+    } else {
+        message = `You are ${Math.abs(diff)} lbs away from your target. You're getting closer!`;
+    }
+
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Progress to Goal</CardTitle>
+                <CardDescription>Your journey to {targetWeight} lbs</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                   {isAtGoal ? <Target className="w-8 h-8 text-green-500"/> : isAbove ? <TrendingDown className="w-8 h-8 text-yellow-500" /> : <TrendingUp className="w-8 h-8 text-blue-500" />}
+                    <div className="text-3xl font-bold">{currentWeight} <span className="text-lg text-muted-foreground">lbs</span></div>
+                </div>
+                <p className="text-sm text-muted-foreground">{message}</p>
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -114,6 +210,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         
+        <ProgressSummaryCard />
+        
         {hasData ? (
           <>
             <Card>
@@ -134,21 +232,12 @@ export default function DashboardPage() {
                     <div className="text-4xl font-bold">{weeklyStats.workouts}</div>
                 </CardContent>
             </Card>
-            <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle>Time Spent</CardTitle>
-                    <CardDescription>This week</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-4xl font-bold">{weeklyStats.time} min</div>
-                </CardContent>
-            </Card>
           </>
         ) : (
-          <Card className="sm:col-span-1 md:col-span-3 lg:col-span-1 xl:col-span-3 flex flex-col items-center justify-center p-6">
+          <Card className="sm:col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-2 flex flex-col items-center justify-center p-6">
             <CardHeader className="text-center">
               <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
-              <CardTitle className="mt-4">No Data Yet</CardTitle>
+              <CardTitle className="mt-4">No Workout Data Yet</CardTitle>
               <CardDescription>
                 Complete your first workout to see your stats here.
               </CardDescription>
