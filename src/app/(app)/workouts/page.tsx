@@ -37,6 +37,7 @@ import {
   DialogTitle,
   DialogClose,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { PlusCircle, Trash2, Edit, Video, Loader2, Youtube } from 'lucide-react';
 import { exercises as masterExercises } from '@/lib/data';
