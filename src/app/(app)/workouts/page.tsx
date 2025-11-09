@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -18,7 +19,7 @@ import {
   SheetTitle,
   SheetFooter,
   SheetClose,
-  SheetTrigger,
+  SheetTrigger
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,7 +43,7 @@ import {
 import { PlusCircle, Trash2, Edit, Video, Loader2, Youtube } from 'lucide-react';
 import { exercises as masterExercises } from '@/lib/data';
 import type { CustomWorkout, WorkoutExercise } from '@/lib/types';
-import { findExerciseVideo } from '@/ai/flows/find-exercise-video-flow';
+import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import {
   useCollection,
   useUser,
@@ -53,22 +54,25 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-function VideoSearchButton({
+function VideoSearchDialog({
   exerciseName,
   onSelectVideo,
 }: {
   exerciseName: string;
-  onSelectVideo: (videoId: string) => void; // This remains for attaching a specific ID
+  onSelectVideo: (videoId: string) => void;
 }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [videoResults, setVideoResults] = useState<FindExerciseVideoOutput['videos']>([]);
 
   const handleSearchClick = async () => {
     if (!exerciseName) return;
     setIsLoading(true);
+    setVideoResults([]);
     try {
       const result = await findExerciseVideo({ exerciseName });
-      window.open(result.searchUrl, '_blank');
+      setVideoResults(result.videos);
     } catch (error) {
       console.error('Failed to generate search URL:', error);
     } finally {
@@ -77,14 +81,55 @@ function VideoSearchButton({
   };
 
   return (
-    <Button onClick={handleSearchClick} variant="outline" size="sm" disabled={isLoading || !exerciseName}>
-      {isLoading ? (
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-      ) : (
-        <Youtube className="h-4 w-4 mr-2" />
-      )}
-      Search Video
-    </Button>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button onClick={handleSearchClick} variant="outline" size="sm" disabled={!exerciseName}>
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Youtube className="h-4 w-4 mr-2" />
+          )}
+          Find Video
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Find Video for: {exerciseName}</DialogTitle>
+          <DialogDescription>
+            Select a video below to link it to this exercise.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-1">
+          {isLoading &&
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-auto w-full aspect-[9/16]" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+            ))}
+          {videoResults.map((video) => (
+            <DialogClose key={video.videoId} asChild>
+              <button
+                className="group relative text-left"
+                onClick={() => onSelectVideo(video.videoId)}
+              >
+                <div className="overflow-hidden rounded-lg relative">
+                    <Image
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        width={240}
+                        height={426}
+                        className="aspect-[9/16] w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                </div>
+                <p className="text-xs font-medium mt-1 truncate">{video.title}</p>
+              </button>
+            </DialogClose>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -122,7 +167,7 @@ function WorkoutForm({
       if (selectedExercise) {
         exercise.exerciseId = selectedExercise.id;
         exercise.exerciseName = selectedExercise.name;
-        exercise.videoId = selectedExercise.videoId || null;
+        // Do not automatically set videoId from master list to allow user-specific choices
       }
     } else {
       (exercise[field] as any) = value;
@@ -184,7 +229,10 @@ function WorkoutForm({
               >
                 <div className="flex justify-between items-center">
                   <Label>Exercise {index + 1}</Label>
-                  <VideoSearchButton exerciseName={ex.exerciseName} onSelectVideo={(videoId) => handleVideoIdUpdate(index, videoId)} />
+                  <VideoSearchDialog
+                    exerciseName={ex.exerciseName}
+                    onSelectVideo={(videoId) => handleVideoIdUpdate(index, videoId)}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
@@ -238,17 +286,17 @@ function WorkoutForm({
                     </Button>
                   </div>
                 </div>
-                 { ex.videoId && (
-                  <div className="text-xs text-muted-foreground pt-2">
-                    Linked Video ID: {ex.videoId} (You can paste a new ID here)
-                    <Input 
-                      className="mt-1 h-7 text-xs"
-                      placeholder="Paste 11-character YouTube ID"
-                      value={ex.videoId}
-                      onChange={(e) => updateExercise(index, 'videoId', e.target.value)}
-                    />
-                  </div>
-                )}
+                 
+                <div className="text-xs text-muted-foreground pt-2">
+                  <Label className="text-xs">Linked Video ID (11 characters)</Label>
+                  <Input 
+                    className="mt-1 h-7 text-xs"
+                    placeholder="Paste YouTube ID or use Find Video"
+                    value={ex.videoId || ''}
+                    onChange={(e) => updateExercise(index, 'videoId', e.target.value)}
+                    maxLength={11}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -304,11 +352,15 @@ export default function WorkoutsPage() {
   const handleSaveWorkout = (workoutData: Omit<CustomWorkout, 'id' | 'userId'>) => {
     if (!user || !workoutsCollection) return;
   
-    // Update the master exercise list with new video IDs
+    // Update the master exercise list with new video IDs if they have changed
     workoutData.exercises.forEach(exercise => {
       if (exercise.videoId && exercise.exerciseId) {
-        const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
-        updateDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId });
+        // Find the original workout being edited to see if videoId is new
+        const originalExercise = editingWorkout?.exercises.find(e => e.exerciseId === exercise.exerciseId);
+        if (!originalExercise || originalExercise.videoId !== exercise.videoId) {
+           const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
+           updateDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId });
+        }
       }
     });
 
