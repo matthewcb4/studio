@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Bot, Wand2, Loader2, Dumbbell } from 'lucide-react';
+import { Bot, Wand2, Loader2, Dumbbell, PlusCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -13,11 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment } from '@/lib/types';
@@ -32,12 +32,15 @@ const formSchema = z.object({
   focusArea: z.string().min(1, { message: 'Please select a focus area.' }),
 });
 
+const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
+
 export default function GuidePage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const equipmentCollection = useMemoFirebase(() => 
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -77,12 +80,7 @@ export default function GuidePage() {
         ...values,
         fitnessGoals: [values.fitnessGoals], 
       });
-      // We will add the display for this in the next step.
-      setGeneratedWorkout(result); 
-      toast({
-          title: "Workout Generated!",
-          description: "Your new workout plan is ready.",
-      });
+      setGeneratedWorkout(result);
     } catch (error) {
       console.error('Failed to generate workout:', error);
       toast({
@@ -94,6 +92,46 @@ export default function GuidePage() {
       setIsLoading(false);
     }
   }
+
+    const handleSaveWorkout = async () => {
+    if (!generatedWorkout || !user || !firestore) return;
+
+    setIsSaving(true);
+    try {
+        const workoutData = {
+            userId: user.uid,
+            name: generatedWorkout.workoutName,
+            exercises: generatedWorkout.exercises.map(ex => ({
+                    id: generateUniqueId(),
+                    // The AI doesn't know the master ID, so we use the name to find a match.
+                    // This is a simplification; a real app might need a smarter mapping.
+                    exerciseId: ex.name,
+                    exerciseName: ex.name,
+                    sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
+                    reps: ex.reps,
+                    videoId: null,
+                    supersetId: generateUniqueId(), // Each exercise is its own group for simplicity
+            })),
+        };
+
+        const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
+        await addDocumentNonBlocking(workoutsCollection, workoutData);
+
+        toast({
+            title: "Workout Saved!",
+            description: `"${generatedWorkout.workoutName}" has been added to your workouts.`,
+        });
+    } catch (error) {
+        console.error("Failed to save workout:", error);
+        toast({
+            variant: "destructive",
+            title: "Save Failed",
+            description: "There was a problem saving your workout. Please try again.",
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
   
   return (
     <div className="flex flex-col gap-8">
@@ -285,11 +323,68 @@ export default function GuidePage() {
         </Card>
 
         <div className="lg:col-span-2">
-            <div className="flex flex-col items-center justify-center h-full gap-4 p-8 border-2 border-dashed rounded-lg">
-                <Dumbbell className="w-12 h-12 text-muted-foreground" />
-                <h2 className="text-xl font-semibold">Your Workout Plan Awaits</h2>
-                <p className="text-muted-foreground text-center">Fill out your preferences and the AI will generate a plan here.</p>
-            </div>
+            {isLoading && (
+                <div className="flex flex-col items-center justify-center h-full gap-4 p-8 border-2 border-dashed rounded-lg">
+                    <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                    <h2 className="text-xl font-semibold">Crafting your workout...</h2>
+                    <p className="text-muted-foreground text-center">The AI is warming up and building your personalized plan.</p>
+                </div>
+            )}
+
+            {!isLoading && !generatedWorkout && (
+                <div className="flex flex-col items-center justify-center h-full gap-4 p-8 border-2 border-dashed rounded-lg">
+                    <Dumbbell className="w-12 h-12 text-muted-foreground" />
+                    <h2 className="text-xl font-semibold">Your Workout Plan Awaits</h2>
+                    <p className="text-muted-foreground text-center">Fill out your preferences and the AI will generate a plan here.</p>
+                </div>
+            )}
+
+            {generatedWorkout && (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">{generatedWorkout.workoutName}</CardTitle>
+                        <CardDescription>{generatedWorkout.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {generatedWorkout.exercises.map((ex, index) => (
+                            <div key={index} className="p-4 border rounded-lg bg-secondary/50">
+                                <div className="flex justify-between items-center">
+                                  <h4 className="font-semibold text-lg text-primary">{ex.name}</h4>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
+                                    <div>
+                                        <p className="text-muted-foreground">Sets</p>
+                                        <p className="font-medium">{ex.sets}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground">Reps</p>
+                                        <p className="font-medium">{ex.reps}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground">Rest</p>
+                                        <p className="font-medium">{ex.rest}s</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                    <CardFooter>
+                        <Button className="w-full" onClick={handleSaveWorkout} disabled={isSaving}>
+                          {isSaving ? (
+                              <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Saving...
+                              </>
+                          ) : (
+                              <>
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Save this workout
+                              </>
+                          )}
+                        </Button>
+                    </CardFooter>
+                 </Card>
+            )}
         </div>
       </div>
     </div>
