@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { CheckCircle, ArrowLeft, Timer, ChevronRight, Check, Video } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Timer, ChevronRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,13 +22,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useDoc, useUser, useFirestore, addDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc, collection } from "firebase/firestore";
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
     return (
-      <div className="aspect-video w-full">
+      <div className="aspect-[9/16] w-full max-w-sm mx-auto">
         <iframe
           src={`https://www.youtube.com/embed/${videoId}`}
           title="YouTube video player"
@@ -225,21 +225,6 @@ export default function WorkoutSessionPage() {
                 Set {currentSet} of {currentExercise.sets} &bull; Goal: {currentExercise.reps} reps
               </CardDescription>
             </div>
-            {currentExercise.videoId && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Video className="h-5 w-5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-xl">
-                  <DialogHeader>
-                    <DialogTitle>{currentExercise.exerciseName}</DialogTitle>
-                  </DialogHeader>
-                  <YouTubeEmbed videoId={currentExercise.videoId} />
-                </DialogContent>
-              </Dialog>
-            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -259,6 +244,13 @@ export default function WorkoutSessionPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {currentExercise.videoId && (
+        <div className="space-y-4">
+            <h3 className="text-center font-semibold text-muted-foreground">Exercise Demo</h3>
+            <YouTubeEmbed videoId={currentExercise.videoId} />
+        </div>
+      )}
         
       {sessionLog[currentExercise.exerciseId] && (
         <Card>
@@ -282,4 +274,5 @@ export default function WorkoutSessionPage() {
       )}
     </div>
   );
-}
+
+    
