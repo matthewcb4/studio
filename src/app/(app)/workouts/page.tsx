@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -103,7 +104,7 @@ function VideoSearchDialog({
           {isLoading &&
             Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="space-y-2">
-                <Skeleton className="h-auto w-full aspect-[9/16]" />
+                <Skeleton className="h-[213px] w-full" />
                 <Skeleton className="h-4 w-5/6" />
               </div>
             ))}
@@ -140,7 +141,7 @@ function WorkoutForm({
   onCancel,
 }: {
   workout: CustomWorkout | null;
-  onSave: (workout: Omit<CustomWorkout, 'id'>) => void;
+  onSave: (workout: Omit<CustomWorkout, 'id' | 'userId'>) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(workout?.name || '');
