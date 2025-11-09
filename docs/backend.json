@@ -23,7 +23,8 @@
             "targetWeight": { "type": "number", "description": "User's target body weight in lbs." },
             "strengthGoal": { "type": "string", "description": "User's primary strength goal." },
             "muscleGoal": { "type": "string", "description": "User's primary muscle gain goal." },
-            "fatLossGoal": { "type": "string", "description": "User's primary fat loss goal." }
+            "fatLossGoal": { "type": "string", "description": "User's primary fat loss goal." },
+            "biologicalSex": { "type": "string", "enum": ["Male", "Female"], "description": "User's biological sex to determine body outline for heatmap." }
         },
         "required": ["id"]
     },

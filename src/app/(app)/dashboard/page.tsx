@@ -26,11 +26,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format, startOfWeek, isWithinInterval } from "date-fns";
+import { format, startOfWeek, isWithinInterval, subDays } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { MuscleHeatmap } from "@/components/muscle-heatmap";
 
 const parseDuration = (duration: string): number => {
     const parts = duration.split(':');
@@ -180,110 +181,116 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Start Workout</CardTitle>
-            <CardDescription>
-              Select one of your custom workouts to begin a session.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              <Select onValueChange={setSelectedWorkoutId} disabled={isLoadingWorkouts}>
-                <SelectTrigger>
-                  <SelectValue placeholder={isLoadingWorkouts ? "Loading..." : "Select a workout"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {customWorkouts?.map((workout) => (
-                    <SelectItem key={workout.id} value={workout.id}>
-                      {workout.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button asChild disabled={!selectedWorkoutId}>
-                <Link href={selectedWorkoutId ? `/workout/${selectedWorkoutId}` : '#'}>Start Session</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <ProgressSummaryCard />
-        
-        {hasData ? (
-          <>
+    <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:grid-cols-3">
+      <div className="grid gap-4 lg:col-span-2">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle>Total Volume</CardTitle>
-                    <CardDescription>This week</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-4xl font-bold">{weeklyStats.volume.toLocaleString()} lbs</div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle>Workouts</CardTitle>
-                    <CardDescription>This week</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-4xl font-bold">{weeklyStats.workouts}</div>
-                </CardContent>
-            </Card>
-          </>
-        ) : (
-          <Card className="sm:col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-2 flex flex-col items-center justify-center p-6">
-            <CardHeader className="text-center">
-              <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
-              <CardTitle className="mt-4">No Workout Data Yet</CardTitle>
-              <CardDescription>
-                Complete your first workout to see your stats here.
-              </CardDescription>
+            <CardHeader>
+                <CardTitle>Start Workout</CardTitle>
+                <CardDescription>
+                Select one of your custom workouts to begin a session.
+                </CardDescription>
             </CardHeader>
-          </Card>
-        )}
+            <CardContent>
+                <div className="flex flex-col gap-4">
+                <Select onValueChange={setSelectedWorkoutId} disabled={isLoadingWorkouts}>
+                    <SelectTrigger>
+                    <SelectValue placeholder={isLoadingWorkouts ? "Loading..." : "Select a workout"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                    {customWorkouts?.map((workout) => (
+                        <SelectItem key={workout.id} value={workout.id}>
+                        {workout.name}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <Button asChild disabled={!selectedWorkoutId}>
+                    <Link href={selectedWorkoutId ? `/workout/${selectedWorkoutId}` : '#'}>Start Session</Link>
+                </Button>
+                </div>
+            </CardContent>
+            </Card>
+            
+            <ProgressSummaryCard />
+            
+            {hasData ? (
+            <>
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle>Total Volume</CardTitle>
+                        <CardDescription>This week</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-4xl font-bold">{weeklyStats.volume.toLocaleString()} lbs</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle>Workouts</CardTitle>
+                        <CardDescription>This week</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-4xl font-bold">{weeklyStats.workouts}</div>
+                    </CardContent>
+                </Card>
+            </>
+            ) : (
+            <Card className="sm:col-span-1 md:col-span-2 flex flex-col items-center justify-center p-6">
+                <CardHeader className="text-center">
+                <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
+                <CardTitle className="mt-4">No Workout Data Yet</CardTitle>
+                <CardDescription>
+                    Complete your first workout to see your stats here.
+                </CardDescription>
+                </CardHeader>
+            </Card>
+            )}
+        </div>
+        <Card>
+            <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+                A log of your most recent workouts.
+            </CardDescription>
+            </CardHeader>
+            <CardContent>
+            <Table>
+                <TableHeader>
+                <TableRow>
+                    <TableHead>Workout</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date</TableHead>
+                    <TableHead className="hidden sm:table-cell">Duration</TableHead>
+                    <TableHead className="text-right">Total Volume</TableHead>
+                </TableRow>
+                </TableHeader>
+                <TableBody>
+                {isLoadingLogs && <TableRow><TableCell colSpan={4} className="text-center">Loading recent activity...</TableCell></TableRow>}
+                {!isLoadingLogs && recentLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No recent workouts found.</TableCell></TableRow>}
+                {recentLogs.map((log) => (
+                    <TableRow key={log.id}>
+                    <TableCell>
+                        <div className="font-medium">{log.workoutName}</div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                        {format(new Date(log.date), "PPP")}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                        {log.duration}
+                    </TableCell>
+                    <TableCell className="text-right">{log.volume.toLocaleString()} lbs</TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+            </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>
-            A log of your most recent workouts.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Workout</TableHead>
-                <TableHead className="hidden sm:table-cell">Date</TableHead>
-                <TableHead className="hidden sm:table-cell">Duration</TableHead>
-                <TableHead className="text-right">Total Volume</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoadingLogs && <TableRow><TableCell colSpan={4} className="text-center">Loading recent activity...</TableCell></TableRow>}
-              {!isLoadingLogs && recentLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No recent workouts found.</TableCell></TableRow>}
-              {recentLogs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell>
-                    <div className="font-medium">{log.workoutName}</div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    {format(new Date(log.date), "PPP")}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    {log.duration}
-                  </TableCell>
-                  <TableCell className="text-right">{log.volume.toLocaleString()} lbs</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+       <div className="grid gap-4 auto-rows-max lg:col-span-1">
+           <MuscleHeatmap />
+       </div>
+
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Loader2, Settings, Target, Database } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ const goalsFormSchema = z.object({
     strengthGoal: z.string().optional(),
     muscleGoal: z.string().optional(),
     fatLossGoal: z.string().optional(),
+    biologicalSex: z.enum(['Male', 'Female']).optional(),
 });
 
 
@@ -62,6 +63,7 @@ export default function SettingsPage() {
         strengthGoal: '',
         muscleGoal: '',
         fatLossGoal: '',
+        biologicalSex: undefined,
     },
   });
 
@@ -72,6 +74,7 @@ export default function SettingsPage() {
             strengthGoal: userProfile.strengthGoal,
             muscleGoal: userProfile.muscleGoal,
             fatLossGoal: userProfile.fatLossGoal,
+            biologicalSex: userProfile.biologicalSex,
         });
     }
   }, [userProfile, goalsForm]);
@@ -96,10 +99,10 @@ export default function SettingsPage() {
     setIsSubmittingGoals(true);
     try {
       await setDocumentNonBlocking(userProfileRef, { ...values, id: user?.uid }, { merge: true });
-      toast({ title: 'Success', description: 'Your fitness goals have been updated.' });
+      toast({ title: 'Success', description: 'Your profile has been updated.' });
     } catch (error) {
         console.error("Error updating goals:", error);
-        toast({ title: 'Error', description: 'Failed to update goals.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to update profile.', variant: 'destructive' });
     } finally {
         setIsSubmittingGoals(false);
     }
@@ -246,6 +249,55 @@ export default function SettingsPage() {
                             <Button type="submit" disabled={isSubmittingGoals}>
                                 {isSubmittingGoals ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                 Save Goals
+                            </Button>
+                        </CardFooter>
+                    </form>
+                </Form>
+            </AccordionContent>
+            </Card>
+        </AccordionItem>
+        <AccordionItem value="profile" className="border-none">
+            <Card>
+            <AccordionTrigger className="p-6 text-left">
+                <div className="flex items-center gap-3">
+                    <UserIcon className="w-6 h-6 text-primary" />
+                    <div>
+                        <CardTitle>User Profile</CardTitle>
+                        <CardDescription className="mt-1.5 text-left">Set your user-specific information.</CardDescription>
+                    </div>
+                </div>
+            </AccordionTrigger>
+            <AccordionContent>
+                <Form {...goalsForm}>
+                    <form onSubmit={goalsForm.handleSubmit(onGoalsSubmit)}>
+                        <CardContent className="space-y-4">
+                            {isLoadingProfile && <p>Loading profile...</p>}
+                            {!isLoadingProfile && (
+                                <FormField
+                                    control={goalsForm.control}
+                                    name="biologicalSex"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Body Type for Heatmap</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger><SelectValue placeholder="Select a body type" /></SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="Male">Male</SelectItem>
+                                                <SelectItem value="Female">Female</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                            )}
+                        </CardContent>
+                        <CardFooter>
+                            <Button type="submit" disabled={isSubmittingGoals}>
+                                {isSubmittingGoals ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                Save Profile
                             </Button>
                         </CardFooter>
                     </form>

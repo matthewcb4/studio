@@ -53,6 +53,7 @@ export type UserProfile = {
     strengthGoal?: string;
     muscleGoal?: string;
     fatLossGoal?: string;
+    biologicalSex?: 'Male' | 'Female';
 }
 
 export type ProgressLog = {
