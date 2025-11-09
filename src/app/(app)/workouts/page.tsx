@@ -39,6 +39,7 @@ import {
   DialogTitle,
   DialogClose,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { PlusCircle, Trash2, Edit, Youtube, Layers } from 'lucide-react';
 import { exercises as masterExercises } from '@/lib/data';
@@ -312,7 +313,7 @@ export default function WorkoutsPage() {
     if (!user || !workoutsCollection) return;
     
     // Flatten exercises to update master list videoIds
-    const allExercises = workoutData.exerciseGroups.flat();
+    const allExercises = (workoutData.exerciseGroups || []).flat();
     allExercises.forEach(exercise => {
       if (exercise.videoId && exercise.exerciseId) {
         const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
@@ -373,12 +374,12 @@ export default function WorkoutsPage() {
             <CardHeader>
               <CardTitle>{workout.name}</CardTitle>
               <CardDescription>
-                {workout.exerciseGroups.flat().length} exercises in {workout.exerciseGroups.length} groups
+                {workout.exerciseGroups ? `${workout.exerciseGroups.flat().length} exercises in ${workout.exerciseGroups.length} groups` : '0 exercises'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {workout.exerciseGroups.map((group, groupIndex) => (
+                {workout.exerciseGroups?.map((group, groupIndex) => (
                   <div key={groupIndex} className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">
                       {group.length > 1 ? `Superset ${groupIndex + 1}` : `Group ${groupIndex + 1}`}
@@ -446,3 +447,5 @@ export default function WorkoutsPage() {
     </div>
   );
 }
+
+    
