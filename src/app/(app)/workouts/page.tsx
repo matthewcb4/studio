@@ -18,7 +18,6 @@ import {
   SheetTitle,
   SheetFooter,
   SheetClose,
-  SheetTrigger,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -106,12 +105,13 @@ function VideoSearchDialog({
           <DialogClose key={video.videoId} asChild>
             <button
               onClick={() => onSelectVideo(video.videoId)}
-              className="relative aspect-[9/16] rounded-lg overflow-hidden group"
+              className="relative w-full overflow-hidden rounded-lg group"
+              style={{ paddingBottom: '177.77%' /* 9:16 Aspect Ratio */ }}
             >
               <img
                 src={video.thumbnailUrl}
                 alt={video.title}
-                className="w-full h-full object-cover"
+                className="absolute top-0 left-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <p className="text-white text-center text-xs p-1">{video.title}</p>
@@ -123,7 +123,8 @@ function VideoSearchDialog({
           Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="relative aspect-[9/16] rounded-lg bg-muted animate-pulse"
+              className="relative w-full rounded-lg bg-muted animate-pulse"
+              style={{ paddingBottom: '177.77%' }}
             />
           ))}
       </div>
@@ -442,3 +443,5 @@ export default function WorkoutsPage() {
     </div>
   );
 }
+
+    
