@@ -273,7 +273,14 @@ export default function GuidePage() {
                                 <SelectItem value="Full Body">Full Body</SelectItem>
                                 <SelectItem value="Upper Body">Upper Body</SelectItem>
                                 <SelectItem value="Lower Body">Lower Body</SelectItem>
+                                <SelectItem value="Arms">Arms</SelectItem>
+                                <SelectItem value="Back">Back</SelectItem>
+                                <SelectItem value="Biceps">Biceps</SelectItem>
+                                <SelectItem value="Chest">Chest</SelectItem>
                                 <SelectItem value="Core">Core</SelectItem>
+                                <SelectItem value="Legs">Legs</SelectItem>
+                                <SelectItem value="Shoulders">Shoulders</SelectItem>
+                                <SelectItem value="Triceps">Triceps</SelectItem>
                             </SelectContent>
                             </Select>
                             <FormMessage />
@@ -416,7 +423,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
-
-    

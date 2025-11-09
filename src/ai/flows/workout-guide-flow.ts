@@ -16,7 +16,7 @@ const GenerateWorkoutInputSchema = z.object({
   fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals."),
   fitnessLevel: z.string().describe("The user's current fitness level (e.g., beginner, intermediate, advanced)."),
   workoutDuration: z.number().describe("The desired workout duration in minutes."),
-  focusArea: z.string().describe("The primary muscle group or area to focus on (e.g., Full Body, Upper Body, Lower Body, Core)."),
+  focusArea: z.string().describe("The primary muscle group or area to focus on (e.g., Full Body, Upper Body, Lower Body, Core, Arms, Legs, Chest, Back, Shoulders)."),
   focusOnSupersets: z.boolean().describe("Whether to create supersets focusing on the chosen muscle group.")
 });
 export type GenerateWorkoutInput = z.infer<typeof GenerateWorkoutInputSchema>;
@@ -54,10 +54,13 @@ const prompt = ai.definePrompt({
   
   Generate a complete workout routine including a workout name, a short description, and a list of exercises.
   
-  IMPORTANT: You can group exercises into supersets. A superset consists of two exercises performed back-to-back with no rest in between. To create a superset, assign the same 'supersetId' (e.g., "superset_1") to both exercises. For exercises that are not in a superset, assign a unique 'supersetId' (e.g., "group_1", "group_2"). Ensure every exercise has a supersetId.
+  IMPORTANT: You MUST group exercises into supersets or individual groups. A superset consists of two exercises performed back-to-back with no rest in between. 
+  To create a superset, assign the same 'supersetId' (e.g., "superset_1") to two exercises. 
+  For exercises that are not in a superset, assign a unique 'supersetId' that is not shared with any other exercise (e.g., "group_1", "group_2"). 
+  Ensure EVERY exercise has a 'supersetId' field.
 
   {{#if focusOnSupersets}}
-  When creating supersets, prioritize grouping exercises that target the specified focus area: {{{focusArea}}}. For example, if the focus is "Upper Body", you could superset a chest press with a row.
+  The user wants to focus on supersets for the chosen muscle group. Create at least one superset that targets the specified focus area: {{{focusArea}}}. For example, if the focus is "Chest", you could superset a Bench Press with a Chest Fly.
   {{/if}}
 
   The workout should be effective and safe. Only use the equipment specified by the user. The total workout time should be close to the desired duration.
@@ -82,5 +85,3 @@ const workoutGuideFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
