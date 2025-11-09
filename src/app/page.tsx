@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/logo";
-import { useAuth, initiateEmailSignIn, useUser } from "@/firebase";
+import { useAuth, initiateEmailSignIn, initiateGoogleSignIn, useUser } from "@/firebase";
 import { useEffect } from "react";
 
 const formSchema = z.object({
@@ -51,9 +51,7 @@ export default function LoginPage() {
   }
 
   function onGoogleSignIn() {
-    // Mock Google Sign-In logic
-    console.log("Signing in with Google");
-    router.push("/dashboard");
+    initiateGoogleSignIn(auth);
   }
 
   if (isUserLoading || user) {

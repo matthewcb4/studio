@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/logo";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, initiateEmailSignUp, useUser, setDocumentNonBlocking } from "@/firebase";
+import { useAuth, initiateEmailSignUp, initiateGoogleSignIn, useUser, setDocumentNonBlocking } from "@/firebase";
 import { useEffect } from "react";
 import { doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
@@ -55,7 +55,7 @@ export default function SignupPage() {
       setDocumentNonBlocking(userRef, {
         id: user.uid,
         email: user.email,
-        displayName: form.getValues('name') || user.email,
+        displayName: form.getValues('name') || user.displayName || user.email,
       }, { merge: true });
 
       toast({
@@ -72,9 +72,7 @@ export default function SignupPage() {
   }
 
   function onGoogleSignIn() {
-    // Mock Google Sign-In logic
-    console.log("Signing up with Google");
-    router.push("/dashboard");
+    initiateGoogleSignIn(auth);
   }
 
   return (
