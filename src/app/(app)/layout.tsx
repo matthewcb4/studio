@@ -8,6 +8,7 @@ import {
   BarChart3,
   History,
   Menu,
+  Bot,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/workouts", icon: Dumbbell, label: "Workouts" },
   { href: "/history", icon: History, label: "History" },
   { href: "/progress", icon: BarChart3, label: "Progress" },
+  { href: "/guide", icon: Bot, label: "AI Guide" },
 ];
 
 function UserNav() {
@@ -120,7 +122,7 @@ function MobileNav() {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col">
+      <div className="min-h-screen w-full flex flex-col md:flex-row">
         <Sidebar collapsible="icon" className="hidden md:flex">
           <SidebarHeader>
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2">
@@ -136,7 +138,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex flex-col md:ml-[var(--sidebar-width-icon)] group-data-[state=expanded]:md:ml-[var(--sidebar-width)] transition-[margin-left] duration-200">
+        <div className="flex flex-col flex-1">
           <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
             <MobileNav />
             <div className="w-full flex-1">
