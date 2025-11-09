@@ -51,7 +51,6 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
   useMemoFirebase,
-  setDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -354,8 +353,7 @@ export default function WorkoutsPage() {
     workoutData.exercises.forEach(exercise => {
       if (exercise.videoId && exercise.exerciseId) {
         const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
-        // We use set with merge to not overwrite the whole document
-        setDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId }, { merge: true });
+        updateDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId });
       }
     });
 
@@ -475,3 +473,5 @@ export default function WorkoutsPage() {
     </div>
   );
 }
+
+    
