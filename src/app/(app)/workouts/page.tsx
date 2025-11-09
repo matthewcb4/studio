@@ -80,7 +80,7 @@ function VideoSearchDialog({
   };
 
   return (
-    <DialogContent className="max-w-4xl">
+    <DialogContent className="max-w-md md:max-w-4xl">
       <DialogHeader>
         <DialogTitle>Find Video for {exerciseName}</DialogTitle>
         <DialogDescription>
@@ -106,7 +106,7 @@ function VideoSearchDialog({
           <DialogClose key={video.videoId} asChild>
             <button
               onClick={() => onSelectVideo(video.videoId)}
-              className="relative aspect-video rounded-lg overflow-hidden group"
+              className="relative aspect-[9/16] rounded-lg overflow-hidden group"
             >
               <img
                 src={video.thumbnailUrl}
@@ -123,7 +123,7 @@ function VideoSearchDialog({
           Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="relative aspect-video rounded-lg bg-muted animate-pulse"
+              className="relative aspect-[9/16] rounded-lg bg-muted animate-pulse"
             />
           ))}
       </div>
