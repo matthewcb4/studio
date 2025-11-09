@@ -56,7 +56,7 @@ export default function DashboardPage() {
     return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
   }, [firestore, user]);
 
-  const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allLogsWorkoutLogsQuery);
+  const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
 
   const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
 
@@ -72,7 +72,7 @@ export default function DashboardPage() {
       return isWithinInterval(logDate, { start: startOfThisWeek, end: now });
     });
 
-    const volume = thisWeeksLogs.reduce((acc, log) => acc + log.volume, 0);
+    const volume = thisWeeksLogs.reduce((acc, log) => acc + (log.volume || 0), 0);
     const workouts = thisWeeksLogs.length;
     const timeInSeconds = thisWeeksLogs.reduce((acc, log) => acc + parseDuration(log.duration), 0);
     const timeInMinutes = Math.floor(timeInSeconds / 60);
@@ -198,5 +198,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
