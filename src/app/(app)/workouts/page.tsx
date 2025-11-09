@@ -18,7 +18,6 @@ import {
   SheetTitle,
   SheetFooter,
   SheetClose,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,99 +37,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle, Trash2, Edit, Video, Loader2 } from "lucide-react";
-import { customWorkouts as initialWorkouts, exercises } from "@/lib/data";
+import { exercises } from "@/lib/data";
 import type { CustomWorkout, WorkoutExercise } from "@/lib/types";
 import { findExerciseVideo } from "@/ai/flows/find-exercise-video-flow";
+import { useCollection, useUser, useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
 
-
-export default function WorkoutsPage() {
-  const [workouts, setWorkouts] = useState<CustomWorkout[]>(initialWorkouts);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(null);
-
-  const handleCreateNew = () => {
-    setEditingWorkout(null);
-    setIsSheetOpen(true);
-  };
-  
-  const handleEdit = (workout: CustomWorkout) => {
-    setEditingWorkout(workout);
-    setIsSheetOpen(true);
-  }
-
-  const handleDelete = (workoutId: string) => {
-    setWorkouts(workouts.filter(w => w.id !== workoutId));
-  }
-  
-  const handleSaveWorkout = (workout: CustomWorkout) => {
-    if(editingWorkout) {
-      setWorkouts(workouts.map(w => w.id === workout.id ? workout : w));
-    } else {
-      setWorkouts([...workouts, {...workout, id: (workouts.length + 1).toString()}]);
-    }
-    setIsSheetOpen(false);
-  }
-
-  return (
-    <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">My Workouts</h1>
-          <p className="text-muted-foreground">
-            Create and manage your custom training routines.
-          </p>
-        </div>
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetTrigger asChild>
-            <Button onClick={handleCreateNew}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create New Workout
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl w-full flex flex-col">
-              <WorkoutForm 
-                workout={editingWorkout} 
-                onSave={handleSaveWorkout}
-                onCancel={() => setIsSheetOpen(false)}
-              />
-          </SheetContent>
-        </Sheet>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {workouts.map((workout) => (
-          <Card key={workout.id}>
-            <CardHeader>
-              <CardTitle>{workout.name}</CardTitle>
-              <CardDescription>
-                {workout.exercises.length} exercises
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {workout.exercises.map((ex, index) => (
-                  <div key={index} className="flex justify-between items-center text-sm">
-                    <span className="font-medium">{ex.exerciseName}</span>
-                    <span className="text-muted-foreground">{ex.sets} sets of {ex.reps}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2">
-                <Button variant="ghost" size="icon" onClick={() => handleEdit(workout)}>
-                    <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(workout.id)}>
-                    <Trash2 className="h-4 w-4" />
-                </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | null, onSave: (workout: CustomWorkout) => void, onCancel: () => void }) {
+function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | null, onSave: (workout: Omit<CustomWorkout, 'id'>) => void, onCancel: () => void }) {
     const [name, setName] = useState(workout?.name || "");
     const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(workout?.exercises || []);
     const [selectedVideoExercise, setSelectedVideoExercise] = useState<string | null>(null);
@@ -161,8 +74,7 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
     }
 
     const handleSave = () => {
-        const newWorkout: CustomWorkout = {
-            id: workout?.id || Date.now().toString(),
+        const newWorkout: Omit<CustomWorkout, 'id'> = {
             name,
             exercises: workoutExercises,
         };
@@ -258,34 +170,136 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
               </SheetFooter>
               
               <DialogContent className="aspect-[9/16] max-w-[300px] sm:max-w-[400px] p-0">
-                  <DialogHeader className="sr-only">
-                      <DialogTitle>{selectedVideoExercise}</DialogTitle>
-                      <DialogDescription>
-                      Watch the video below to ensure proper form.
-                      </DialogDescription>
-                  </DialogHeader>
-                  <div className="flex items-center justify-center h-full w-full bg-muted rounded-lg">
-                    {isVideoLoading ? (
-                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    ) : videoUrl ? (
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        src={videoUrl}
-                        title="YouTube video player"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="rounded-lg"
-                      ></iframe>
-                    ) : (
-                      <p className="text-muted-foreground">
-                        No video found for this exercise.
-                      </p>
-                    )}
-                  </div>
-                </DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{selectedVideoExercise}</DialogTitle>
+                  <DialogDescription>
+                    Watch this short video for exercise form.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex items-center justify-center h-full w-full bg-muted rounded-lg">
+                  {isVideoLoading ? (
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  ) : videoUrl ? (
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={videoUrl}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="rounded-lg"
+                    ></iframe>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      No video found for this exercise.
+                    </p>
+                  )}
+                </div>
+              </DialogContent>
             </Dialog>
         </>
     );
+}
+
+export default function WorkoutsPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(null);
+
+  const workoutsCollection = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, `users/${user.uid}/customWorkouts`);
+  }, [firestore, user]);
+
+  const { data: workouts, isLoading } = useCollection<CustomWorkout>(workoutsCollection);
+
+  const handleCreateNew = () => {
+    setEditingWorkout(null);
+    setIsSheetOpen(true);
+  };
+  
+  const handleEdit = (workout: CustomWorkout) => {
+    setEditingWorkout(workout);
+    setIsSheetOpen(true);
+  }
+
+  const handleDelete = (workoutId: string) => {
+    if (!user || !workoutsCollection) return;
+    const workoutDoc = doc(workoutsCollection, workoutId);
+    deleteDocumentNonBlocking(workoutDoc);
+  }
+  
+  const handleSaveWorkout = (workoutData: Omit<CustomWorkout, 'id'>) => {
+    if (!user || !workoutsCollection) return;
+
+    const dataToSave = { ...workoutData, userId: user.uid };
+
+    if(editingWorkout) {
+      const workoutDoc = doc(workoutsCollection, editingWorkout.id);
+      updateDocumentNonBlocking(workoutDoc, dataToSave);
+    } else {
+      addDocumentNonBlocking(workoutsCollection, dataToSave);
+    }
+    setIsSheetOpen(false);
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">My Workouts</h1>
+          <p className="text-muted-foreground">
+            Create and manage your custom training routines.
+          </p>
+        </div>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <Button onClick={handleCreateNew}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create New Workout
+          </Button>
+          <SheetContent className="sm:max-w-2xl w-full flex flex-col">
+              <WorkoutForm 
+                workout={editingWorkout} 
+                onSave={handleSaveWorkout}
+                onCancel={() => setIsSheetOpen(false)}
+              />
+          </SheetContent>
+        </Sheet>
+      </div>
+      {isLoading && <div className="text-center">Loading workouts...</div>}
+      {!isLoading && workouts?.length === 0 && <div className="text-center text-muted-foreground">No custom workouts created yet.</div>}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {workouts?.map((workout) => (
+          <Card key={workout.id}>
+            <CardHeader>
+              <CardTitle>{workout.name}</CardTitle>
+              <CardDescription>
+                {workout.exercises.length} exercises
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {workout.exercises.map((ex, index) => (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <span className="font-medium">{ex.exerciseName}</span>
+                    <span className="text-muted-foreground">{ex.sets} sets of {ex.reps}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end gap-2">
+                <Button variant="ghost" size="icon" onClick={() => handleEdit(workout)}>
+                    <Edit className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(workout.id)}>
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
 }

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -22,14 +25,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { customWorkouts, workoutLogs } from "@/lib/data";
 import { format } from "date-fns";
+import { useCollection, useUser, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy, limit } from "firebase/firestore";
+import type { CustomWorkout, WorkoutLog } from "@/lib/types";
 
 export default function DashboardPage() {
-  const sortedLogs = [...workoutLogs].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
+
+  const customWorkoutsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, `users/${user.uid}/customWorkouts`);
+  }, [firestore, user]);
+  const { data: customWorkouts, isLoading: isLoadingWorkouts } = useCollection<CustomWorkout>(customWorkoutsQuery);
+
+  const workoutLogsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"), limit(5));
+  }, [firestore, user]);
+  const { data: recentLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(workoutLogsQuery);
+
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
@@ -41,23 +58,23 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="flex flex-col gap-4">
-              <Select>
+            <div className="flex flex-col gap-4">
+              <Select onValueChange={setSelectedWorkoutId} disabled={isLoadingWorkouts}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a workout" />
+                  <SelectValue placeholder={isLoadingWorkouts ? "Loading..." : "Select a workout"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {customWorkouts.map((workout) => (
+                  {customWorkouts?.map((workout) => (
                     <SelectItem key={workout.id} value={workout.id}>
                       {workout.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button asChild>
-                <Link href="/workout/1">Start Session</Link>
+              <Button asChild disabled={!selectedWorkoutId}>
+                <Link href={selectedWorkoutId ? `/workout/${selectedWorkoutId}` : '#'}>Start Session</Link>
               </Button>
-            </form>
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -110,7 +127,9 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedLogs.slice(0, 5).map((log) => (
+              {isLoadingLogs && <TableRow><TableCell colSpan={4} className="text-center">Loading recent activity...</TableCell></TableRow>}
+              {!isLoadingLogs && recentLogs?.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No recent workouts found.</TableCell></TableRow>}
+              {recentLogs?.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell>
                     <div className="font-medium">{log.workoutName}</div>

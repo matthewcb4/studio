@@ -19,19 +19,30 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { format } from 'date-fns';
-import { exercises, workoutLogs } from '@/lib/data';
+import { exercises } from '@/lib/data';
 import type { ChartConfig } from "@/components/ui/chart";
+import { useCollection, useUser, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
+import type { WorkoutLog } from '@/lib/types';
+
 
 export default function ProgressPage() {
   const [selectedExerciseId, setSelectedExerciseId] = useState(exercises[0].id);
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const workoutLogsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "asc"));
+  }, [firestore, user]);
+  
+  const { data: workoutLogs, isLoading } = useCollection<WorkoutLog>(workoutLogsQuery);
 
   const chartData = useMemo(() => {
-    if (!selectedExerciseId) return [];
+    if (!selectedExerciseId || !workoutLogs) return [];
     
     return workoutLogs
       .map(log => {
@@ -49,7 +60,7 @@ export default function ProgressPage() {
       })
       .filter(Boolean)
       .sort((a, b) => a!.date.getTime() - b!.date.getTime());
-  }, [selectedExerciseId]);
+  }, [selectedExerciseId, workoutLogs]);
 
   const selectedExerciseName = exercises.find(e => e.id === selectedExerciseId)?.name;
 
@@ -94,7 +105,8 @@ export default function ProgressPage() {
         </CardContent>
       </Card>
       
-      {chartData.length > 0 ? (
+      {isLoading && <Card className="flex flex-col items-center justify-center p-12"><CardHeader className="text-center"><CardTitle>Loading Progress Data...</CardTitle></CardHeader></Card>}
+      {!isLoading && chartData.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
             <Card>
             <CardHeader>
@@ -152,7 +164,7 @@ export default function ProgressPage() {
             </Card>
         </div>
         ) : (
-        <Card className="flex flex-col items-center justify-center p-12">
+        !isLoading && <Card className="flex flex-col items-center justify-center p-12">
             <CardHeader className="text-center">
                 <CardTitle>No Data Available</CardTitle>
                 <CardDescription>

@@ -23,8 +23,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { workoutLogs } from "@/lib/data";
-import type { WorkoutLog, LoggedExercise } from "@/lib/types";
+import type { WorkoutLog } from "@/lib/types";
+import { useCollection, useUser, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
+
 
 function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
   return (
@@ -68,10 +70,15 @@ function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
 
 export default function HistoryPage() {
   const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const workoutLogsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
+  }, [firestore, user]);
   
-  const sortedLogs = [...workoutLogs].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const { data: workoutLogs, isLoading } = useCollection<WorkoutLog>(workoutLogsQuery);
 
   return (
     <div className="flex flex-col gap-8">
@@ -96,7 +103,9 @@ export default function HistoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedLogs.map((log) => (
+                {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading history...</TableCell></TableRow>}
+                {!isLoading && workoutLogs?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No workout logs yet.</TableCell></TableRow>}
+                {workoutLogs?.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-medium">
                       {format(new Date(log.date), "MMM d, yyyy")}

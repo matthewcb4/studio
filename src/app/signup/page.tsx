@@ -19,6 +19,10 @@ import {
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/logo";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth, initiateEmailSignUp, useUser, setDocumentNonBlocking } from "@/firebase";
+import { useEffect } from "react";
+import { doc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 
 const formSchema = z.object({
@@ -30,6 +34,9 @@ const formSchema = z.object({
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
   const loginImage = PlaceHolderImages.find((img) => img.id === "login-hero");
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -41,14 +48,27 @@ export default function SignupPage() {
     },
   });
 
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      // Create user profile in Firestore
+      const userRef = doc(firestore, `users/${user.uid}`);
+      setDocumentNonBlocking(userRef, {
+        id: user.uid,
+        email: user.email,
+        displayName: form.getValues('name') || user.email,
+      }, { merge: true });
+
+      toast({
+        title: "Account Created!",
+        description: "Redirecting you to the dashboard.",
+      });
+      setTimeout(() => router.push("/dashboard"), 1000);
+    }
+  }, [user, isUserLoading, router, firestore, form, toast]);
+
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock signup logic
-    console.log("Signing up with:", values);
-    toast({
-      title: "Account Created!",
-      description: "Redirecting you to the dashboard.",
-    });
-    setTimeout(() => router.push("/dashboard"), 1000);
+    initiateEmailSignUp(auth, values.email, values.password);
   }
 
   function onGoogleSignIn() {

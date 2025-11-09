@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { customWorkouts } from '@/lib/data';
 import type { CustomWorkout, LoggedSet } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -21,14 +20,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { useDoc, useUser, useFirestore, addDocumentNonBlocking, useMemoFirebase } from "@/firebase";
+import { doc, collection } from "firebase/firestore";
 
 export default function WorkoutSessionPage() {
   const router = useRouter();
   const { toast } = useToast();
   const params = useParams();
   const workoutId = params.id as string;
-  const workout: CustomWorkout | undefined = useMemo(() => customWorkouts.find(w => w.id === workoutId), [workoutId]);
+  
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const workoutDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, `users/${user.uid}/customWorkouts/${workoutId}`);
+  }, [firestore, user, workoutId]);
+
+  const { data: workout, isLoading: isLoadingWorkout } = useDoc<CustomWorkout>(workoutDocRef);
 
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
@@ -47,6 +57,10 @@ export default function WorkoutSessionPage() {
     return () => clearInterval(timer);
   }, []);
 
+  if (isLoadingWorkout) {
+    return <div>Loading workout...</div>;
+  }
+  
   if (!workout) {
     return <div>Workout not found.</div>;
   }
@@ -86,8 +100,26 @@ export default function WorkoutSessionPage() {
   };
 
   const finishWorkout = () => {
-    // Mock saving the workout log
-    console.log('Workout Finished!', { workout, sessionLog, duration: formatTime(elapsedTime) });
+    if (!user) return;
+    const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
+    const exercises = Object.entries(sessionLog).map(([exerciseId, sets]) => ({
+      exerciseId,
+      exerciseName: workout.exercises.find(e => e.exerciseId === exerciseId)?.exerciseName || 'Unknown',
+      sets,
+    }));
+    const totalVolume = exercises.reduce((total, ex) => total + ex.sets.reduce((sum, set) => sum + set.weight * set.reps, 0), 0);
+
+    const workoutLog = {
+      userId: user.uid,
+      workoutName: workout.name,
+      date: new Date().toISOString(),
+      duration: formatTime(elapsedTime),
+      exercises,
+      volume: totalVolume,
+    };
+    
+    addDocumentNonBlocking(logsCollection, workoutLog);
+
     toast({
       title: 'Workout Complete!',
       description: 'Your session has been logged successfully.',

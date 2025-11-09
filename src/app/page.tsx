@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/logo";
+import { useAuth, initiateEmailSignIn, useUser } from "@/firebase";
+import { useEffect } from "react";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -26,6 +28,8 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const loginImage = PlaceHolderImages.find((img) => img.id === "login-hero");
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -36,16 +40,30 @@ export default function LoginPage() {
     },
   });
 
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, isUserLoading, router]);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock login logic
-    console.log("Logging in with:", values);
-    router.push("/dashboard");
+    initiateEmailSignIn(auth, values.email, values.password);
   }
 
   function onGoogleSignIn() {
     // Mock Google Sign-In logic
     console.log("Signing in with Google");
     router.push("/dashboard");
+  }
+
+  if (isUserLoading || user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
