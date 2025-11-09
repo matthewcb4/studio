@@ -97,8 +97,18 @@ export default function SettingsPage() {
   const onGoalsSubmit = async (values: z.infer<typeof goalsFormSchema>) => {
     if (!userProfileRef) return;
     setIsSubmittingGoals(true);
+
+    // Create a clean object to save, removing any undefined values
+    const dataToSave: Partial<z.infer<typeof goalsFormSchema>> = {};
+    Object.keys(values).forEach(key => {
+        const formKey = key as keyof typeof values;
+        if (values[formKey] !== undefined && values[formKey] !== '') {
+            dataToSave[formKey] = values[formKey];
+        }
+    });
+
     try {
-      await setDocumentNonBlocking(userProfileRef, { ...values, id: user?.uid }, { merge: true });
+      await setDocumentNonBlocking(userProfileRef, { ...dataToSave, id: user?.uid }, { merge: true });
       toast({ title: 'Success', description: 'Your profile has been updated.' });
     } catch (error) {
         console.error("Error updating goals:", error);
