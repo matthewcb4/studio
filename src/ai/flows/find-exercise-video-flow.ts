@@ -35,18 +35,18 @@ const findVideoTool = ai.defineTool(
       // In a real scenario, this would call the YouTube Data API
       // For this example, we'll return a placeholder based on a simple lookup
       const queryLower = query.toLowerCase();
-      if (queryLower.includes('bench press')) return { videoId: 'SCV_mIe3A-4' };
-      if (queryLower.includes('lat pulldown')) return { videoId: '02_jM0h524A'};
-      if (queryLower.includes('goblet squat')) return { videoId: 'v-m_Bq1a-5E' };
-      if (queryLower.includes('overhead press')) return { videoId: '2yjwXTZQDDI' };
-      if (queryLower.includes('bicep curl')) return { videoId: 'in7_gE_133I' };
-      if (queryLower.includes('tricep extension')) return { videoId: 'n_163p4iKoc' };
-      if (queryLower.includes('deadlift')) return { videoId: 'wjsU10G1_iU' };
+      if (queryLower.includes('bench press')) return { videoId: '0Fzshb9T38A' };
+      if (queryLower.includes('lat pulldown')) return { videoId: 'u_i-3tC4J_o' };
+      if (queryLower.includes('goblet squat')) return { videoId: '5b-yC8aD_9Q' };
+      if (queryLower.includes('overhead press')) return { videoId: 'M2-iA6S7-DA' };
+      if (queryLower.includes('bicep curl')) return { videoId: '1n_n3G-Y7eM' };
+      if (queryLower.includes('tricep extension')) return { videoId: 'JcwjC4_i3-k' };
+      if (queryLower.includes('deadlift')) return { videoId: '_FkbD0FhgVE' };
       if (queryLower.includes('leg press')) return { videoId: 's1pYtS6sN-8' };
-      if (queryLower.includes('lateral raise')) return { videoId: '34E9_a4z9bA' };
-      if (queryLower.includes('chest fly')) return { videoId: 'eozbU_aX6vI' };
-      if (queryLower.includes('romanian deadlift')) return { videoId: '2z8JmcrW-3E' };
-      if (queryLower.includes('pull up')) return { videoId: 'poyr8KenUFc' };
+      if (queryLower.includes('lateral raise')) return { videoId: '3fiHn2fT-i0' };
+      if (queryLower.includes('chest fly')) return { videoId: '2z0o2v1i-vM' };
+      if (queryLower.includes('romanian deadlift')) return { videoId: 'kdbidvT-I8s' };
+      if (queryLower.includes('pull up')) return { videoId: 'poyr8KenUFc' }; // This one seems to be a regular video, but good.
       return { videoId: null };
     }
   );
@@ -55,7 +55,7 @@ const prompt = ai.definePrompt({
   name: 'findExerciseVideoPrompt',
   input: { schema: FindExerciseVideoInputSchema },
   output: { schema: FindExerciseVideoOutputSchema },
-  prompt: `Find a YouTube video for the exercise: {{{exerciseName}}}. The search query for the tool should be "how to do a {{{exerciseName}}}". Only use the provided tools.`,
+  prompt: `Find a YouTube Short for the exercise: {{{exerciseName}}}. The search query for the tool should be "how to do a {{{exerciseName}}} #shorts". Only use the provided tools.`,
   tools: [findVideoTool]
 });
 
