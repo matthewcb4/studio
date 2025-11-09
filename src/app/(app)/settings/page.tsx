@@ -78,7 +78,7 @@ export default function SettingsPage() {
     if (!equipmentCollection) return;
     setIsSubmittingEquipment(true);
     try {
-      await addDocumentNonBlocking(equipmentCollection, { name: values.name });
+      await addDocumentNonBlocking(equipmentCollection, { name: values.name, userId: user?.uid });
       toast({ title: 'Success', description: `${values.name} added to your equipment.` });
       equipmentForm.reset();
     } catch (error) {
@@ -93,7 +93,7 @@ export default function SettingsPage() {
     if (!userProfileRef) return;
     setIsSubmittingGoals(true);
     try {
-      await setDocumentNonBlocking(userProfileRef, values, { merge: true });
+      await setDocumentNonBlocking(userProfileRef, { ...values, id: user?.uid }, { merge: true });
       toast({ title: 'Success', description: 'Your fitness goals have been updated.' });
     } catch (error) {
         console.error("Error updating goals:", error);
@@ -122,15 +122,15 @@ export default function SettingsPage() {
       </div>
       
       <Accordion type="multiple" defaultValue={[]} className="w-full space-y-4">
-        <AccordionItem value="item-2" className="border-none">
+        <AccordionItem value="item-1" className="border-none">
             <Card>
             <AccordionTrigger className="p-6 text-left">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <Target className="w-6 h-6 text-primary" />
+                <div className="flex items-center gap-3">
+                    <Target className="w-6 h-6 text-primary" />
+                    <div>
                         <CardTitle>Fitness Goals</CardTitle>
+                        <CardDescription className="mt-1.5 text-left">Set your targets to help personalize your experience.</CardDescription>
                     </div>
-                    <CardDescription className="mt-1.5 text-left">Set your targets to help personalize your experience.</CardDescription>
                 </div>
             </AccordionTrigger>
             <AccordionContent>
@@ -224,7 +224,7 @@ export default function SettingsPage() {
             </AccordionContent>
             </Card>
         </AccordionItem>
-        <AccordionItem value="item-1" className="border-none">
+        <AccordionItem value="item-2" className="border-none">
             <Card>
             <AccordionTrigger className="p-6 text-left">
                 <div>
@@ -283,4 +283,5 @@ export default function SettingsPage() {
       </Accordion>
     </div>
   );
-}
+
+    
