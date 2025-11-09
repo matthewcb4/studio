@@ -3,15 +3,15 @@
  *
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for all user-generated data
- * (custom workouts, workout logs, and sets). The master exercise data is publicly
+ * (custom workouts, workout logs, equipment). The master exercise data is publicly
  * readable, but authenticated users can update video links.
  *
  * Data Structure:
  * - /users/{userId}: Stores user profiles. Only the authenticated user can read/write their own profile.
+ * - /users/{userId}/equipment/{equipmentId}: Stores user's equipment list. Owner-only access.
  * - /exercises/{exerciseId}: Stores master exercise data. Publicly readable, but authenticated users can update video links.
  * - /users/{userId}/customWorkouts/{customWorkoutId}: Stores custom workouts. Only the owning user can read/write.
  * - /users/{userId}/workoutLogs/{workoutLogId}: Stores workout logs. Only the owning user can read/write.
- * - /users/{userId}/workoutLogs/{workoutLogId}/sets/{setId}: Stores sets. Only the owning user can read/write.
  *
  * Key Security Decisions:
  * - User listing is disallowed to prevent unauthorized data access.
@@ -19,7 +19,7 @@
  * - Default security posture for ambiguous relationships is strict owner-only access.
  *
  * Denormalization for Authorization:
- * - The 'userId' is stored within CustomWorkout and WorkoutLog documents to eliminate the need for `get()` calls in security rules.
+ * - The 'userId' is stored within CustomWorkout, WorkoutLog, and UserEquipment documents to eliminate `get()` calls in security rules.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -47,6 +47,25 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && isOwner() && request.resource.data.id == userId;
       allow update: if isExistingOwner() && request.resource.data.id == resource.data.id; //Immutable ID
+      allow delete: if isExistingOwner();
+    }
+    
+    /**
+     * @description Manages the user's list of available equipment.
+     * @path /users/{userId}/equipment/{equipmentId}
+     */
+    match /users/{userId}/equipment/{equipmentId} {
+      function isOwner() {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner() {
+        return isOwner() && resource != null;
+      }
+      
+      allow get, list: if isOwner();
+      allow create: if isSignedIn() && isOwner() && request.resource.data.keys().hasAll(['name']);
+      allow update: if isExistingOwner(); // Can update name
       allow delete: if isExistingOwner();
     }
 

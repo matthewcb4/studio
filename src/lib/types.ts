@@ -38,3 +38,8 @@ export type WorkoutLog = {
   exercises: LoggedExercise[];
   volume: number;
 };
+
+export type UserEquipment = {
+  id: string;
+  name: string;
+};

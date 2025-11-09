@@ -11,6 +11,7 @@ import {
   Bot,
   LogOut,
   Loader2,
+  Settings,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -45,6 +46,10 @@ const navItems = [
   { href: "/history", icon: History, label: "History" },
   { href: "/progress", icon: BarChart3, label: "Progress" },
   { href: "/guide", icon: Bot, label: "AI Guide" },
+];
+
+const secondaryNavItems = [
+    { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 function UserNav() {
@@ -112,6 +117,27 @@ function Nav() {
     </SidebarMenu>
   );
 }
+function SecondaryNav() {
+    const pathname = usePathname();
+    return (
+      <SidebarMenu>
+        {secondaryNavItems.map((item) => (
+          <SidebarMenuItem key={item.href}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith(item.href)}
+              tooltip={item.label}
+            >
+              <Link href={item.href}>
+                <item.icon />
+                <span>{item.label}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    );
+  }
 
 function MobileNav() {
     return (
@@ -132,6 +158,9 @@ function MobileNav() {
                 <SidebarContent className="p-2">
                     <Nav />
                 </SidebarContent>
+                 <SidebarFooter className="p-2">
+                    <SecondaryNav />
+                </SidebarFooter>
             </SheetContent>
         </Sheet>
     )
@@ -169,7 +198,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Nav />
           </SidebarContent>
           <SidebarFooter>
-            {/* Can add elements to footer here */}
+            <SecondaryNav />
           </SidebarFooter>
         </Sidebar>
 

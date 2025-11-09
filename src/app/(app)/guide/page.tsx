@@ -1,13 +1,12 @@
 'use client';
-import { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Bot, PlusCircle, Trash2, Wand2, Loader2, Dumbbell } from 'lucide-react';
+import { Bot, PlusCircle, Wand2, Loader2, Dumbbell, Check } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -17,15 +16,20 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Checkbox } from "@/components/ui/checkbox"
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { exercises as masterExerciseList } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import type { UserEquipment } from '@/lib/types';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
-  availableEquipment: z.array(z.object({ value: z.string().min(1, { message: 'Equipment name cannot be empty.' }) })),
-  fitnessGoals: z.array(z.object({ value: z.string().min(1, { message: 'Goal cannot be empty.' }) })),
+  availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "You have to select at least one item.",
+  }),
+  fitnessGoals: z.string().min(1, { message: 'Goal cannot be empty.' }),
   fitnessLevel: z.string().min(1, { message: 'Please select a fitness level.' }),
   workoutDuration: z.coerce.number().min(10, { message: 'Duration must be at least 10 minutes.' }),
   focusArea: z.string().min(1, { message: 'Please select a focus area.' }),
@@ -38,27 +42,34 @@ export default function GuidePage() {
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
+  const equipmentCollection = useMemoFirebase(() => 
+    user ? collection(firestore, `users/${user.uid}/equipment`) : null
+  , [firestore, user]);
+
+  const { data: userEquipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      availableEquipment: [{ value: 'Tonal' }],
-      fitnessGoals: [{ value: 'Build Muscle' }],
+      availableEquipment: [],
+      fitnessGoals: 'Build Muscle',
       fitnessLevel: 'intermediate',
       workoutDuration: 45,
       focusArea: 'Full Body',
     },
   });
 
-  const { fields: equipmentFields, append: appendEquipment, remove: removeEquipment } = useFieldArray({
-    control: form.control,
-    name: 'availableEquipment',
-  });
+  useEffect(() => {
+    // Pre-select 'Tonal' if it exists in the user's equipment
+    if (userEquipment) {
+      const tonal = userEquipment.find(e => e.name.toLowerCase() === 'tonal');
+      if (tonal) {
+        form.setValue('availableEquipment', [tonal.name]);
+      }
+    }
+  }, [userEquipment, form]);
 
-  const { fields: goalFields, append: appendGoal, remove: removeGoal } = useFieldArray({
-    control: form.control,
-    name: 'fitnessGoals',
-  });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -66,8 +77,7 @@ export default function GuidePage() {
     try {
       const result = await generateWorkout({
         ...values,
-        availableEquipment: values.availableEquipment.map(item => item.value),
-        fitnessGoals: values.fitnessGoals.map(item => item.value),
+        fitnessGoals: [values.fitnessGoals], // The flow expects an array
       });
       setGeneratedWorkout(result);
     } catch (error) {
@@ -144,61 +154,82 @@ export default function GuidePage() {
               <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   
-                  {/* Available Equipment */}
-                  <div className="space-y-2">
-                      <FormLabel>Available Equipment</FormLabel>
-                      {equipmentFields.map((field, index) => (
-                      <div key={field.id} className="flex gap-2">
-                          <FormField
-                          control={form.control}
-                          name={`availableEquipment.${index}.value`}
-                          render={({ field }) => (
-                              <FormItem className="flex-1">
-                              <FormControl>
-                                  <Input placeholder="e.g., Kettlebell" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                              </FormItem>
-                          )}
-                          />
-                          <Button type="button" variant="destructive" size="icon" onClick={() => removeEquipment(index)} disabled={equipmentFields.length <= 1}>
-                          <Trash2 className="h-4 w-4" />
-                          </Button>
-                      </div>
-                      ))}
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendEquipment({ value: '' })} className="w-full">
-                          <PlusCircle className="mr-2 h-4 w-4" /> Add Equipment
-                      </Button>
-                  </div>
-                  
-                  {/* Fitness Goals */}
-                  <div className="space-y-2">
-                      <FormLabel>Fitness Goals</FormLabel>
-                      {goalFields.map((field, index) => (
-                      <div key={field.id} className="flex gap-2">
-                          <FormField
-                          control={form.control}
-                          name={`fitnessGoals.${index}.value`}
-                          render={({ field }) => (
-                              <FormItem className="flex-1">
-                              <FormControl>
-                                  <Input placeholder="e.g., Improve Endurance" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                              </FormItem>
-                          )}
-                          />
-                          <Button type="button" variant="destructive" size="icon" onClick={() => removeGoal(index)} disabled={goalFields.length <= 1}>
-                          <Trash2 className="h-4 w-4" />
-                          </Button>
-                      </div>
-                      ))}
-                      <Button type="button" variant="outline" size="sm" onClick={() => appendGoal({ value: '' })} className="w-full">
-                          <PlusCircle className="mr-2 h-4 w-4" /> Add Goal
-                      </Button>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="availableEquipment"
+                    render={() => (
+                        <FormItem>
+                        <div className="mb-4">
+                            <FormLabel className="text-base">Available Equipment</FormLabel>
+                            <FormDescription>
+                            Select the equipment you have access to. Manage this list in Settings.
+                            </FormDescription>
+                        </div>
+                        <div className="space-y-2">
+                        {isLoadingEquipment ? <p>Loading equipment...</p> : userEquipment?.map((item) => (
+                            <FormField
+                            key={item.id}
+                            control={form.control}
+                            name="availableEquipment"
+                            render={({ field }) => {
+                                return (
+                                <FormItem
+                                    key={item.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                    <FormControl>
+                                    <Checkbox
+                                        checked={field.value?.includes(item.name)}
+                                        onCheckedChange={(checked) => {
+                                        return checked
+                                            ? field.onChange([...field.value, item.name])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                (value) => value !== item.name
+                                                )
+                                            )
+                                        }}
+                                    />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                        {item.name}
+                                    </FormLabel>
+                                </FormItem>
+                                )
+                            }}
+                            />
+                        ))}
+                        </div>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
 
-                  {/* Fitness Level, Duration, Focus Area */}
+                  <FormField
+                        control={form.control}
+                        name="fitnessGoals"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Primary Fitness Goal</FormLabel>
+                            <FormControl>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select your main goal" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Build Muscle">Build Muscle</SelectItem>
+                                        <SelectItem value="Lose Fat">Lose Fat</SelectItem>
+                                        <SelectItem value="Improve Endurance">Improve Endurance</SelectItem>
+                                        <SelectItem value="Increase Strength">Increase Strength</SelectItem>
+                                        <SelectItem value="General Fitness">General Fitness</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                           control={form.control}
@@ -232,7 +263,7 @@ export default function GuidePage() {
                               <FormControl>
                                   <SelectTrigger>
                                   <SelectValue placeholder="Select focus" />
-                                  </SelectTrigger>
+                                  </Trigger>
                               </FormControl>
                               <SelectContent>
                                   <SelectItem value="Full Body">Full Body</SelectItem>
@@ -253,7 +284,19 @@ export default function GuidePage() {
                       <FormItem>
                           <FormLabel>Workout Duration (minutes)</FormLabel>
                           <FormControl>
-                          <Input type="number" placeholder="e.g., 45" {...field} />
+                            <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={String(field.value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select duration" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="15">15</SelectItem>
+                                    <SelectItem value="30">30</SelectItem>
+                                    <SelectItem value="45">45</SelectItem>
+                                    <SelectItem value="60">60</SelectItem>
+                                    <SelectItem value="75">75</SelectItem>
+                                    <SelectItem value="90">90</SelectItem>
+                                </SelectContent>
+                            </Select>
                           </FormControl>
                           <FormMessage />
                       </FormItem>
