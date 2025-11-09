@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileoverview A workout generation AI agent.
@@ -8,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const GenerateWorkoutInputSchema = z.object({
   availableEquipment: z.array(z.string()).describe("A list of available fitness equipment."),
@@ -24,6 +25,7 @@ const ExerciseSchema = z.object({
   sets: z.string().describe("Number of sets to perform, can be a range like '3-4'."),
   reps: z.string().describe("Number of repetitions per set, can be a range like '8-12'."),
   rest: z.string().describe("Rest time in seconds between sets."),
+  supersetId: z.string().describe("Identifier to group exercises into a superset. Exercises with the same supersetId are performed back-to-back with no rest."),
 });
 
 const GenerateWorkoutOutputSchema = z.object({
@@ -49,8 +51,10 @@ const prompt = ai.definePrompt({
   Desired workout duration: {{{workoutDuration}}} minutes
   Focus area: {{{focusArea}}}
   
-  Generate a complete workout routine including a workout name, a short description, and a list of exercises with sets, reps, and rest time.
+  Generate a complete workout routine including a workout name, a short description, and a list of exercises.
   
+  IMPORTANT: You can group exercises into supersets. A superset consists of two exercises performed back-to-back with no rest in between. To create a superset, assign the same 'supersetId' (e.g., "superset_1") to both exercises. For exercises that are not in a superset, assign a unique 'supersetId' (e.g., "group_1", "group_2"). Ensure every exercise has a supersetId.
+
   The workout should be effective and safe. Only use the equipment specified by the user. The total workout time should be close to the desired duration.
   Provide a creative name for the workout.
   `,
@@ -64,6 +68,12 @@ const workoutGuideFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
+    // Ensure superset IDs are strings, not numbers, to be safe.
+    if(output?.exercises) {
+      output.exercises.forEach(ex => {
+        ex.supersetId = String(ex.supersetId);
+      });
+    }
     return output!;
   }
 );

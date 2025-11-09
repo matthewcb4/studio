@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -110,7 +111,7 @@ export default function GuidePage() {
                     sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
                     reps: ex.reps,
                     videoId: null,
-                    supersetId: generateUniqueId(), // Each exercise is its own group for simplicity
+                    supersetId: ex.supersetId, // Use the supersetId from the AI
             })),
         };
 
