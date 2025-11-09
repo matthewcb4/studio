@@ -23,6 +23,7 @@ import { MaleBody } from './male-body';
 import { FemaleBody } from './female-body';
 import { Button } from './ui/button';
 import Link from 'next/link';
+import { doc } from 'firebase/firestore';
 
 export function MuscleHeatmap() {
     const { user } = useUser();
@@ -30,7 +31,7 @@ export function MuscleHeatmap() {
     const [timeRange, setTimeRange] = useState('7');
 
     const userProfileRef = useMemoFirebase(() => 
-        user ? useDoc(firestore, `users/${user.uid}/profile/main`) : null
+        user ? doc(firestore, `users/${user.uid}/profile/main`) : null
     , [firestore, user]);
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
 
