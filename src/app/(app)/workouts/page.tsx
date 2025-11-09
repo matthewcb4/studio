@@ -138,9 +138,8 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
     const [isVideoLoading, setIsVideoLoading] = useState(false);
 
     const addExercise = () => {
-        if(exercises.length > 0) {
-            const firstExercise = exercises[0];
-            setWorkoutExercises([...workoutExercises, { exerciseId: firstExercise.id, exerciseName: firstExercise.name, sets: 3, reps: '8-12' }]);
+        if (exercises.length > 0) {
+            setWorkoutExercises([...workoutExercises, { exerciseId: '', exerciseName: '', sets: 3, reps: '8-12' }]);
         }
     }
 
@@ -173,6 +172,7 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
     }
 
     const handleVideoClick = async (exerciseName: string) => {
+        if (!exerciseName) return;
         setSelectedVideoExercise(exerciseName);
         setIsVideoLoading(true);
         setVideoUrl(null);
@@ -189,105 +189,107 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
       };
     
     return (
-        <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedVideoExercise(null)}>
+        <>
             <SheetHeader>
               <SheetTitle>{workout ? "Edit Workout" : "Create New Workout"}</SheetTitle>
               <SheetDescription>
                 {workout ? "Modify your existing routine." : "Build a new workout plan from scratch."}
               </SheetDescription>
             </SheetHeader>
-            <div className="flex-1 overflow-y-auto p-1 -mx-1">
-                <div className="grid gap-4 py-4 px-1">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="name" className="text-right">
-                        Name
-                        </Label>
-                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
-                    </div>
-                    
-                    <h3 className="font-semibold mt-4">Exercises</h3>
-                    <div className="space-y-4">
-                        {workoutExercises.map((ex, index) => (
-                            <div key={index} className="flex flex-col gap-2 p-4 border rounded-lg">
-                                <div className="flex justify-between items-center">
-                                    <Label>Exercise {index + 1}</Label>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" size="sm" onClick={() => handleVideoClick(ex.exerciseName)}>
-                                            <Video className="h-4 w-4 mr-2"/>
-                                            View Video
-                                        </Button>
-                                    </DialogTrigger>
-                                </div>
-                               <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1">
-                                         <Select value={ex.exerciseId} onValueChange={(value) => updateExercise(index, 'exerciseId', value)}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select exercise" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {exercises.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Input type="number" value={ex.sets} onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value))} placeholder="Sets"/>
-                                    </div>
-                               </div>
+            <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedVideoExercise(null)}>
+              <div className="flex-1 overflow-y-auto p-1 -mx-1">
+                  <div className="grid gap-4 py-4 px-1">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="name" className="text-right">
+                          Name
+                          </Label>
+                          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
+                      </div>
+                      
+                      <h3 className="font-semibold mt-4">Exercises</h3>
+                      <div className="space-y-4">
+                          {workoutExercises.map((ex, index) => (
+                              <div key={index} className="flex flex-col gap-2 p-4 border rounded-lg">
+                                  <div className="flex justify-between items-center">
+                                      <Label>Exercise {index + 1}</Label>
+                                      <DialogTrigger asChild>
+                                          <Button variant="outline" size="sm" onClick={() => handleVideoClick(ex.exerciseName)} disabled={!ex.exerciseName}>
+                                              <Video className="h-4 w-4 mr-2"/>
+                                              View Video
+                                          </Button>
+                                      </DialogTrigger>
+                                  </div>
                                 <div className="grid grid-cols-2 gap-2">
-                                     <div className="space-y-1">
-                                        <Input value={ex.reps} onChange={(e) => updateExercise(index, 'reps', e.target.value)} placeholder="e.g. 8-12 Reps"/>
-                                    </div>
-                                    <div className="flex items-end">
-                                        <Button variant="destructive" size="sm" onClick={() => removeExercise(index)} className="w-full">
-                                            <Trash2 className="h-4 w-4 mr-1" /> Remove
-                                        </Button>
-                                    </div>
+                                      <div className="space-y-1">
+                                          <Select value={ex.exerciseId} onValueChange={(value) => updateExercise(index, 'exerciseId', value)}>
+                                              <SelectTrigger>
+                                                  <SelectValue placeholder="Select exercise" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                  {exercises.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                                              </SelectContent>
+                                          </Select>
+                                      </div>
+                                      <div className="space-y-1">
+                                          <Input type="number" value={ex.sets} onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value))} placeholder="Sets"/>
+                                      </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                    <Button variant="outline" onClick={addExercise} className="mt-2">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Add Exercise
-                    </Button>
-                </div>
-            </div>
-            <SheetFooter>
-                <SheetClose asChild>
-                    <Button variant="outline" onClick={onCancel}>Cancel</Button>
-                </SheetClose>
-                <Button onClick={handleSave}>Save Workout</Button>
-            </SheetFooter>
-            
-            {selectedVideoExercise && (
-              <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{selectedVideoExercise}</DialogTitle>
-                    <DialogDescription>
-                    Watch the video below to ensure proper form.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                  {isVideoLoading ? (
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  ) : videoUrl ? (
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      src={videoUrl}
-                      title="YouTube video player"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="rounded-lg"
-                    ></iframe>
-                  ) : (
-                    <p className="text-muted-foreground">
-                      No video found for this exercise.
-                    </p>
-                  )}
-                </div>
-              </DialogContent>
-            )}
-        </Dialog>
+                                  <div className="grid grid-cols-2 gap-2">
+                                      <div className="space-y-1">
+                                          <Input value={ex.reps} onChange={(e) => updateExercise(index, 'reps', e.target.value)} placeholder="e.g. 8-12 Reps"/>
+                                      </div>
+                                      <div className="flex items-end">
+                                          <Button variant="destructive" size="sm" onClick={() => removeExercise(index)} className="w-full">
+                                              <Trash2 className="h-4 w-4 mr-1" /> Remove
+                                          </Button>
+                                      </div>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                      <Button variant="outline" onClick={addExercise} className="mt-2">
+                          <PlusCircle className="mr-2 h-4 w-4" /> Add Exercise
+                      </Button>
+                  </div>
+              </div>
+              <SheetFooter>
+                  <SheetClose asChild>
+                      <Button variant="outline" onClick={onCancel}>Cancel</Button>
+                  </SheetClose>
+                  <Button onClick={handleSave}>Save Workout</Button>
+              </SheetFooter>
+              
+              {selectedVideoExercise && (
+                <DialogContent>
+                  <DialogHeader>
+                      <DialogTitle>{selectedVideoExercise}</DialogTitle>
+                      <DialogDescription>
+                      Watch the video below to ensure proper form.
+                      </DialogDescription>
+                  </DialogHeader>
+                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                    {isVideoLoading ? (
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    ) : videoUrl ? (
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={videoUrl}
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="rounded-lg"
+                      ></iframe>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        No video found for this exercise.
+                      </p>
+                    )}
+                  </div>
+                </DialogContent>
+              )}
+            </Dialog>
+        </>
     );
 }

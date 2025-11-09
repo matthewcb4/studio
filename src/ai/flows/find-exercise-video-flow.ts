@@ -55,7 +55,7 @@ const prompt = ai.definePrompt({
   name: 'findExerciseVideoPrompt',
   input: { schema: FindExerciseVideoInputSchema },
   output: { schema: FindExerciseVideoOutputSchema },
-  prompt: `Find a YouTube video for the exercise: {{{exerciseName}}}. Only use the provided tools.`,
+  prompt: `Find a YouTube video for the exercise: {{{exerciseName}}}. The search query for the tool should be "how to do a {{{exerciseName}}}". Only use the provided tools.`,
   tools: [findVideoTool]
 });
 

@@ -5,9 +5,6 @@ import { format } from "date-fns";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -20,15 +17,54 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { workoutLogs } from "@/lib/data";
-import type { WorkoutLog } from "@/lib/types";
+import type { WorkoutLog, LoggedExercise } from "@/lib/types";
+
+function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
+  return (
+    <SheetContent className="sm:max-w-lg w-full">
+      <SheetHeader>
+        <SheetTitle>{log.workoutName}</SheetTitle>
+        <SheetDescription>
+          {format(new Date(log.date), "eeee, MMMM d, yyyy")}
+        </SheetDescription>
+      </SheetHeader>
+      <div className="py-4 space-y-4">
+          <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Duration</span>
+              <span className="font-medium">{log.duration}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total Volume</span>
+              <span className="font-medium">{log.volume.toLocaleString()} lbs</span>
+          </div>
+      </div>
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg">Logged Exercises</h3>
+        {log.exercises.map((ex, index) => (
+          <div key={index} className="p-4 border rounded-lg">
+            <h4 className="font-semibold">{ex.exerciseName}</h4>
+            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+              {ex.sets.map((set, setIndex) => (
+                <li key={setIndex} className="flex justify-between">
+                  <span>Set {setIndex + 1}</span>
+                  <span>{set.weight} lbs x {set.reps} reps</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </SheetContent>
+  )
+}
+
 
 export default function HistoryPage() {
   const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
@@ -46,7 +82,7 @@ export default function HistoryPage() {
         </p>
       </div>
 
-      <Sheet>
+      <Sheet onOpenChange={(isOpen) => !isOpen && setSelectedLog(null)}>
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -86,42 +122,7 @@ export default function HistoryPage() {
           </CardContent>
         </Card>
         
-        {selectedLog && (
-          <SheetContent className="sm:max-w-lg w-full">
-            <SheetHeader>
-              <SheetTitle>{selectedLog.workoutName}</SheetTitle>
-              <SheetDescription>
-                {format(new Date(selectedLog.date), "eeee, MMMM d, yyyy")}
-              </SheetDescription>
-            </SheetHeader>
-            <div className="py-4 space-y-4">
-                <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Duration</span>
-                    <span className="font-medium">{selectedLog.duration}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Volume</span>
-                    <span className="font-medium">{selectedLog.volume.toLocaleString()} lbs</span>
-                </div>
-            </div>
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Logged Exercises</h3>
-              {selectedLog.exercises.map((ex, index) => (
-                <div key={index} className="p-4 border rounded-lg">
-                  <h4 className="font-semibold">{ex.exerciseName}</h4>
-                  <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    {ex.sets.map((set, setIndex) => (
-                      <li key={setIndex} className="flex justify-between">
-                        <span>Set {setIndex + 1}</span>
-                        <span>{set.weight} lbs x {set.reps} reps</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </SheetContent>
-        )}
+        {selectedLog && <WorkoutLogDetail log={selectedLog} />}
       </Sheet>
     </div>
   );

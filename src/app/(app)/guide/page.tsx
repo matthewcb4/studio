@@ -209,7 +209,7 @@ export default function GuidePage() {
                               <FormControl>
                                   <SelectTrigger>
                                   <SelectValue placeholder="Select focus" />
-                                  </SelectTrigger>
+                                  </Trigger>
                               </FormControl>
                               <SelectContent>
                                   <SelectItem value="Full Body">Full Body</SelectItem>
