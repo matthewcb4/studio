@@ -34,19 +34,20 @@ const findVideoTool = ai.defineTool(
     async ({ query }) => {
       // In a real scenario, this would call the YouTube Data API
       // For this example, we'll return a placeholder based on a simple lookup
+      // More specific queries will match first.
       const queryLower = query.toLowerCase();
+      if (queryLower.includes('romanian deadlift')) return { videoId: 'kdbidvT-I8s' };
       if (queryLower.includes('bench press')) return { videoId: '0Fzshb9T38A' };
       if (queryLower.includes('lat pulldown')) return { videoId: 'u_i-3tC4J_o' };
       if (queryLower.includes('goblet squat')) return { videoId: '5b-yC8aD_9Q' };
       if (queryLower.includes('overhead press')) return { videoId: 'M2-iA6S7-DA' };
       if (queryLower.includes('bicep curl')) return { videoId: '1n_n3G-Y7eM' };
       if (queryLower.includes('tricep extension')) return { videoId: 'JcwjC4_i3-k' };
-      if (queryLower.includes('deadlift')) return { videoId: '_FkbD0FhgVE' };
+      if (queryLower.includes('deadlift')) return { videoId: '_FkbD0FhgVE' }; // This is a short, but RDL is more specific
       if (queryLower.includes('leg press')) return { videoId: 's1pYtS6sN-8' };
       if (queryLower.includes('lateral raise')) return { videoId: '3fiHn2fT-i0' };
       if (queryLower.includes('chest fly')) return { videoId: '2z0o2v1i-vM' };
-      if (queryLower.includes('romanian deadlift')) return { videoId: 'kdbidvT-I8s' };
-      if (queryLower.includes('pull up')) return { videoId: 'poyr8KenUFc' }; // This one seems to be a regular video, but good.
+      if (queryLower.includes('pull up')) return { videoId: 'poyr8KenUFc' };
       return { videoId: null };
     }
   );

@@ -317,15 +317,14 @@ export default function GuidePage() {
           </div>
         </div>
       </div>
-      {selectedVideoExercise && (
-        <DialogContent>
-          <DialogHeader>
+      <DialogContent className="aspect-[9/16] max-w-[300px] sm:max-w-[400px] p-0">
+          <DialogHeader className="sr-only">
             <DialogTitle>{selectedVideoExercise}</DialogTitle>
             <DialogDescription>
               Watch the video below to ensure proper form.
             </DialogDescription>
           </DialogHeader>
-          <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+          <div className="flex items-center justify-center h-full w-full bg-muted rounded-lg">
             {isVideoLoading ? (
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             ) : videoUrl ? (
@@ -344,7 +343,6 @@ export default function GuidePage() {
             )}
           </div>
         </DialogContent>
-      )}
     </Dialog>
   );
 }

@@ -138,9 +138,7 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
     const [isVideoLoading, setIsVideoLoading] = useState(false);
 
     const addExercise = () => {
-        if (exercises.length > 0) {
-            setWorkoutExercises([...workoutExercises, { exerciseId: '', exerciseName: '', sets: 3, reps: '8-12' }]);
-        }
+        setWorkoutExercises([...workoutExercises, { exerciseId: '', exerciseName: '', sets: 3, reps: '8-12' }]);
     }
 
     const updateExercise = (index: number, field: keyof WorkoutExercise, value: any) => {
@@ -259,15 +257,14 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
                   <Button onClick={handleSave}>Save Workout</Button>
               </SheetFooter>
               
-              {selectedVideoExercise && (
-                <DialogContent>
-                  <DialogHeader>
+              <DialogContent className="aspect-[9/16] max-w-[300px] sm:max-w-[400px] p-0">
+                  <DialogHeader className="sr-only">
                       <DialogTitle>{selectedVideoExercise}</DialogTitle>
                       <DialogDescription>
                       Watch the video below to ensure proper form.
                       </DialogDescription>
                   </DialogHeader>
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                  <div className="flex items-center justify-center h-full w-full bg-muted rounded-lg">
                     {isVideoLoading ? (
                       <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     ) : videoUrl ? (
@@ -288,7 +285,6 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
                     )}
                   </div>
                 </DialogContent>
-              )}
             </Dialog>
         </>
     );
