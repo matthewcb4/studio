@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -43,8 +42,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Layers, Youtube, Search, Loader2 } from 'lucide-react';
-import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
+import { PlusCircle, Trash2, Edit, Layers, Youtube } from 'lucide-react';
 import type {
   CustomWorkout,
   WorkoutExercise,
@@ -86,63 +84,6 @@ const groupExercises = (exercises: WorkoutExercise[] = []) => {
         return orderA - orderB;
     });
 };
-
-function VideoSearchDialog({ exerciseName, onSelectVideo }: { exerciseName: string; onSelectVideo: (videoId: string) => void; }) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [videos, setVideos] = useState<FindExerciseVideoOutput['videos']>([]);
-
-  const handleSearch = async () => {
-    if (!exerciseName) return;
-    setIsLoading(true);
-    setVideos([]);
-    try {
-      const result = await findExerciseVideo({ exerciseName });
-      setVideos(result.videos);
-    } catch (error) {
-      console.error("Failed to search for videos", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <DialogContent className="sm:max-w-[600px]">
-      <DialogHeader>
-        <DialogTitle>Find Video for: {exerciseName}</DialogTitle>
-        <DialogDescription>
-          Search for a YouTube Short to demonstrate this exercise. Results may be inaccurate.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="flex w-full items-center space-x-2">
-        <Input type="text" value={exerciseName} readOnly />
-        <Button type="button" onClick={handleSearch} disabled={isLoading}>
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4" />}
-          <span className="ml-2">Search</span>
-        </Button>
-      </div>
-      <div className="max-h-[400px] overflow-y-auto space-y-4 pr-4">
-        {videos.map(video => (
-          <div key={video.videoId} className="flex gap-4 items-center">
-            <Image 
-              src={video.thumbnailUrl} 
-              alt={video.title} 
-              width={120} 
-              height={90} 
-              className="rounded-md object-cover" 
-            />
-            <div className="flex-1">
-              <p className="text-sm font-medium line-clamp-2">{video.title}</p>
-              <p className="text-xs text-muted-foreground">{video.videoId}</p>
-            </div>
-             <DialogClose asChild>
-                <Button variant="outline" size="sm" onClick={() => onSelectVideo(video.videoId)}>Select</Button>
-            </DialogClose>
-          </div>
-        ))}
-      </div>
-    </DialogContent>
-  )
-}
 
 function WorkoutForm({
   workout,
@@ -236,6 +177,14 @@ function WorkoutForm({
     const remainingExercises = exercises.filter(ex => ex.id !== exerciseIdToRemove);
     setExercises(remainingExercises);
   };
+  
+  const handleFindVideo = (exerciseName: string) => {
+    if (!exerciseName) return;
+    const query = encodeURIComponent(`how to do ${exerciseName} #shorts`);
+    const url = `https://www.youtube.com/results?search_query=${query}`;
+    window.open(url, '_blank');
+  };
+
 
   const handleSave = () => {
     // Before saving, ensure any exercise that has a name but not an ID gets the ID from the master list
@@ -299,21 +248,13 @@ function WorkoutForm({
                       key={ex.id}
                       className="flex flex-col gap-2 p-3 border rounded-lg bg-background"
                     >
-                       <Dialog>
                           <div className="flex justify-between items-center">
                             <Label className="text-xs">Exercise {exIndex + 1}</Label>
-                             <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" disabled={!ex.exerciseName}>
-                                  <Youtube className="h-4 w-4 mr-2" />
-                                  Find Video
-                                </Button>
-                             </DialogTrigger>
+                            <Button variant="outline" size="sm" disabled={!ex.exerciseName} onClick={() => handleFindVideo(ex.exerciseName)}>
+                                <Youtube className="h-4 w-4 mr-2" />
+                                Find Video
+                            </Button>
                           </div>
-                          <VideoSearchDialog 
-                              exerciseName={ex.exerciseName} 
-                              onSelectVideo={(videoId) => updateExercise(ex.id, 'videoId', videoId)}
-                          />
-                       </Dialog>
                       <div className="grid grid-cols-2 gap-2">
                          <Select
                            value={selectValue}
@@ -365,7 +306,7 @@ function WorkoutForm({
                          <Label className="text-xs">Linked Video ID</Label>
                          <Input
                            className="mt-1 h-8 text-sm"
-                           placeholder="Find and select a video"
+                           placeholder="Paste 11-character ID from YouTube URL"
                            value={ex.videoId || ''}
                            onChange={(e) =>
                              updateExercise(ex.id, 'videoId', e.target.value)
@@ -613,3 +554,5 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
+
+    
