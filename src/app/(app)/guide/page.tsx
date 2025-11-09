@@ -18,7 +18,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { findExerciseVideo } from '@/ai/flows/find-exercise-video-flow';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { exercises as masterExerciseList } from '@/lib/data';
@@ -29,7 +28,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 
 const formSchema = z.object({
@@ -47,10 +45,7 @@ export default function GuidePage() {
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedVideoExercise, setSelectedVideoExercise] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [isVideoLoading, setIsVideoLoading] = useState(false);
-
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -93,27 +88,6 @@ export default function GuidePage() {
       setIsLoading(false);
     }
   }
-  
-  const handleVideoClick = async (exerciseName: string) => {
-    setSelectedVideoExercise(exerciseName);
-    setIsVideoLoading(true);
-    setVideoUrl(null);
-    try {
-      const result = await findExerciseVideo({ exerciseName });
-      if (result.videoId) {
-        setVideoUrl(`https://www.youtube.com/embed/${result.videoId}`);
-      }
-    } catch (error) {
-      console.error('Failed to find video:', error);
-      toast({
-        variant: "destructive",
-        title: "Video Search Failed",
-        description: "Could not find a video for this exercise.",
-      });
-    } finally {
-      setIsVideoLoading(false);
-    }
-  };
 
   const handleSaveWorkout = async () => {
     if (!generatedWorkout || !user || !firestore) return;
@@ -155,7 +129,6 @@ export default function GuidePage() {
 
 
   return (
-    <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedVideoExercise(null)}>
       <div className="flex flex-col gap-8">
         <div className="flex items-center gap-4">
           <Bot className="w-8 h-8 text-primary" />
@@ -339,12 +312,6 @@ export default function GuidePage() {
                               <div key={index} className="p-4 border rounded-lg bg-secondary/50">
                                   <div className="flex justify-between items-center">
                                     <h4 className="font-semibold text-lg text-primary">{ex.name}</h4>
-                                    <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" onClick={() => handleVideoClick(ex.name)}>
-                                        <Video className="mr-2 h-4 w-4" />
-                                        View Video
-                                      </Button>
-                                    </DialogTrigger>
                                   </div>
                                   <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
                                       <div>
@@ -383,32 +350,7 @@ export default function GuidePage() {
           </div>
         </div>
       </div>
-       <DialogContent className="aspect-[9/16] max-w-[300px] sm:max-w-[400px] p-0">
-          <DialogHeader>
-            <DialogTitle>{selectedVideoExercise}</DialogTitle>
-            <DialogDescription>
-              Watch the video below to ensure proper form.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center h-full w-full bg-muted rounded-lg">
-            {isVideoLoading ? (
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            ) : videoUrl ? (
-              <iframe
-                width="100%"
-                height="100%"
-                src={videoUrl}
-                title="YouTube video player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="rounded-lg"
-              ></iframe>
-            ) : (
-              <p className="text-muted-foreground">No video found for this exercise.</p>
-            )}
-          </div>
-        </DialogContent>
-    </Dialog>
   );
 }
+
+    
