@@ -259,30 +259,30 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
             </SheetFooter>
              {selectedVideoExercise && (
                 <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{selectedVideoExercise}</DialogTitle>
-                    <DialogDescription>
-                    Watch the video below to ensure proper form.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                    {isVideoLoading ? (
-                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    ) : videoUrl ? (
-                        <iframe
-                        width="100%"
-                        height="100%"
-                        src={videoUrl}
-                        title="YouTube video player"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="rounded-lg"
-                        ></iframe>
-                    ) : (
-                        <p className="text-muted-foreground">No video found for this exercise.</p>
-                    )}
-                </div>
+                    <DialogHeader>
+                        <DialogTitle>{selectedVideoExercise}</DialogTitle>
+                        <DialogDescription>
+                            Watch the video below to ensure proper form.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                        {isVideoLoading ? (
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        ) : videoUrl ? (
+                            <iframe
+                            width="100%"
+                            height="100%"
+                            src={videoUrl}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="rounded-lg"
+                            ></iframe>
+                        ) : (
+                            <p className="text-muted-foreground">No video found for this exercise.</p>
+                        )}
+                    </div>
                 </DialogContent>
             )}
         </Dialog>

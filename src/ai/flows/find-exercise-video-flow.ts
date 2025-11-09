@@ -42,7 +42,7 @@ const findVideoTool = ai.defineTool(
       if (queryLower.includes('bicep curl')) return { videoId: 'in7_gE_133I' };
       if (queryLower.includes('tricep extension')) return { videoId: 'n_163p4iKoc' };
       if (queryLower.includes('deadlift')) return { videoId: 'wjsU10G1_iU' };
-      if (queryLower.includes('leg press')) return { videoId_ : 's1pYtS6sN-8' };
+      if (queryLower.includes('leg press')) return { videoId: 's1pYtS6sN-8' };
       if (queryLower.includes('lateral raise')) return { videoId: '34E9_a4z9bA' };
       if (queryLower.includes('chest fly')) return { videoId: 'eozbU_aX6vI' };
       if (queryLower.includes('romanian deadlift')) return { videoId: '2z8JmcrW-3E' };
