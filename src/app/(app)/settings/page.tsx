@@ -124,13 +124,13 @@ export default function SettingsPage() {
       <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full space-y-4">
         <AccordionItem value="item-1" className="border-none">
           <Card>
-            <AccordionTrigger className="p-6">
-                <CardHeader className="p-0">
+            <AccordionTrigger className="p-6 text-left">
+                <div>
                     <CardTitle>My Equipment</CardTitle>
-                    <CardDescription>
+                    <CardDescription className="mt-1.5">
                         Add or remove the gym equipment you have access to. This will speed up workout generation.
                     </CardDescription>
-                </CardHeader>
+                </div>
             </AccordionTrigger>
             <AccordionContent>
                 <CardContent className="space-y-6">
@@ -180,14 +180,14 @@ export default function SettingsPage() {
         </AccordionItem>
         <AccordionItem value="item-2" className="border-none">
           <Card>
-            <AccordionTrigger className="p-6">
-                <CardHeader className="p-0">
+            <AccordionTrigger className="p-6 text-left">
+                <div>
                     <div className="flex items-center gap-2">
                       <Target className="w-6 h-6 text-primary" />
                       <CardTitle>Fitness Goals</CardTitle>
                     </div>
-                    <CardDescription>Set your targets to help personalize your experience.</CardDescription>
-                </CardHeader>
+                    <CardDescription className="mt-1.5">Set your targets to help personalize your experience.</CardDescription>
+                </div>
             </AccordionTrigger>
             <AccordionContent>
                 <Form {...goalsForm}>
@@ -284,5 +284,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
