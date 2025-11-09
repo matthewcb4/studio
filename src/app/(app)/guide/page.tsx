@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Bot, Wand2, Loader2, Dumbbell, PlusCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -55,6 +56,7 @@ const groupAiExercises = (exercises: GenerateWorkoutOutput['exercises'] = []) =>
 export default function GuidePage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
   const { toast } = useToast();
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -133,12 +135,19 @@ export default function GuidePage() {
         };
 
         const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
-        await addDocumentNonBlocking(workoutsCollection, workoutData);
+        const newDocRef = await addDocumentNonBlocking(workoutsCollection, workoutData);
 
         toast({
             title: "Workout Saved!",
-            description: `"${generatedWorkout.workoutName}" has been added to your workouts.`,
+            description: `"${generatedWorkout.workoutName}" has been added. Now navigating to edit.`,
         });
+
+        if (newDocRef) {
+          router.push(`/workouts?edit=${newDocRef.id}`);
+        } else {
+          router.push('/workouts');
+        }
+
     } catch (error) {
         console.error("Failed to save workout:", error);
         toast({
@@ -469,5 +478,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    

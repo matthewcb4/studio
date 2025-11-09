@@ -1,9 +1,10 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -403,9 +404,12 @@ function WorkoutForm({
   );
 }
 
-export default function WorkoutsPage() {
+
+function WorkoutsPageContent() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
+
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(
     null
@@ -418,6 +422,20 @@ export default function WorkoutsPage() {
 
   const { data: workouts, isLoading } =
     useCollection<CustomWorkout>(workoutsCollection);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const editId = searchParams.get('edit');
+    if (editId && workouts) {
+      const workoutToEdit = workouts.find(w => w.id === editId);
+      if (workoutToEdit) {
+        setEditingWorkout(workoutToEdit);
+        setIsSheetOpen(true);
+      }
+    }
+  }, [searchParams, workouts, isLoading]);
+
 
   const handleCreateNew = () => {
     setEditingWorkout(null);
@@ -574,4 +592,13 @@ export default function WorkoutsPage() {
       </div>
     </div>
   );
+}
+
+
+export default function WorkoutsPage() {
+  return (
+    <Suspense fallback={<div className="text-center">Loading...</div>}>
+      <WorkoutsPageContent />
+    </Suspense>
+  )
 }
