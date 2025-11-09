@@ -1,65 +1,68 @@
 'use server';
 /**
- * @fileOverview A flow to find an exercise video on YouTube.
+ * @fileOverview An AI flow to generate a plausible YouTube Short video ID for a given exercise.
  *
- * - findExerciseVideo - A function that finds a YouTube video for a given exercise.
+ * - findExerciseVideo - A function that takes an exercise name and returns a YouTube Short video ID.
  * - FindExerciseVideoInput - The input type for the findExerciseVideo function.
  * - FindExerciseVideoOutput - The return type for the findExerciseVideo function.
  */
 
 import { ai } from '@/ai/genkit';
-import { findYoutubeShortId } from '@/ai/flows/find-youtube-short-id-flow';
 import { z } from 'genkit';
 
 const FindExerciseVideoInputSchema = z.object({
-  exerciseName: z.string().describe("The name of the exercise to find a video for."),
+  exerciseName: z.string().describe("The name of the exercise."),
 });
 export type FindExerciseVideoInput = z.infer<typeof FindExerciseVideoInputSchema>;
 
 const FindExerciseVideoOutputSchema = z.object({
-  videoId: z.string().nullable().describe("The YouTube video ID, or null if no video was found."),
+  videoId: z
+    .string()
+    .length(11)
+    .nullable()
+    .describe('The 11-character YouTube video ID, or null if a plausible ID cannot be determined.'),
 });
 export type FindExerciseVideoOutput = z.infer<typeof FindExerciseVideoOutputSchema>;
 
+
 export async function findExerciseVideo(input: FindExerciseVideoInput): Promise<FindExerciseVideoOutput> {
-  return findExerciseVideoFlow(input);
+    return findExerciseVideoFlow(input);
 }
 
-const findVideoTool = ai.defineTool(
-  {
-    name: 'findYouTubeVideo',
-    description: 'Finds a YouTube video ID for a given exercise name.',
-    inputSchema: z.object({ exercise: z.string() }),
-    outputSchema: z.object({ videoId: z.string().nullable() }),
-  },
-  async ({ exercise }) => {
-    // This tool now calls another AI flow to dynamically find a video ID.
-    try {
-      const result = await findYoutubeShortId({ exerciseName: exercise });
-      return { videoId: result.videoId };
-    } catch (error) {
-      console.error(`Error finding video for ${exercise}:`, error);
-      return { videoId: null };
-    }
-  }
-);
+const examples = [
+    { input: { exerciseName: 'Barbell Bench Press' }, output: { videoId: '0Fzshb9T38A' } },
+    { input: { exerciseName: 'Seated Lat Pulldown' }, output: { videoId: 'u_i-3tC4J_o' } },
+    { input: { exerciseName: 'Goblet Squat' }, output: { videoId: '5b-yC8aD_9Q' } },
+    { input: { exerciseName: 'Overhead Press' }, output: { videoId: 'M2-iA6S7-DA' } },
+    { input: { exerciseName: 'Bicep Curl' }, output: { videoId: '1n_n3G-Y7eM' } },
+    { input: { exerciseName: 'Tricep Extension' }, output: { videoId: 'b_r_LW4HEcM' } },
+    { input: { exerciseName: 'Deadlift' }, output: { videoId: '_FkbD0FhgVE' } },
+    { input: { exerciseName: 'Leg Press' }, output: { videoId: 's1pYtS6sN-8' } },
+    { input: { exerciseName: 'Lateral Raise' }, output: { videoId: '3fiHn2fT-i0' } },
+    { input: { exerciseName: 'Chest Fly' }, output: { videoId: '2z0o2v1i-vM' } },
+    { input: { exerciseName: 'Romanian Deadlift' }, output: { videoId: 'jey_CzI_nUA' } },
+    { input: { exerciseName: 'Pull Up' }, output: { videoId: 'poyr8KenUFc' } },
+];
+
 
 const prompt = ai.definePrompt({
-  name: 'findExerciseVideoPrompt',
-  input: { schema: FindExerciseVideoInputSchema },
-  output: { schema: FindExerciseVideoOutputSchema },
-  prompt: `Find a YouTube Short for the exercise: {{{exerciseName}}}. You must use the provided tool to get the video ID.`,
-  tools: [findVideoTool]
+    name: 'exerciseVideoPrompt',
+    input: { schema: FindExerciseVideoInputSchema },
+    output: { schema: FindExerciseVideoOutputSchema },
+    prompt: `Based on the provided exercise name, determine a plausible YouTube Short video ID that demonstrates the proper form for the exercise. The search query would likely be "how to do a {{{exerciseName}}} #shorts".
+
+    Use the examples provided to guide your response. Only return the 11-character video ID. If you cannot determine a valid ID, return null.`,
+    examples
 });
 
 const findExerciseVideoFlow = ai.defineFlow(
-  {
-    name: 'findExerciseVideoFlow',
-    inputSchema: FindExerciseVideoInputSchema,
-    outputSchema: FindExerciseVideoOutputSchema,
-  },
-  async (input) => {
-    const { output } = await prompt(input);
-    return output!;
-  }
+    {
+      name: 'findExerciseVideoFlow',
+      inputSchema: FindExerciseVideoInputSchema,
+      outputSchema: FindExerciseVideoOutputSchema,
+    },
+    async (input) => {
+        const { output } = await prompt(input);
+        return output!;
+    }
 );
