@@ -18,6 +18,7 @@ import {
   SheetTitle,
   SheetFooter,
   SheetClose,
+  SheetTrigger,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -103,20 +104,21 @@ function VideoSearchDialog({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-2">
         {searchResults.map((video) => (
           <DialogClose key={video.videoId} asChild>
-            <button
-              onClick={() => onSelectVideo(video.videoId)}
-              className="relative w-full overflow-hidden rounded-lg group"
-              style={{ paddingBottom: '177.77%' /* 9:16 Aspect Ratio */ }}
-            >
-              <img
-                src={video.thumbnailUrl}
-                alt={video.title}
-                className="absolute top-0 left-0 w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <p className="text-white text-center text-xs p-1">{video.title}</p>
-              </div>
-            </button>
+            <div className="w-full aspect-[9/16] overflow-hidden rounded-lg group relative">
+                <button
+                onClick={() => onSelectVideo(video.videoId)}
+                className="w-full h-full"
+                >
+                <img
+                    src={video.thumbnailUrl}
+                    alt={video.title}
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-white text-center text-xs p-1">{video.title}</p>
+                </div>
+                </button>
+            </div>
           </DialogClose>
         ))}
         {isLoading &&
@@ -443,5 +445,3 @@ export default function WorkoutsPage() {
     </div>
   );
 }
-
-    
