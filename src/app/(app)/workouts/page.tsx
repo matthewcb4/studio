@@ -29,8 +29,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Trash2, Edit } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { PlusCircle, Trash2, Edit, Video } from "lucide-react";
 import { customWorkouts as initialWorkouts, exercises } from "@/lib/data";
 import type { CustomWorkout, WorkoutExercise } from "@/lib/types";
 
@@ -124,6 +131,7 @@ export default function WorkoutsPage() {
 function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | null, onSave: (workout: CustomWorkout) => void, onCancel: () => void }) {
     const [name, setName] = useState(workout?.name || "");
     const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(workout?.exercises || []);
+    const [selectedVideoExercise, setSelectedVideoExercise] = useState<string | null>(null);
 
     const addExercise = () => {
         if(exercises.length > 0) {
@@ -161,7 +169,7 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
     }
     
     return (
-        <>
+        <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedVideoExercise(null)}>
             <SheetHeader>
               <SheetTitle>{workout ? "Edit Workout" : "Create New Workout"}</SheetTitle>
               <SheetDescription>
@@ -181,9 +189,17 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
                     <div className="space-y-4">
                         {workoutExercises.map((ex, index) => (
                             <div key={index} className="flex flex-col gap-2 p-4 border rounded-lg">
+                                <div className="flex justify-between items-center">
+                                    <Label>Exercise {index + 1}</Label>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="sm" onClick={() => setSelectedVideoExercise(ex.exerciseName)}>
+                                            <Video className="h-4 w-4 mr-2"/>
+                                            View Video
+                                        </Button>
+                                    </DialogTrigger>
+                                </div>
                                <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-1">
-                                        <Label>Exercise</Label>
                                          <Select value={ex.exerciseId} onValueChange={(value) => updateExercise(index, 'exerciseId', value)}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select exercise" />
@@ -194,14 +210,12 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
                                         </Select>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label>Sets</Label>
-                                        <Input type="number" value={ex.sets} onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value))} />
+                                        <Input type="number" value={ex.sets} onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value))} placeholder="Sets"/>
                                     </div>
                                </div>
                                 <div className="grid grid-cols-2 gap-2">
                                      <div className="space-y-1">
-                                        <Label>Reps</Label>
-                                        <Input value={ex.reps} onChange={(e) => updateExercise(index, 'reps', e.target.value)} placeholder="e.g. 8-12"/>
+                                        <Input value={ex.reps} onChange={(e) => updateExercise(index, 'reps', e.target.value)} placeholder="e.g. 8-12 Reps"/>
                                     </div>
                                     <div className="flex items-end">
                                         <Button variant="destructive" size="sm" onClick={() => removeExercise(index)} className="w-full">
@@ -223,6 +237,19 @@ function WorkoutForm({ workout, onSave, onCancel }: { workout: CustomWorkout | n
                 </SheetClose>
                 <Button onClick={handleSave}>Save Workout</Button>
             </SheetFooter>
-        </>
+             {selectedVideoExercise && (
+                <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{selectedVideoExercise}</DialogTitle>
+                    <DialogDescription>
+                    Watch the video below to ensure proper form.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                    <p className="text-muted-foreground">Video player will be here.</p>
+                </div>
+                </DialogContent>
+            )}
+        </Dialog>
     );
 }
