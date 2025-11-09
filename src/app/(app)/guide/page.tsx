@@ -31,6 +31,7 @@ const formSchema = z.object({
   fitnessLevel: z.string().min(1, { message: 'Please select a fitness level.' }),
   workoutDuration: z.coerce.number().min(10, { message: 'Duration must be at least 10 minutes.' }),
   focusArea: z.string().min(1, { message: 'Please select a focus area.' }),
+  focusOnSupersets: z.boolean().default(false),
 });
 
 const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
@@ -57,6 +58,7 @@ export default function GuidePage() {
       fitnessLevel: 'intermediate',
       workoutDuration: 45,
       focusArea: 'Full Body',
+      focusOnSupersets: false,
     },
   });
   
@@ -304,6 +306,29 @@ export default function GuidePage() {
                     </FormItem>
                     )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="focusOnSupersets"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Create supersets for focus area
+                        </FormLabel>
+                        <FormDescription>
+                           Group exercises for the selected muscle group into supersets.
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
                 
                 <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
@@ -391,5 +416,7 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    
 
     
