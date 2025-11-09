@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Bot, PlusCircle, Wand2, Loader2, Dumbbell, Check } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
+import { Bot, PlusCircle, Wand2, Loader2, Dumbbell } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,10 +20,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
 import { useUser, useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { exercises as masterExerciseList } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment } from '@/lib/types';
-import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -62,7 +59,6 @@ export default function GuidePage() {
   });
 
   useEffect(() => {
-    // Pre-select 'Tonal' if it exists in the user's equipment
     if (userEquipment) {
       const tonal = userEquipment.find(e => e.name.toLowerCase() === 'tonal');
       if (tonal) {
@@ -78,7 +74,7 @@ export default function GuidePage() {
     try {
       const result = await generateWorkout({
         ...values,
-        fitnessGoals: [values.fitnessGoals], // The flow expects an array
+        fitnessGoals: [values.fitnessGoals], 
       });
       setGeneratedWorkout(result);
     } catch (error) {
@@ -101,16 +97,15 @@ export default function GuidePage() {
         const workoutData = {
             userId: user.uid,
             name: generatedWorkout.workoutName,
-            exercises: generatedWorkout.exercises.map(ex => {
-                const masterExercise = masterExerciseList.find(me => me.name.toLowerCase() === ex.name.toLowerCase());
-                return {
-                    exerciseId: masterExercise ? masterExercise.id : uuidv4(),
+            exerciseGroups: generatedWorkout.exercises.map(ex => ([
+                {
+                    exerciseId: ex.name, // The AI doesn't know the master ID, so we use the name
                     exerciseName: ex.name,
                     sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
                     reps: ex.reps,
-                    videoId: masterExercise?.videoId || null
-                };
-            }),
+                    videoId: null
+                }
+            ])),
         };
 
         const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);

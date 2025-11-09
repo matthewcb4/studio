@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   Card,
@@ -16,12 +15,11 @@ import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
   SheetFooter,
   SheetClose,
-  SheetTrigger,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,9 +40,13 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Youtube } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Youtube, Layers } from 'lucide-react';
 import { exercises as masterExercises } from '@/lib/data';
-import type { CustomWorkout, WorkoutExercise } from '@/lib/types';
+import type {
+  CustomWorkout,
+  WorkoutExercise,
+  ExerciseGroup,
+} from '@/lib/types';
 import {
   useCollection,
   useUser,
@@ -67,45 +69,66 @@ function WorkoutForm({
   onCancel: () => void;
 }) {
   const [name, setName] = useState(workout?.name || '');
-  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(
-    workout?.exercises || []
+  const [exerciseGroups, setExerciseGroups] = useState<ExerciseGroup[]>(
+    workout?.exerciseGroups || []
   );
 
-  const addExercise = () => {
-    setWorkoutExercises([
-      ...workoutExercises,
-      { exerciseId: '', exerciseName: '', sets: 3, reps: '8-12', videoId: null },
+  const addExerciseGroup = () => {
+    setExerciseGroups([
+      ...exerciseGroups,
+      [{ exerciseId: '', exerciseName: '', sets: 3, reps: '8-12', videoId: null }],
     ]);
   };
 
+  const addExerciseToGroup = (groupIndex: number) => {
+    const newGroups = [...exerciseGroups];
+    newGroups[groupIndex].push({
+      exerciseId: '',
+      exerciseName: '',
+      sets: 3,
+      reps: '8-12',
+      videoId: null,
+    });
+    setExerciseGroups(newGroups);
+  };
+
   const updateExercise = (
-    index: number,
+    groupIndex: number,
+    exerciseIndex: number,
     field: keyof WorkoutExercise,
     value: any
   ) => {
-    const newExercises = [...workoutExercises];
-    const exercise = newExercises[index];
+    const newGroups = [...exerciseGroups];
+    const exercise = newGroups[groupIndex][exerciseIndex];
     if (field === 'exerciseId') {
       const selectedExercise = masterExercises.find((e) => e.id === value);
       if (selectedExercise) {
         exercise.exerciseId = selectedExercise.id;
         exercise.exerciseName = selectedExercise.name;
-        // Do not automatically set videoId from master list to allow user-specific choices
       }
     } else {
       (exercise[field] as any) = value;
     }
-    setWorkoutExercises(newExercises);
+    setExerciseGroups(newGroups);
   };
-  
-  const removeExercise = (index: number) => {
-    setWorkoutExercises(workoutExercises.filter((_, i) => i !== index));
+
+  const removeExercise = (groupIndex: number, exerciseIndex: number) => {
+    const newGroups = [...exerciseGroups];
+    newGroups[groupIndex] = newGroups[groupIndex].filter(
+      (_, i) => i !== exerciseIndex
+    );
+    // If the group is now empty, remove the group itself
+    if (newGroups[groupIndex].length === 0) {
+      setExerciseGroups(newGroups.filter((_, i) => i !== groupIndex));
+    } else {
+      setExerciseGroups(newGroups);
+    }
   };
 
   const handleSave = () => {
     const newWorkout: Omit<CustomWorkout, 'id' | 'userId'> = {
       name,
-      exercises: workoutExercises,
+      exerciseGroups,
     };
     onSave(newWorkout);
   };
@@ -122,12 +145,10 @@ function WorkoutForm({
           {workout ? 'Edit Workout' : 'Create New Workout'}
         </SheetTitle>
         <SheetDescription>
-          {workout
-            ? 'Modify your existing routine.'
-            : 'Build a new workout plan from scratch.'}
+          Build a workout plan. Group exercises together to create supersets.
         </SheetDescription>
       </SheetHeader>
-      
+
       <div className="flex-1 overflow-y-auto p-1 -mx-1">
         <div className="grid gap-4 py-4 px-1">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -142,90 +163,102 @@ function WorkoutForm({
             />
           </div>
 
-          <h3 className="font-semibold mt-4">Exercises</h3>
+          <h3 className="font-semibold mt-4">Exercise Groups</h3>
           <div className="space-y-4">
-            {workoutExercises.map((ex, index) => (
+            {exerciseGroups.map((group, groupIndex) => (
               <div
-                key={index}
-                className="flex flex-col gap-2 p-4 border rounded-lg"
+                key={groupIndex}
+                className="p-4 border rounded-lg bg-secondary/30 space-y-4"
               >
-                <div className="flex justify-between items-center">
-                  <Label>Exercise {index + 1}</Label>
-                   <Button variant="outline" size="sm" asChild>
-                    <Link href={createYouTubeSearchUrl(ex.exerciseName)} target="_blank" rel="noopener noreferrer">
-                      <Youtube className="h-4 w-4 mr-2" />
-                      Find Video
-                    </Link>
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Select
-                      value={ex.exerciseId}
-                      onValueChange={(value) =>
-                        updateExercise(index, 'exerciseId', value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select exercise" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {masterExercises.map((e) => (
-                          <SelectItem key={e.id} value={e.id}>
-                            {e.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <Label>Group {groupIndex + 1} {group.length > 1 && '(Superset)'}</Label>
+                {group.map((ex, exIndex) => (
+                  <div
+                    key={exIndex}
+                    className="flex flex-col gap-2 p-3 border rounded-lg bg-background"
+                  >
+                    <div className="flex justify-between items-center">
+                       <Label className="text-xs">Exercise {exIndex + 1}</Label>
+                       <Button variant="outline" size="sm" asChild>
+                         <Link href={createYouTubeSearchUrl(ex.exerciseName)} target="_blank" rel="noopener noreferrer">
+                           <Youtube className="h-4 w-4 mr-2" />
+                           Find Video
+                         </Link>
+                       </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                       <Select
+                         value={ex.exerciseId}
+                         onValueChange={(value) =>
+                           updateExercise(groupIndex, exIndex, 'exerciseId', value)
+                         }
+                       >
+                         <SelectTrigger>
+                           <SelectValue placeholder="Select exercise" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {masterExercises.map((e) => (
+                             <SelectItem key={e.id} value={e.id}>
+                               {e.name}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                       <Input
+                         type="number"
+                         value={ex.sets}
+                         onChange={(e) =>
+                           updateExercise(
+                             groupIndex,
+                             exIndex,
+                             'sets',
+                             parseInt(e.target.value)
+                           )
+                         }
+                         placeholder="Sets"
+                       />
+                     </div>
+                     <div className="grid grid-cols-2 gap-2">
+                       <Input
+                         value={ex.reps}
+                         onChange={(e) =>
+                           updateExercise(groupIndex, exIndex, 'reps', e.target.value)
+                         }
+                         placeholder="e.g. 8-12 Reps"
+                       />
+                       <Button
+                         variant="destructive"
+                         size="sm"
+                         onClick={() => removeExercise(groupIndex, exIndex)}
+                       >
+                         <Trash2 className="h-4 w-4 mr-1" /> Remove
+                       </Button>
+                     </div>
+                     <div className="text-xs text-muted-foreground pt-2">
+                       <Label className="text-xs">Linked Video ID (11 characters)</Label>
+                       <Input
+                         className="mt-1 h-7 text-xs"
+                         placeholder="Paste YouTube ID here"
+                         value={ex.videoId || ''}
+                         onChange={(e) =>
+                           updateExercise(groupIndex, exIndex, 'videoId', e.target.value)
+                         }
+                         maxLength={11}
+                       />
+                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <Input
-                      type="number"
-                      value={ex.sets}
-                      onChange={(e) =>
-                        updateExercise(index, 'sets', parseInt(e.target.value))
-                      }
-                      placeholder="Sets"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Input
-                      value={ex.reps}
-                      onChange={(e) =>
-                        updateExercise(index, 'reps', e.target.value)
-                      }
-                      placeholder="e.g. 8-12 Reps"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeExercise(index)}
-                      className="w-full"
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" /> Remove
-                    </Button>
-                  </div>
-                </div>
-                 
-                <div className="text-xs text-muted-foreground pt-2">
-                  <Label className="text-xs">Linked Video ID (11 characters)</Label>
-                  <Input 
-                    className="mt-1 h-7 text-xs"
-                    placeholder="Paste YouTube ID here"
-                    value={ex.videoId || ''}
-                    onChange={(e) => updateExercise(index, 'videoId', e.target.value)}
-                    maxLength={11}
-                  />
-                </div>
+                ))}
+                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addExerciseToGroup(groupIndex)}
+                >
+                  <Layers className="mr-2 h-4 w-4" /> Add Exercise to Superset
+                </Button>
               </div>
             ))}
           </div>
-          <Button variant="outline" onClick={addExercise} className="mt-2">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add Exercise
+          <Button variant="outline" onClick={addExerciseGroup} className="mt-2">
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Exercise Group
           </Button>
         </div>
       </div>
@@ -273,18 +306,17 @@ export default function WorkoutsPage() {
     deleteDocumentNonBlocking(workoutDoc);
   };
 
-  const handleSaveWorkout = (workoutData: Omit<CustomWorkout, 'id' | 'userId'>) => {
+  const handleSaveWorkout = (
+    workoutData: Omit<CustomWorkout, 'id' | 'userId'>
+  ) => {
     if (!user || !workoutsCollection) return;
-  
-    // Update the master exercise list with new video IDs if they have changed
-    workoutData.exercises.forEach(exercise => {
+    
+    // Flatten exercises to update master list videoIds
+    const allExercises = workoutData.exerciseGroups.flat();
+    allExercises.forEach(exercise => {
       if (exercise.videoId && exercise.exerciseId) {
-        // Find the original workout being edited to see if videoId is new
-        const originalExercise = editingWorkout?.exercises.find(e => e.exerciseId === exercise.exerciseId);
-        if (!originalExercise || originalExercise.videoId !== exercise.videoId) {
-           const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
-           updateDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId });
-        }
+        const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
+        updateDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId });
       }
     });
 
@@ -327,10 +359,12 @@ export default function WorkoutsPage() {
       {isLoading && <div className="text-center">Loading workouts...</div>}
       {!isLoading && workouts?.length === 0 && (
         <Card className="flex items-center justify-center h-64">
-            <div className="text-center">
-                <h3 className="text-xl font-semibold">No Workouts Yet</h3>
-                <p className="text-muted-foreground">Click "Create New Workout" to get started.</p>
-            </div>
+          <div className="text-center">
+            <h3 className="text-xl font-semibold">No Workouts Yet</h3>
+            <p className="text-muted-foreground">
+              Click "Create New Workout" to get started.
+            </p>
+          </div>
         </Card>
       )}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -339,20 +373,27 @@ export default function WorkoutsPage() {
             <CardHeader>
               <CardTitle>{workout.name}</CardTitle>
               <CardDescription>
-                {workout.exercises.length} exercises
+                {workout.exerciseGroups.flat().length} exercises in {workout.exerciseGroups.length} groups
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {workout.exercises.map((ex, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center text-sm"
-                  >
-                    <span className="font-medium">{ex.exerciseName}</span>
-                    <span className="text-muted-foreground">
-                      {ex.sets} sets of {ex.reps}
-                    </span>
+              <div className="space-y-4">
+                {workout.exerciseGroups.map((group, groupIndex) => (
+                  <div key={groupIndex} className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {group.length > 1 ? `Superset ${groupIndex + 1}` : `Group ${groupIndex + 1}`}
+                    </p>
+                    {group.map((ex, exIndex) => (
+                      <div
+                        key={exIndex}
+                        className="flex justify-between items-center text-sm pl-2"
+                      >
+                        <span className="font-medium">{ex.exerciseName}</span>
+                        <span className="text-muted-foreground">
+                          {ex.sets} sets of {ex.reps}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -379,7 +420,8 @@ export default function WorkoutsPage() {
                   <DialogHeader>
                     <DialogTitle>Are you sure?</DialogTitle>
                     <DialogDescription>
-                      This action cannot be undone. This will permanently delete the workout "{workout.name}".
+                      This action cannot be undone. This will permanently delete
+                      the workout "{workout.name}".
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>

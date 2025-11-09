@@ -13,10 +13,13 @@ export type WorkoutExercise = {
   videoId?: string | null;
 };
 
+export type ExerciseGroup = WorkoutExercise[];
+
 export type CustomWorkout = {
   id: string;
   name: string;
-  exercises: WorkoutExercise[];
+  // Each inner array represents a group of exercises (a single exercise or a superset)
+  exerciseGroups: ExerciseGroup[];
 };
 
 export type LoggedSet = {
