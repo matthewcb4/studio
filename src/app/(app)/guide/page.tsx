@@ -209,7 +209,7 @@ export default function GuidePage() {
                               <FormControl>
                                   <SelectTrigger>
                                   <SelectValue placeholder="Select focus" />
-                                  </Trigger>
+                                  </SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                   <SelectItem value="Full Body">Full Body</SelectItem>
@@ -318,7 +318,7 @@ export default function GuidePage() {
         </div>
       </div>
       <DialogContent className="aspect-[9/16] max-w-[300px] sm:max-w-[400px] p-0">
-          <DialogHeader className="sr-only">
+          <DialogHeader>
             <DialogTitle>{selectedVideoExercise}</DialogTitle>
             <DialogDescription>
               Watch the video below to ensure proper form.
