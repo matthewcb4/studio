@@ -133,7 +133,7 @@ export default function GuidePage() {
           if (querySnapshot.empty) {
             // Exercise does not exist, so create it in the master list
             const newExerciseDocRef = doc(masterExercisesRef); // Auto-generate ID
-            const newExercise: Omit<Exercise, 'id'> = {
+            const newExercise: Omit<Exercise, 'id' | 'videoId'> = {
               name: ex.name,
               category: 'AI Generated', // Or derive a category if possible
             };
@@ -506,3 +506,5 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    
