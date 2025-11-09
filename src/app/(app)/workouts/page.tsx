@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Card,
@@ -46,7 +46,6 @@ import { exercises as masterExercises } from '@/lib/data';
 import type {
   CustomWorkout,
   WorkoutExercise,
-  ExerciseGroup,
 } from '@/lib/types';
 import {
   useCollection,
@@ -59,6 +58,18 @@ import {
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
+const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
+
+// Group exercises by supersetId for display
+const groupExercises = (exercises: WorkoutExercise[]) => {
+    if (!exercises) return [];
+    const grouped = exercises.reduce((acc, ex) => {
+        (acc[ex.supersetId] = acc[ex.supersetId] || []).push(ex);
+        return acc;
+    }, {} as Record<string, WorkoutExercise[]>);
+    return Object.values(grouped);
+};
+
 
 function WorkoutForm({
   workout,
@@ -70,66 +81,69 @@ function WorkoutForm({
   onCancel: () => void;
 }) {
   const [name, setName] = useState(workout?.name || '');
-  const [exerciseGroups, setExerciseGroups] = useState<ExerciseGroup[]>(
-    workout?.exerciseGroups || []
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(
+    workout?.exercises || []
   );
 
   const addExerciseGroup = () => {
-    setExerciseGroups([
-      ...exerciseGroups,
-      [{ exerciseId: '', exerciseName: '', sets: 3, reps: '8-12', videoId: null }],
-    ]);
-  };
-
-  const addExerciseToGroup = (groupIndex: number) => {
-    const newGroups = [...exerciseGroups];
-    newGroups[groupIndex].push({
+    const newSupersetId = generateUniqueId();
+    const newExercise: WorkoutExercise = {
+      id: generateUniqueId(),
       exerciseId: '',
       exerciseName: '',
       sets: 3,
       reps: '8-12',
       videoId: null,
-    });
-    setExerciseGroups(newGroups);
+      supersetId: newSupersetId,
+    };
+    setExercises([...exercises, newExercise]);
+  };
+
+  const addExerciseToGroup = (supersetId: string) => {
+    const newExercise: WorkoutExercise = {
+      id: generateUniqueId(),
+      exerciseId: '',
+      exerciseName: '',
+      sets: 3,
+      reps: '8-12',
+      videoId: null,
+      supersetId: supersetId,
+    };
+    setExercises([...exercises, newExercise]);
   };
 
   const updateExercise = (
-    groupIndex: number,
-    exerciseIndex: number,
+    exerciseIdToUpdate: string,
     field: keyof WorkoutExercise,
     value: any
   ) => {
-    const newGroups = [...exerciseGroups];
-    const exercise = newGroups[groupIndex][exerciseIndex];
-    if (field === 'exerciseId') {
-      const selectedExercise = masterExercises.find((e) => e.id === value);
-      if (selectedExercise) {
-        exercise.exerciseId = selectedExercise.id;
-        exercise.exerciseName = selectedExercise.name;
+    const newExercises = exercises.map(ex => {
+      if (ex.id === exerciseIdToUpdate) {
+        const updatedEx = { ...ex };
+        if (field === 'exerciseId') {
+          const selectedExercise = masterExercises.find((e) => e.id === value);
+          if (selectedExercise) {
+            updatedEx.exerciseId = selectedExercise.id;
+            updatedEx.exerciseName = selectedExercise.name;
+          }
+        } else {
+          (updatedEx[field] as any) = value;
+        }
+        return updatedEx;
       }
-    } else {
-      (exercise[field] as any) = value;
-    }
-    setExerciseGroups(newGroups);
+      return ex;
+    });
+    setExercises(newExercises);
   };
 
-  const removeExercise = (groupIndex: number, exerciseIndex: number) => {
-    const newGroups = [...exerciseGroups];
-    newGroups[groupIndex] = newGroups[groupIndex].filter(
-      (_, i) => i !== exerciseIndex
-    );
-    // If the group is now empty, remove the group itself
-    if (newGroups[groupIndex].length === 0) {
-      setExerciseGroups(newGroups.filter((_, i) => i !== groupIndex));
-    } else {
-      setExerciseGroups(newGroups);
-    }
+  const removeExercise = (exerciseIdToRemove: string) => {
+    setExercises(exercises.filter(ex => ex.id !== exerciseIdToRemove));
   };
 
   const handleSave = () => {
     const newWorkout: Omit<CustomWorkout, 'id' | 'userId'> = {
       name,
-      exerciseGroups,
+      exercises,
     };
     onSave(newWorkout);
   };
@@ -138,6 +152,8 @@ function WorkoutForm({
     const query = `how to do a ${exerciseName} #shorts`;
     return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
   };
+  
+  const exerciseGroups = useMemo(() => groupExercises(exercises), [exercises]);
 
   return (
     <>
@@ -168,13 +184,13 @@ function WorkoutForm({
           <div className="space-y-4">
             {exerciseGroups.map((group, groupIndex) => (
               <div
-                key={groupIndex}
+                key={group[0]?.supersetId || groupIndex}
                 className="p-4 border rounded-lg bg-secondary/30 space-y-4"
               >
                 <Label>Group {groupIndex + 1} {group.length > 1 && '(Superset)'}</Label>
                 {group.map((ex, exIndex) => (
                   <div
-                    key={exIndex}
+                    key={ex.id}
                     className="flex flex-col gap-2 p-3 border rounded-lg bg-background"
                   >
                     <div className="flex justify-between items-center">
@@ -190,7 +206,7 @@ function WorkoutForm({
                        <Select
                          value={ex.exerciseId}
                          onValueChange={(value) =>
-                           updateExercise(groupIndex, exIndex, 'exerciseId', value)
+                           updateExercise(ex.id, 'exerciseId', value)
                          }
                        >
                          <SelectTrigger>
@@ -209,8 +225,7 @@ function WorkoutForm({
                          value={ex.sets}
                          onChange={(e) =>
                            updateExercise(
-                             groupIndex,
-                             exIndex,
+                             ex.id,
                              'sets',
                              parseInt(e.target.value)
                            )
@@ -222,14 +237,14 @@ function WorkoutForm({
                        <Input
                          value={ex.reps}
                          onChange={(e) =>
-                           updateExercise(groupIndex, exIndex, 'reps', e.target.value)
+                           updateExercise(ex.id, 'reps', e.target.value)
                          }
                          placeholder="e.g. 8-12 Reps"
                        />
                        <Button
                          variant="destructive"
                          size="sm"
-                         onClick={() => removeExercise(groupIndex, exIndex)}
+                         onClick={() => removeExercise(ex.id)}
                        >
                          <Trash2 className="h-4 w-4 mr-1" /> Remove
                        </Button>
@@ -241,7 +256,7 @@ function WorkoutForm({
                          placeholder="Paste YouTube ID here"
                          value={ex.videoId || ''}
                          onChange={(e) =>
-                           updateExercise(groupIndex, exIndex, 'videoId', e.target.value)
+                           updateExercise(ex.id, 'videoId', e.target.value)
                          }
                          maxLength={11}
                        />
@@ -251,7 +266,7 @@ function WorkoutForm({
                  <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => addExerciseToGroup(groupIndex)}
+                  onClick={() => addExerciseToGroup(group[0].supersetId)}
                 >
                   <Layers className="mr-2 h-4 w-4" /> Add Exercise to Superset
                 </Button>
@@ -312,9 +327,7 @@ export default function WorkoutsPage() {
   ) => {
     if (!user || !workoutsCollection) return;
     
-    // Flatten exercises to update master list videoIds
-    const allExercises = (workoutData.exerciseGroups || []).flat();
-    allExercises.forEach(exercise => {
+    (workoutData.exercises || []).forEach(exercise => {
       if (exercise.videoId && exercise.exerciseId) {
         const masterExDocRef = doc(firestore, `exercises/${exercise.exerciseId}`);
         updateDocumentNonBlocking(masterExDocRef, { videoId: exercise.videoId });
@@ -331,6 +344,11 @@ export default function WorkoutsPage() {
     }
     setIsSheetOpen(false);
   };
+  
+  const groupedWorkouts = useMemo(() => {
+    return workouts?.map(w => ({ ...w, groupedExercises: groupExercises(w.exercises || [])})) || [];
+  }, [workouts]);
+
 
   return (
     <div className="flex flex-col gap-8">
@@ -369,24 +387,24 @@ export default function WorkoutsPage() {
         </Card>
       )}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {workouts?.map((workout) => (
+        {groupedWorkouts?.map((workout) => (
           <Card key={workout.id}>
             <CardHeader>
               <CardTitle>{workout.name}</CardTitle>
-              <CardDescription>
-                {workout.exerciseGroups ? `${workout.exerciseGroups.flat().length} exercises in ${workout.exerciseGroups.length} groups` : '0 exercises'}
+               <CardDescription>
+                {workout.exercises?.length || 0} exercises in {workout.groupedExercises.length} groups
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {workout.exerciseGroups?.map((group, groupIndex) => (
+                {workout.groupedExercises?.map((group, groupIndex) => (
                   <div key={groupIndex} className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">
                       {group.length > 1 ? `Superset ${groupIndex + 1}` : `Group ${groupIndex + 1}`}
                     </p>
-                    {group.map((ex, exIndex) => (
+                    {group.map((ex) => (
                       <div
-                        key={exIndex}
+                        key={ex.id}
                         className="flex justify-between items-center text-sm pl-2"
                       >
                         <span className="font-medium">{ex.exerciseName}</span>
@@ -400,10 +418,10 @@ export default function WorkoutsPage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
-              <Button
+               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleEdit(workout)}
+                onClick={() => handleEdit(workouts.find(w => w.id === workout.id)!)}
               >
                 <Edit className="h-4 w-4" />
               </Button>
@@ -447,7 +465,3 @@ export default function WorkoutsPage() {
     </div>
   );
 }
-
-    
-
-    

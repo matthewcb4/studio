@@ -72,6 +72,31 @@ type ExerciseState = {
   reps: string;
 };
 
+// Group exercises by supersetId for display
+const groupExercises = (exercises: WorkoutExercise[] = []) => {
+    if (!exercises) return [];
+    const grouped = exercises.reduce((acc, ex) => {
+        (acc[ex.supersetId] = acc[ex.supersetId] || []).push(ex);
+        return acc;
+    }, {} as Record<string, WorkoutExercise[]>);
+    
+    // Sort outer groups, a bit tricky without a dedicated order field.
+    // Let's assume the first exercise's original index gives a hint.
+    const originalOrder: Record<string, number> = {};
+    exercises.forEach((ex, index) => {
+        if(!(ex.supersetId in originalOrder)) {
+            originalOrder[ex.supersetId] = index;
+        }
+    });
+
+    return Object.values(grouped).sort((a,b) => {
+        const orderA = originalOrder[a[0].supersetId];
+        const orderB = originalOrder[b[0].supersetId];
+        return orderA - orderB;
+    });
+};
+
+
 export default function WorkoutSessionPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -99,17 +124,17 @@ export default function WorkoutSessionPage() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   
-  const groupedExercises = useMemo(() => {
-    if (!workout?.exerciseGroups) return [];
-    return workout.exerciseGroups;
+  const exerciseGroups = useMemo(() => {
+    if (!workout?.exercises) return [];
+    return groupExercises(workout.exercises);
   }, [workout]);
 
   // Initialize/reset exercise states when workout or group changes
   useEffect(() => {
-    if (groupedExercises[currentGroupIndex]) {
+    if (exerciseGroups[currentGroupIndex]) {
       const newStates: Record<string, ExerciseState> = {};
-      groupedExercises[currentGroupIndex].forEach(ex => {
-        newStates[ex.exerciseId] = {
+      exerciseGroups[currentGroupIndex].forEach(ex => {
+        newStates[ex.id] = {
           currentSet: 1,
           logs: [],
           weight: '',
@@ -118,7 +143,7 @@ export default function WorkoutSessionPage() {
       });
       setExerciseStates(newStates);
     }
-  }, [groupedExercises, currentGroupIndex]);
+  }, [exerciseGroups, currentGroupIndex]);
 
 
   useEffect(() => {
@@ -137,8 +162,8 @@ export default function WorkoutSessionPage() {
     return <div>Workout not found.</div>;
   }
   
-  const currentGroup = groupedExercises[currentGroupIndex];
-  const totalGroups = groupedExercises.length;
+  const currentGroup = exerciseGroups[currentGroupIndex];
+  const totalGroups = exerciseGroups.length;
   const isLastGroup = currentGroupIndex === totalGroups - 1;
 
   if (!currentGroup) {
@@ -155,7 +180,7 @@ export default function WorkoutSessionPage() {
   };
 
   const handleLogSet = (exercise: WorkoutExercise) => {
-    const state = exerciseStates[exercise.exerciseId];
+    const state = exerciseStates[exercise.id];
     if (!state.weight || !state.reps) {
       toast({
         title: 'Missing Info',
@@ -168,8 +193,8 @@ export default function WorkoutSessionPage() {
     const newLog: LoggedSet = { weight: parseFloat(state.weight), reps: parseFloat(state.reps) };
     
     // Update session log for the entire workout
-    const fullSessionLog = sessionLog[exercise.exerciseId] || [];
-    setSessionLog({ ...sessionLog, [exercise.exerciseId]: [...fullSessionLog, newLog]});
+    const fullSessionLog = sessionLog[exercise.id] || [];
+    setSessionLog({ ...sessionLog, [exercise.id]: [...fullSessionLog, newLog]});
 
     // Update the local state for the current exercise
     const newLogs = [...state.logs, newLog];
@@ -179,7 +204,7 @@ export default function WorkoutSessionPage() {
     if (state.currentSet < exercise.sets) {
       newState.currentSet += 1;
     } 
-    setExerciseStates({ ...exerciseStates, [exercise.exerciseId]: newState });
+    setExerciseStates({ ...exerciseStates, [exercise.id]: newState });
   };
   
   const handleNextGroup = () => {
@@ -192,22 +217,21 @@ export default function WorkoutSessionPage() {
 
   // Check if all exercises in the current group are completed
   const isGroupFinished = currentGroup.every(ex => {
-    const state = exerciseStates[ex.exerciseId];
+    const state = exerciseStates[ex.id];
     return state && state.currentSet >= ex.sets && state.logs.length >= ex.sets;
   });
 
   const finishWorkout = () => {
     if (!user || !workout) return;
     const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
-    const exercises = Object.entries(sessionLog).map(([exerciseId, sets]) => ({
-      exerciseId,
-      exerciseName:
-        workout.exerciseGroups
-          .flat()
-          .find((e) => e.exerciseId === exerciseId)?.exerciseName || 'Unknown',
+    
+    const loggedExercises = Object.entries(sessionLog).map(([exerciseInstanceId, sets]) => ({
+      exerciseId: workout.exercises.find(e => e.id === exerciseInstanceId)?.exerciseId || 'Unknown',
+      exerciseName: workout.exercises.find(e => e.id === exerciseInstanceId)?.exerciseName || 'Unknown',
       sets,
     }));
-    const totalVolume = exercises.reduce(
+    
+    const totalVolume = loggedExercises.reduce(
       (total, ex) =>
         total + ex.sets.reduce((sum, set) => sum + set.weight * set.reps, 0),
       0
@@ -218,7 +242,7 @@ export default function WorkoutSessionPage() {
       workoutName: workout.name,
       date: new Date().toISOString(),
       duration: formatTime(elapsedTime),
-      exercises,
+      exercises: loggedExercises,
       volume: totalVolume,
     };
 
@@ -231,7 +255,7 @@ export default function WorkoutSessionPage() {
     router.push('/history');
   };
 
-  const progressValue = (currentGroupIndex / totalGroups) * 100;
+  const progressValue = totalGroups > 0 ? ((currentGroupIndex) / totalGroups) * 100 : 0;
   
   if (isFinished) {
     return (
@@ -255,9 +279,7 @@ export default function WorkoutSessionPage() {
             </div>
             <div className="space-y-2">
               {Object.entries(sessionLog).map(([exerciseId, sets]) => {
-                const exercise = workout.exerciseGroups
-                  .flat()
-                  .find((e) => e.exerciseId === exerciseId);
+                const exercise = workout.exercises.find((e) => e.id === exerciseId);
                 const totalVolume = sets.reduce(
                   (acc, set) => acc + set.weight * set.reps,
                   0
@@ -323,13 +345,13 @@ export default function WorkoutSessionPage() {
       </div>
 
       {currentGroup.map((exercise, index) => {
-        const state = exerciseStates[exercise.exerciseId];
+        const state = exerciseStates[exercise.id];
         if (!state) return <div key={index}>Loading exercise...</div>;
 
         const isExerciseComplete = state.currentSet > exercise.sets;
 
         return (
-          <Card key={exercise.exerciseId} className={isExerciseComplete ? 'opacity-50' : ''}>
+          <Card key={exercise.id} className={isExerciseComplete ? 'opacity-50' : ''}>
             <CardHeader>
               <CardTitle className="text-2xl">{exercise.exerciseName}</CardTitle>
               <CardDescription>
@@ -340,12 +362,12 @@ export default function WorkoutSessionPage() {
                  <CardContent className="space-y-4">
                      <div className="grid grid-cols-2 gap-4">
                          <div className="space-y-1">
-                         <Label htmlFor={`weight-${exercise.exerciseId}`}>Weight (lbs)</Label>
-                         <Input id={`weight-${exercise.exerciseId}`} type="number" placeholder="e.g. 135" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.exerciseId]: {...state, weight: e.target.value}})} />
+                         <Label htmlFor={`weight-${exercise.id}`}>Weight (lbs)</Label>
+                         <Input id={`weight-${exercise.id}`} type="number" placeholder="e.g. 135" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} />
                          </div>
                          <div className="space-y-1">
-                         <Label htmlFor={`reps-${exercise.exerciseId}`}>Reps</Label>
-                         <Input id={`reps-${exercise.exerciseId}`} type="number" placeholder="e.g. 8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.exerciseId]: {...state, reps: e.target.value}})} />
+                         <Label htmlFor={`reps-${exercise.id}`}>Reps</Label>
+                         <Input id={`reps-${exercise.id}`} type="number" placeholder="e.g. 8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} />
                          </div>
                      </div>
                      <Button onClick={() => handleLogSet(exercise)} className="w-full">
@@ -394,5 +416,3 @@ export default function WorkoutSessionPage() {
     </div>
   );
 }
-
-    

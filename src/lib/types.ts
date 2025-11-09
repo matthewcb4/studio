@@ -6,20 +6,19 @@ export type Exercise = {
 };
 
 export type WorkoutExercise = {
-  exerciseId: string;
+  id: string; // Unique ID for this specific instance of an exercise in a workout
+  exerciseId: string; // Refers to the master Exercise ID
   exerciseName: string;
   sets: number;
   reps: string; // e.g., "8-10"
   videoId?: string | null;
+  supersetId: string; // Used to group exercises into supersets
 };
-
-export type ExerciseGroup = WorkoutExercise[];
 
 export type CustomWorkout = {
   id: string;
   name: string;
-  // Each inner array represents a group of exercises (a single exercise or a superset)
-  exerciseGroups: ExerciseGroup[];
+  exercises: WorkoutExercise[];
 };
 
 export type LoggedSet = {

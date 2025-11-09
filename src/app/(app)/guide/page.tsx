@@ -21,7 +21,7 @@ import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-
 import { useUser, useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment } from '@/lib/types';
+import type { UserEquipment, WorkoutExercise } from '@/lib/types';
 
 const formSchema = z.object({
   availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -32,6 +32,8 @@ const formSchema = z.object({
   workoutDuration: z.coerce.number().min(10, { message: 'Duration must be at least 10 minutes.' }),
   focusArea: z.string().min(1, { message: 'Please select a focus area.' }),
 });
+
+const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
 
 export default function GuidePage() {
   const { user } = useUser();
@@ -97,15 +99,15 @@ export default function GuidePage() {
         const workoutData = {
             userId: user.uid,
             name: generatedWorkout.workoutName,
-            exerciseGroups: generatedWorkout.exercises.map(ex => ([
-                {
+            exercises: generatedWorkout.exercises.map(ex => ({
+                    id: generateUniqueId(),
                     exerciseId: ex.name, // The AI doesn't know the master ID, so we use the name
                     exerciseName: ex.name,
                     sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
                     reps: ex.reps,
-                    videoId: null
-                }
-            ])),
+                    videoId: null,
+                    supersetId: generateUniqueId(), // Each exercise is its own group
+            })),
         };
 
         const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
@@ -259,7 +261,7 @@ export default function GuidePage() {
                               <FormControl>
                                   <SelectTrigger>
                                   <SelectValue placeholder="Select focus" />
-                                  </SelectTrigger>
+                                  </Trigger>
                               </FormControl>
                               <SelectContent>
                                   <SelectItem value="Full Body">Full Body</SelectItem>

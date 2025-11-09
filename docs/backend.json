@@ -46,26 +46,25 @@
         "id": { "type": "string", "description": "Unique identifier for the CustomWorkout entity." },
         "userId": { "type": "string", "description": "Reference to User. (Relationship: User 1:N CustomWorkout)" },
         "name": { "type": "string", "description": "Name of the custom workout." },
-        "exerciseGroups": {
+        "exercises": {
           "type": "array",
-          "description": "Array of exercise groups. Each group is an array of exercises, allowing for supersets.",
+          "description": "A flat array of exercises. Exercises in the same superset share a 'supersetId'.",
           "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "exerciseId": { "type": "string" },
-                "exerciseName": { "type": "string" },
-                "sets": { "type": "number" },
-                "reps": { "type": "string" },
-                "videoId": { "type": "string" }
-              },
-              "required": ["exerciseId", "exerciseName", "sets", "reps"]
-            }
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "exerciseId": { "type": "string" },
+              "exerciseName": { "type": "string" },
+              "sets": { "type": "number" },
+              "reps": { "type": "string" },
+              "videoId": { "type": "string" },
+              "supersetId": { "type": "string" }
+            },
+            "required": ["id", "exerciseId", "exerciseName", "sets", "reps", "supersetId"]
           }
         }
       },
-      "required": ["id", "userId", "name"]
+      "required": ["id", "userId", "name", "exercises"]
     },
     "WorkoutLog": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -166,8 +165,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support user authentication, exercise data, custom workouts, workout logging, and progress tracking. It prioritizes authorization independence by leveraging path-based ownership for user-specific data and segregation for the master exercise database.  \n\nThe CustomWorkout entity now uses 'exerciseGroups' which is an array of exercise arrays. This structure allows for the creation of supersets (a group with multiple exercises) or standard sets (a group with a single exercise), providing more flexible workout creation.\n\nAuthorization Independence is achieved as follows:\n*   `/users/{userId}/customWorkouts`: Custom workout documents are owned by the user identified by `{userId}`. No external data lookups are required to authorize access.  The `userId` is stored within each document to eliminate the need for `get()` calls in security rules.\n*   `/users/{userId}/workoutLogs`: Workout logs are owned by the user identified by `{userId}`. Each `workoutLog` document includes the `userId`, ensuring that authorization rules do not require reading other documents.\n*   `/exercises`: The master exercise data is globally readable, so authorization independence isn't a concern here.\n*   `/users/{userId}/equipment`: This new collection stores user-specific equipment. Ownership is tied to the user via the path, ensuring only the logged-in user can manage their equipment list.\n\nQAPs are addressed through structural segregation and path-based ownership:\n*   The `/exercises` collection is separate and read-only for all users, satisfying the requirement for a pre-populated, read-only master list.\n*   User-specific collections (`/users/{userId}/customWorkouts`, `/users/{userId}/workoutLogs`, `/users/{userId}/equipment`) provide a secure and scalable way to manage user data. List operations are inherently secured by requiring the correct `userId` in the path.  This structure supports efficient queries for a user's custom workouts or workout logs."
+    "reasoning": "The Firestore data structure is designed to support user authentication, exercise data, custom workouts, workout logging, and progress tracking. It prioritizes authorization independence by leveraging path-based ownership for user-specific data and segregation for the master exercise database.  \n\nThe CustomWorkout entity now uses a flat 'exercises' array. Each exercise has a 'supersetId', which allows grouping exercises into supersets without violating Firestore's rule against nested arrays. This is more scalable and query-friendly.\n\nAuthorization Independence is achieved as follows:\n*   `/users/{userId}/customWorkouts`: Custom workout documents are owned by the user identified by `{userId}`. No external data lookups are required to authorize access.  The `userId` is stored within each document to eliminate the need for `get()` calls in security rules.\n*   `/users/{userId}/workoutLogs`: Workout logs are owned by the user identified by `{userId}`. Each `workoutLog` document includes the `userId`, ensuring that authorization rules do not require reading other documents.\n*   `/exercises`: The master exercise data is globally readable, so authorization independence isn't a concern here.\n*   `/users/{userId}/equipment`: This new collection stores user-specific equipment. Ownership is tied to the user via the path, ensuring only the logged-in user can manage their equipment list.\n\nQAPs are addressed through structural segregation and path-based ownership:\n*   The `/exercises` collection is separate and read-only for all users, satisfying the requirement for a pre-populated, read-only master list.\n*   User-specific collections (`/users/{userId}/customWorkouts`, `/users/{userId}/workoutLogs`, `/users/{userId}/equipment`) provide a secure and scalable way to manage user data. List operations are inherently secured by requiring the correct `userId` in the path.  This structure supports efficient queries for a user's custom workouts or workout logs."
   }
 }
-
-    
