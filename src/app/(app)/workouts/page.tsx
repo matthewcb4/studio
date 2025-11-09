@@ -296,87 +296,93 @@ function WorkoutForm({
                 className="p-4 border rounded-lg bg-secondary/30 space-y-4"
               >
                 <Label>Group {groupIndex + 1} {group.length > 1 && '(Superset)'}</Label>
-                {group.map((ex, exIndex) => (
-                  <div
-                    key={ex.id}
-                    className="flex flex-col gap-2 p-3 border rounded-lg bg-background"
-                  >
-                     <Dialog>
-                        <div className="flex justify-between items-center">
-                          <Label className="text-xs">Exercise {exIndex + 1}</Label>
-                           <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" disabled={!ex.exerciseName}>
-                                <Youtube className="h-4 w-4 mr-2" />
-                                Find Video
-                              </Button>
-                           </DialogTrigger>
-                        </div>
-                        <VideoSearchDialog 
-                            exerciseName={ex.exerciseName} 
-                            onSelectVideo={(videoId) => updateExercise(ex.id, 'videoId', videoId)}
-                        />
-                     </Dialog>
-                    <div className="grid grid-cols-2 gap-2">
-                       <Select
-                         value={ex.exerciseId}
-                         onValueChange={(value) =>
-                           updateExercise(ex.id, 'exerciseId', value)
-                         }
-                       >
-                         <SelectTrigger>
-                           <SelectValue placeholder="Select exercise" />
-                         </SelectTrigger>
-                         <SelectContent>
-                           {masterExercises.map((e) => (
-                             <SelectItem key={e.id} value={e.id}>
-                               {e.name}
-                             </SelectItem>
-                           ))}
-                         </SelectContent>
-                       </Select>
-                       <Input
-                         type="number"
-                         value={ex.sets}
-                         onChange={(e) =>
-                           updateExercise(
-                             ex.id,
-                             'sets',
-                             parseInt(e.target.value) || 0
-                           )
-                         }
-                         placeholder="Sets"
-                       />
-                     </div>
-                     <div className="grid grid-cols-2 gap-2">
-                       <Input
-                         value={ex.reps}
-                         onChange={(e) =>
-                           updateExercise(ex.id, 'reps', e.target.value)
-                         }
-                         placeholder="e.g. 8-12 Reps"
-                       />
-                       <Button
-                         variant="destructive"
-                         size="sm"
-                         onClick={() => removeExercise(ex.id)}
-                       >
-                         <Trash2 className="h-4 w-4 mr-1" /> Remove
-                       </Button>
-                     </div>
-                     <div className="text-xs text-muted-foreground pt-2">
-                       <Label className="text-xs">Linked Video ID</Label>
-                       <Input
-                         className="mt-1 h-8 text-sm"
-                         placeholder="Find and select a video"
-                         value={ex.videoId || ''}
-                         onChange={(e) =>
-                           updateExercise(ex.id, 'videoId', e.target.value)
-                         }
-                         maxLength={11}
-                       />
-                     </div>
-                  </div>
-                ))}
+                {group.map((ex, exIndex) => {
+                  // Find the matching exercise from the master list by ID or name
+                  const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId || masterEx.name === ex.exerciseName);
+                  const selectValue = matchedExercise ? matchedExercise.id : ex.exerciseId;
+
+                  return (
+                    <div
+                      key={ex.id}
+                      className="flex flex-col gap-2 p-3 border rounded-lg bg-background"
+                    >
+                       <Dialog>
+                          <div className="flex justify-between items-center">
+                            <Label className="text-xs">Exercise {exIndex + 1}</Label>
+                             <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" disabled={!ex.exerciseName}>
+                                  <Youtube className="h-4 w-4 mr-2" />
+                                  Find Video
+                                </Button>
+                             </DialogTrigger>
+                          </div>
+                          <VideoSearchDialog 
+                              exerciseName={ex.exerciseName} 
+                              onSelectVideo={(videoId) => updateExercise(ex.id, 'videoId', videoId)}
+                          />
+                       </Dialog>
+                      <div className="grid grid-cols-2 gap-2">
+                         <Select
+                           value={selectValue}
+                           onValueChange={(value) =>
+                             updateExercise(ex.id, 'exerciseId', value)
+                           }
+                         >
+                           <SelectTrigger>
+                             <SelectValue placeholder="Select exercise" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {masterExercises.map((e) => (
+                               <SelectItem key={e.id} value={e.id}>
+                                 {e.name}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                         <Input
+                           type="number"
+                           value={ex.sets}
+                           onChange={(e) =>
+                             updateExercise(
+                               ex.id,
+                               'sets',
+                               parseInt(e.target.value) || 0
+                             )
+                           }
+                           placeholder="Sets"
+                         />
+                       </div>
+                       <div className="grid grid-cols-2 gap-2">
+                         <Input
+                           value={ex.reps}
+                           onChange={(e) =>
+                             updateExercise(ex.id, 'reps', e.target.value)
+                           }
+                           placeholder="e.g. 8-12 Reps"
+                         />
+                         <Button
+                           variant="destructive"
+                           size="sm"
+                           onClick={() => removeExercise(ex.id)}
+                         >
+                           <Trash2 className="h-4 w-4 mr-1" /> Remove
+                         </Button>
+                       </div>
+                       <div className="text-xs text-muted-foreground pt-2">
+                         <Label className="text-xs">Linked Video ID</Label>
+                         <Input
+                           className="mt-1 h-8 text-sm"
+                           placeholder="Find and select a video"
+                           value={ex.videoId || ''}
+                           onChange={(e) =>
+                             updateExercise(ex.id, 'videoId', e.target.value)
+                           }
+                           maxLength={11}
+                         />
+                       </div>
+                    </div>
+                  )
+                })}
                  <Button
                   variant="outline"
                   size="sm"
@@ -484,7 +490,10 @@ function WorkoutsPageContent() {
             Create and manage your custom training routines.
           </p>
         </div>
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <Sheet open={isSheetOpen} onOpenChange={(open) => {
+          setIsSheetOpen(open);
+          if (!open) setEditingWorkout(null);
+        }}>
           <SheetTrigger asChild>
             <Button onClick={handleCreateNew}>
               <PlusCircle className="mr-2 h-4 w-4" />
