@@ -1,0 +1,265 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name."
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    },
+    "Exercise": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Exercise",
+      "type": "object",
+      "description": "Represents an exercise in the master exercise database.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Exercise entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the exercise."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the exercise."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "CustomWorkout": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomWorkout",
+      "type": "object",
+      "description": "Represents a custom workout routine created by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CustomWorkout entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N CustomWorkout)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the custom workout."
+        },
+        "exerciseIds": {
+          "type": "array",
+          "description": "References to Exercises. (Relationship: CustomWorkout 1:N Exercise)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name"
+      ]
+    },
+    "WorkoutLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WorkoutLog",
+      "type": "object",
+      "description": "Represents a log of a completed workout session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the WorkoutLog entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N WorkoutLog)"
+        },
+        "customWorkoutId": {
+          "type": "string",
+          "description": "Reference to CustomWorkout. (Relationship: CustomWorkout 1:N WorkoutLog)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the workout log.",
+          "format": "date-time"
+        },
+        "sets": {
+          "type": "array",
+          "description": "Array of sets performed during the workout.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "customWorkoutId",
+        "date"
+      ]
+    },
+    "Set": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Set",
+      "type": "object",
+      "description": "Represents a set performed during a workout.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Set entity."
+        },
+        "exerciseId": {
+          "type": "string",
+          "description": "Reference to Exercise. (Relationship: Exercise 1:N Set)"
+        },
+        "workoutLogId": {
+          "type": "string",
+          "description": "Reference to WorkoutLog. (Relationship: WorkoutLog 1:N Set)"
+        },
+        "weight": {
+          "type": "number",
+          "description": "Weight used for the set."
+        },
+        "reps": {
+          "type": "number",
+          "description": "Number of repetitions performed."
+        }
+      },
+      "required": [
+        "id",
+        "exerciseId",
+        "workoutLogId",
+        "weight",
+        "reps"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Path-based ownership: only the user with the matching {userId} can read/write.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/exercises/{exerciseId}",
+        "definition": {
+          "entityName": "Exercise",
+          "schema": {
+            "$ref": "#/backend/entities/Exercise"
+          },
+          "description": "Stores master exercise data.  This collection is pre-populated and read-only for all users.",
+          "params": [
+            {
+              "name": "exerciseId",
+              "description": "The unique identifier of the exercise."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/customWorkouts/{customWorkoutId}",
+        "definition": {
+          "entityName": "CustomWorkout",
+          "schema": {
+            "$ref": "#/backend/entities/CustomWorkout"
+          },
+          "description": "Stores custom workout routines created by users. Path-based ownership: only the user with the matching {userId} can read/write. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "customWorkoutId",
+              "description": "The unique identifier of the custom workout."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/workoutLogs/{workoutLogId}",
+        "definition": {
+          "entityName": "WorkoutLog",
+          "schema": {
+            "$ref": "#/backend/entities/WorkoutLog"
+          },
+          "description": "Stores workout logs for users. Path-based ownership: only the user with the matching {userId} can read/write. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "workoutLogId",
+              "description": "The unique identifier of the workout log."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/workoutLogs/{workoutLogId}/sets/{setId}",
+        "definition": {
+          "entityName": "Set",
+          "schema": {
+            "$ref": "#/backend/entities/Set"
+          },
+          "description": "Stores sets performed during a workout.  Path-based ownership, following hierarchy. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "workoutLogId",
+              "description": "The unique identifier of the workout log."
+            },
+            {
+              "name": "setId",
+              "description": "The unique identifier of the set."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support user authentication, exercise data, custom workouts, workout logging, and progress tracking. It prioritizes authorization independence by leveraging path-based ownership for user-specific data and segregation for the master exercise database.  \n\nAuthorization Independence is achieved as follows:\n*   `/users/{userId}/customWorkouts`: Custom workout documents are owned by the user identified by `{userId}`. No external data lookups are required to authorize access.  The `userId` is stored within each document to eliminate the need for `get()` calls in security rules.\n*   `/users/{userId}/workoutLogs`: Workout logs are owned by the user identified by `{userId}`. Each `workoutLog` document includes the `userId`, ensuring that authorization rules do not require reading other documents.\n*   `/exercises`: The master exercise data is globally readable, so authorization independence isn't a concern here.\n\nQAPs are addressed through structural segregation and path-based ownership:\n*   The `/exercises` collection is separate and read-only for all users, satisfying the requirement for a pre-populated, read-only master list.\n*   User-specific collections (`/users/{userId}/customWorkouts` and `/users/{userId}/workoutLogs`) provide a secure and scalable way to manage user data. List operations are inherently secured by requiring the correct `userId` in the path.  This structure supports efficient queries for a user's custom workouts or workout logs."
+  }
+}
