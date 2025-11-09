@@ -99,11 +99,16 @@ export default function WorkoutSessionPage() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   
+  const groupedExercises = useMemo(() => {
+    if (!workout?.exerciseGroups) return [];
+    return workout.exerciseGroups;
+  }, [workout]);
+
   // Initialize/reset exercise states when workout or group changes
   useEffect(() => {
-    if (workout && workout.exerciseGroups[currentGroupIndex]) {
+    if (groupedExercises[currentGroupIndex]) {
       const newStates: Record<string, ExerciseState> = {};
-      workout.exerciseGroups[currentGroupIndex].forEach(ex => {
+      groupedExercises[currentGroupIndex].forEach(ex => {
         newStates[ex.exerciseId] = {
           currentSet: 1,
           logs: [],
@@ -113,7 +118,7 @@ export default function WorkoutSessionPage() {
       });
       setExerciseStates(newStates);
     }
-  }, [workout, currentGroupIndex]);
+  }, [groupedExercises, currentGroupIndex]);
 
 
   useEffect(() => {
@@ -132,9 +137,14 @@ export default function WorkoutSessionPage() {
     return <div>Workout not found.</div>;
   }
   
-  const currentGroup = workout.exerciseGroups[currentGroupIndex];
-  const totalGroups = workout.exerciseGroups.length;
+  const currentGroup = groupedExercises[currentGroupIndex];
+  const totalGroups = groupedExercises.length;
   const isLastGroup = currentGroupIndex === totalGroups - 1;
+
+  if (!currentGroup) {
+      // Can happen if workout data is malformed or empty
+      return <div>Error: No exercises found for this workout group.</div>
+  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -187,7 +197,7 @@ export default function WorkoutSessionPage() {
   });
 
   const finishWorkout = () => {
-    if (!user) return;
+    if (!user || !workout) return;
     const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
     const exercises = Object.entries(sessionLog).map(([exerciseId, sets]) => ({
       exerciseId,
@@ -384,3 +394,5 @@ export default function WorkoutSessionPage() {
     </div>
   );
 }
+
+    
