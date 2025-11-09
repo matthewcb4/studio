@@ -35,14 +35,13 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Video, Loader2, Search } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Video, Loader2, Youtube } from 'lucide-react';
 import { exercises as masterExercises } from '@/lib/data';
 import type { CustomWorkout, WorkoutExercise } from '@/lib/types';
-import { findExerciseVideo, FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
+import { findExerciseVideo } from '@/ai/flows/find-exercise-video-flow';
 import {
   useCollection,
   useUser,
@@ -53,86 +52,38 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
 
-
-function VideoSearchDialog({
+function VideoSearchButton({
   exerciseName,
   onSelectVideo,
 }: {
   exerciseName: string;
-  onSelectVideo: (videoId: string) => void;
+  onSelectVideo: (videoId: string) => void; // This remains for attaching a specific ID
 }) {
-  const [searchResults, setSearchResults] = useState<FindExerciseVideoOutput['videos']>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(exerciseName);
 
-  const handleSearch = async () => {
-    if (!searchTerm) return;
+  const handleSearchClick = async () => {
+    if (!exerciseName) return;
     setIsLoading(true);
-    setSearchResults([]);
     try {
-      const result = await findExerciseVideo({ exerciseName: searchTerm });
-      setSearchResults(result.videos || []);
+      const result = await findExerciseVideo({ exerciseName });
+      window.open(result.searchUrl, '_blank');
     } catch (error) {
-      console.error('Failed to find video:', error);
+      console.error('Failed to generate search URL:', error);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  React.useEffect(() => {
-    handleSearch();
-  }, []);
 
   return (
-    <DialogContent className="max-w-md md:max-w-3xl">
-      <DialogHeader>
-        <DialogTitle>Find Video for {exerciseName}</DialogTitle>
-        <DialogDescription>
-          Search for a YouTube Short and select the best one.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="flex gap-2">
-        <Input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search query..."
-        />
-        <Button onClick={handleSearch} disabled={isLoading}>
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-1">
-        {isLoading &&
-          Array.from({ length: 8 }).map((_, i) => (
-             <div key={i} className="w-full aspect-[9/16] overflow-hidden rounded-lg">
-                <Skeleton className="h-full w-full" />
-            </div>
-          ))}
-        {searchResults.map((video) => (
-          <DialogClose key={video.videoId} asChild>
-            <div 
-              className="w-full aspect-[9/16] overflow-hidden rounded-lg group relative cursor-pointer"
-              onClick={() => onSelectVideo(video.videoId)}
-            >
-                <img
-                    src={video.thumbnailUrl}
-                    alt={video.title}
-                    className="absolute top-0 left-0 w-full h-full object-cover transition-transform group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-black/50 flex items-end justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2">
-                    <p className="text-white text-center text-xs">{video.title}</p>
-                </div>
-            </div>
-          </DialogClose>
-        ))}
-      </div>
-    </DialogContent>
+    <Button onClick={handleSearchClick} variant="outline" size="sm" disabled={isLoading || !exerciseName}>
+      {isLoading ? (
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+      ) : (
+        <Youtube className="h-4 w-4 mr-2" />
+      )}
+      Search Video
+    </Button>
   );
 }
 
@@ -232,15 +183,7 @@ function WorkoutForm({
               >
                 <div className="flex justify-between items-center">
                   <Label>Exercise {index + 1}</Label>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                       <Button variant="outline" size="sm" disabled={!ex.exerciseName}>
-                          <Video className="h-4 w-4 mr-2"/>
-                          {ex.videoId ? 'Change Video' : 'Find Video'}
-                       </Button>
-                    </DialogTrigger>
-                    {ex.exerciseName && <VideoSearchDialog exerciseName={ex.exerciseName} onSelectVideo={(videoId) => handleVideoIdUpdate(index, videoId)}/>}
-                  </Dialog>
+                  <VideoSearchButton exerciseName={ex.exerciseName} onSelectVideo={(videoId) => handleVideoIdUpdate(index, videoId)} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
@@ -294,6 +237,17 @@ function WorkoutForm({
                     </Button>
                   </div>
                 </div>
+                 { ex.videoId && (
+                  <div className="text-xs text-muted-foreground pt-2">
+                    Linked Video ID: {ex.videoId} (You can paste a new ID here)
+                    <Input 
+                      className="mt-1 h-7 text-xs"
+                      placeholder="Paste 11-character YouTube ID"
+                      value={ex.videoId}
+                      onChange={(e) => updateExercise(index, 'videoId', e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -473,5 +427,3 @@ export default function WorkoutsPage() {
     </div>
   );
 }
-
-    

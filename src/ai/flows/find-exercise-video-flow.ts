@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview An AI flow to generate a plausible YouTube Short video ID for a given exercise.
+ * @fileOverview An AI flow to generate a YouTube search URL for a given exercise.
  *
- * - findExerciseVideo - A function that takes an exercise name and returns a YouTube Short video ID.
+ * - findExerciseVideo - A function that takes an exercise name and returns a YouTube search URL.
  * - FindExerciseVideoInput - The input type for the findExerciseVideo function.
  * - FindExerciseVideoOutput - The return type for the findExerciseVideo function.
  */
@@ -15,23 +15,15 @@ const FindExerciseVideoInputSchema = z.object({
 });
 export type FindExerciseVideoInput = z.infer<typeof FindExerciseVideoInputSchema>;
 
-const VideoSchema = z.object({
-    videoId: z.string().length(11).describe("The 11-character YouTube video ID."),
-    title: z.string().describe("The title of the YouTube video."),
-    thumbnailUrl: z.string().url().describe("The URL of the video thumbnail image."),
-});
 
 const FindExerciseVideoOutputSchema = z.object({
-  videos: z.array(VideoSchema).describe("A list of plausible YouTube short videos for the exercise."),
+  searchUrl: z.string().url().describe("A YouTube search URL for the exercise."),
 });
 export type FindExerciseVideoOutput = z.infer<typeof FindExerciseVideoOutputSchema>;
 
 
 const PromptOutputSchema = z.object({
-  videos: z.array(z.object({
-    videoId: z.string().length(11).describe("The 11-character YouTube video ID."),
-    title: z.string().describe("The title of the YouTube video."),
-  })).describe("A list of plausible YouTube short videos for the exercise."),
+  searchQuery: z.string().describe("A YouTube search query string for the exercise.")
 });
 
 
@@ -40,17 +32,18 @@ export async function findExerciseVideo(input: FindExerciseVideoInput): Promise<
 }
 
 const prompt = ai.definePrompt({
-    name: 'exerciseVideoPrompt',
+    name: 'exerciseVideoSearchQueryPrompt',
     input: { schema: FindExerciseVideoInputSchema },
     output: { schema: PromptOutputSchema },
     prompt: `You are a YouTube search expert specializing in fitness content.
     
-    Find 8 relevant YouTube Shorts that demonstrate the proper form for the exercise: "{{{exerciseName}}}".
+    Your task is to generate an optimal YouTube search query to find short video demonstrations for the following exercise: "{{{exerciseName}}}".
 
-    For each video, provide only the video ID and a concise title.
-    The search query would likely be "how to do a {{{exerciseName}}} #shorts".
+    The query should include terms like "how to", the exercise name, and "#shorts" to get the best results.
     
-    Only return YouTube Short videos. Ensure the video IDs are exactly 11 characters long.
+    Example: For "Goblet Squat", a good query would be "how to do a goblet squat #shorts".
+
+    Return ONLY the search query string.
     `,
 });
 
@@ -63,14 +56,11 @@ const findExerciseVideoFlow = ai.defineFlow(
     async (input) => {
         const { output } = await prompt(input);
         if (!output) {
-          return { videos: [] };
+          throw new Error("Could not generate a search query.");
         }
 
-        const videosWithThumbnails = output.videos.map(video => ({
-          ...video,
-          thumbnailUrl: `https://i.ytimg.com/vi/${video.videoId}/sddefault.jpg`,
-        }));
+        const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(output.searchQuery)}`;
 
-        return { videos: videosWithThumbnails };
+        return { searchUrl };
     }
 );
