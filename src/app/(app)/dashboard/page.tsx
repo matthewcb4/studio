@@ -183,7 +183,7 @@ export default function DashboardPage() {
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:grid-cols-3">
       <div className="grid gap-4 lg:col-span-2">
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
             <Card>
             <CardHeader>
                 <CardTitle>Start Workout</CardTitle>
@@ -214,6 +214,10 @@ export default function DashboardPage() {
             
             <ProgressSummaryCard />
             
+            <div className="grid gap-4 auto-rows-max lg:col-span-3">
+                <MuscleHeatmap />
+            </div>
+
             {hasData ? (
             <>
                 <Card>
@@ -286,10 +290,13 @@ export default function DashboardPage() {
             </CardContent>
         </Card>
       </div>
-
+      
+      {/* This div below is removed to move the heatmap up */}
+      {/*
        <div className="grid gap-4 auto-rows-max lg:col-span-1">
            <MuscleHeatmap />
        </div>
+      */}
 
     </div>
   );

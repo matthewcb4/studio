@@ -3,11 +3,43 @@ import React from 'react';
 
 export function FemaleBody() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 800">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 800" className="w-full h-auto max-h-[400px] mx-auto">
       <title>Female Body Outline</title>
-      {/* Add SVG paths for female body outline here */}
-      <g id="female-body">
-         <path d="M200 80 Q 185 90, 170 100 L 160 120 L 155 200 Q 150 250, 140 300 L 135 350 Q 125 450, 135 500 L 140 600 L 150 700 L 180 760 L 220 760 L 250 700 L 260 600 L 265 500 Q 275 450, 265 350 L 260 300 Q 250 250, 245 200 L 240 120 L 230 100 Q 215 90, 200 80 Z" fill="hsl(var(--muted))" stroke="hsl(var(--foreground))" strokeWidth="2" />
+      <g id="female-body-outline" fill="hsl(var(--muted))" stroke="hsl(var(--foreground))" strokeWidth="2">
+        {/* Head */}
+        <circle cx="200" cy="90" r="40" />
+
+        {/* Neck */}
+        <rect x="185" y="130" width="30" height="20" />
+
+        {/* Shoulders */}
+        <path d="M160 150 Q 200 140, 240 150" />
+        
+        {/* Upper Body */}
+        <path d="M160 150 L 150 250 Q 155 260, 160 270" />
+        <path d="M240 150 L 250 250 Q 245 260, 240 270" />
+
+        {/* Arms */}
+        <path d="M150 155 L 130 300 L 125 400" />
+        <path d="M250 155 L 270 300 L 275 400" />
+        
+        {/* Torso */}
+        <path d="M160 270 C 170 350, 230 350, 240 270" />
+        <path d="M180 150 C 180 200, 220 200, 220 150" fill="none" />
+        
+        {/* Breasts */}
+        <path d="M175 190 a 25 25 0 0 1 50 0" fill="hsl(var(--muted))" />
+
+        {/* Waist and Hips */}
+        <path d="M160 270 C 150 320, 140 370, 150 420" />
+        <path d="M240 270 C 250 320, 260 370, 250 420" />
+
+        {/* Legs */}
+        <path d="M150 420 L 170 600 L 175 750" />
+        <path d="M250 420 L 230 600 L 225 750" />
+        
+        {/* Crotch */}
+        <path d="M175 420 Q 200 440, 225 420" />
       </g>
     </svg>
   );
