@@ -57,6 +57,9 @@ import {
 import { collection, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type VideoResult = FindExerciseVideoOutput['videos'][0];
+
+
 function VideoSearchDialog({
   exerciseName,
   onSelectVideo,
@@ -65,7 +68,7 @@ function VideoSearchDialog({
   onSelectVideo: (videoId: string) => void;
 }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [videoResults, setVideoResults] = useState<FindExerciseVideoOutput['videos']>([]);
+  const [videoResults, setVideoResults] = useState<VideoResult[]>([]);
 
   const handleSearchClick = async () => {
     if (!exerciseName) return;
@@ -104,7 +107,7 @@ function VideoSearchDialog({
           {isLoading &&
             Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="space-y-2">
-                <Skeleton className="h-[213px] w-full" />
+                <Skeleton className="aspect-[9/16] w-full" />
                 <Skeleton className="h-4 w-5/6" />
               </div>
             ))}
@@ -116,7 +119,7 @@ function VideoSearchDialog({
               >
                 <div className="overflow-hidden rounded-lg relative">
                     <Image
-                        src={video.thumbnailUrl}
+                        src={`https://i.ytimg.com/vi/${video.videoId}/sddefault.jpg`}
                         alt={video.title}
                         width={240}
                         height={426}

@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI flow to generate a plausible YouTube Short video ID for a given exercise.
@@ -18,7 +19,6 @@ export type FindExerciseVideoInput = z.infer<typeof FindExerciseVideoInputSchema
 const VideoSchema = z.object({
     videoId: z.string().length(11).describe("The 11-character YouTube video ID."),
     title: z.string().describe("The title of the YouTube video."),
-    thumbnailUrl: z.string().url().describe("The URL of the video thumbnail image."),
 });
 
 const FindExerciseVideoOutputSchema = z.object({
@@ -39,11 +39,10 @@ const prompt = ai.definePrompt({
     
     Find 8 relevant YouTube Shorts that demonstrate the proper form for the exercise: "{{{exerciseName}}}".
 
-    For each video, provide the video ID, a concise title, and the URL for a standard quality thumbnail.
+    For each video, provide the video ID and a concise title.
     The search query would likely be "how to do a {{{exerciseName}}} #shorts".
     
     Only return YouTube Short videos. Ensure the video IDs are exactly 11 characters long.
-    An example thumbnail URL is "https://i.ytimg.com/vi/<VIDEO_ID>/sddefault.jpg".
     `,
 });
 
