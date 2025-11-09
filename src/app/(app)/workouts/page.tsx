@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -152,16 +152,25 @@ function WorkoutForm({
   onSave: (workout: Omit<CustomWorkout, 'id' | 'userId'>) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState(workout?.name || '');
-  const [exercises, setExercises] = useState<WorkoutExercise[]>(
-    workout?.exercises || []
-  );
+  const [name, setName] = useState('');
+  const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
+
+  useEffect(() => {
+    if (workout) {
+      setName(workout.name);
+      // Deep copy exercises to avoid direct mutation of props
+      setExercises(JSON.parse(JSON.stringify(workout.exercises || [])));
+    } else {
+      setName('');
+      setExercises([]);
+    }
+  }, [workout]);
 
   const addExerciseGroup = () => {
     const newSupersetId = generateUniqueId();
     const newExercise: WorkoutExercise = {
       id: generateUniqueId(),
-      exerciseId: '',
+      exerciseId: '', // Default to empty
       exerciseName: '',
       sets: 3,
       reps: '8-12',
@@ -174,7 +183,7 @@ function WorkoutForm({
   const addExerciseToGroup = (supersetId: string) => {
     const newExercise: WorkoutExercise = {
       id: generateUniqueId(),
-      exerciseId: '',
+      exerciseId: '', // Default to empty
       exerciseName: '',
       sets: 3,
       reps: '8-12',
@@ -197,10 +206,16 @@ function WorkoutForm({
       if (ex.id === exerciseIdToUpdate) {
         const updatedEx = { ...ex };
         if (field === 'exerciseId') {
-          const selectedExercise = masterExercises.find((e) => e.id === value);
+          // The `exerciseId` can come from the master list (e.g., '1') or be a name (e.g., from AI).
+          // We find the master exercise by either `id` or `name`.
+          const selectedExercise = masterExercises.find(e => e.id === value || e.name === value);
           if (selectedExercise) {
             updatedEx.exerciseId = selectedExercise.id;
             updatedEx.exerciseName = selectedExercise.name;
+          } else {
+            // Handle cases where the exercise is not in the master list (e.g. from AI)
+            updatedEx.exerciseId = value; // Keep the value (which might be the name)
+            updatedEx.exerciseName = value;
           }
         } else {
           (updatedEx[field] as any) = value;
@@ -227,9 +242,20 @@ function WorkoutForm({
   };
 
   const handleSave = () => {
+    // Before saving, ensure any exercise that has a name but not an ID gets the ID from the master list
+    const finalizedExercises = exercises.map(ex => {
+        if (!masterExercises.some(me => me.id === ex.exerciseId)) {
+            const matched = masterExercises.find(me => me.name === ex.exerciseName);
+            if (matched) {
+                return { ...ex, exerciseId: matched.id };
+            }
+        }
+        return ex;
+    });
+
     const newWorkout: Omit<CustomWorkout, 'id' | 'userId'> = {
       name,
-      exercises,
+      exercises: finalizedExercises,
     };
     onSave(newWorkout);
   };
@@ -423,6 +449,7 @@ export default function WorkoutsPage() {
       addDocumentNonBlocking(workoutsCollection, dataToSave);
     }
     setIsSheetOpen(false);
+    setEditingWorkout(null);
   };
   
   const groupedWorkouts = useMemo(() => {
@@ -450,7 +477,10 @@ export default function WorkoutsPage() {
             <WorkoutForm
               workout={editingWorkout}
               onSave={handleSaveWorkout}
-              onCancel={() => setIsSheetOpen(false)}
+              onCancel={() => {
+                setIsSheetOpen(false)
+                setEditingWorkout(null)
+              }}
             />
           </SheetContent>
         </Sheet>

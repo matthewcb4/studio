@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,7 +21,7 @@ import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment } from '@/lib/types';
+import type { UserEquipment, WorkoutExercise } from '@/lib/types';
 
 const formSchema = z.object({
   availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -35,6 +35,18 @@ const formSchema = z.object({
 });
 
 const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
+
+// Helper to group AI-generated exercises by supersetId for display
+const groupAiExercises = (exercises: GenerateWorkoutOutput['exercises'] = []) => {
+    if (!exercises) return [];
+    const grouped = exercises.reduce((acc, ex) => {
+        (acc[ex.supersetId] = acc[ex.supersetId] || []).push(ex);
+        return acc;
+    }, {} as Record<string, GenerateWorkoutOutput['exercises']>);
+    
+    return Object.values(grouped);
+};
+
 
 export default function GuidePage() {
   const { user } = useUser();
@@ -68,7 +80,7 @@ export default function GuidePage() {
       const tonal = userEquipment.find(e => e.name.toLowerCase() === 'tonal');
       if (tonal) {
         form.setValue('availableEquipment', [tonal.name]);
-      } else {
+      } else if (form.getValues('availableEquipment').length === 0) {
          form.setValue('availableEquipment', [userEquipment[0].name]);
       }
     }
@@ -106,8 +118,7 @@ export default function GuidePage() {
             name: generatedWorkout.workoutName,
             exercises: generatedWorkout.exercises.map(ex => ({
                     id: generateUniqueId(),
-                    // The AI doesn't know the master ID, so we use the name to find a match.
-                    // This is a simplification; a real app might need a smarter mapping.
+                    // The AI doesn't know the master ID, so we use the name to find a match later.
                     exerciseId: ex.name,
                     exerciseName: ex.name,
                     sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
@@ -136,6 +147,11 @@ export default function GuidePage() {
     }
   };
   
+  const groupedAiExercises = useMemo(() => {
+    if (!generatedWorkout) return [];
+    return groupAiExercises(generatedWorkout.exercises);
+  }, [generatedWorkout]);
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center gap-4">
@@ -379,26 +395,31 @@ export default function GuidePage() {
                         <CardDescription>{generatedWorkout.description}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {generatedWorkout.exercises.map((ex, index) => (
-                            <div key={index} className="p-4 border rounded-lg bg-secondary/50">
-                                <div className="flex justify-between items-center">
-                                  <h4 className="font-semibold text-lg text-primary">{ex.name}</h4>
-                                </div>
-                                <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
-                                    <div>
-                                        <p className="text-muted-foreground">Sets</p>
-                                        <p className="font-medium">{ex.sets}</p>
+                        {groupedAiExercises.map((group, index) => (
+                           <div key={index} className="p-4 border rounded-lg bg-secondary/50 space-y-3">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    {group.length > 1 ? `Superset ${index + 1}` : `Group ${index + 1}`}
+                                </p>
+                                {group.map((ex, exIndex) => (
+                                    <div key={exIndex} className="p-3 bg-background rounded-md">
+                                        <h4 className="font-semibold text-lg text-primary">{ex.name}</h4>
+                                        <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
+                                            <div>
+                                                <p className="text-muted-foreground">Sets</p>
+                                                <p className="font-medium">{ex.sets}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-muted-foreground">Reps</p>
+                                                <p className="font-medium">{ex.reps}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-muted-foreground">Rest</p>
+                                                <p className="font-medium">{ex.rest}s</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-muted-foreground">Reps</p>
-                                        <p className="font-medium">{ex.reps}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-muted-foreground">Rest</p>
-                                        <p className="font-medium">{ex.rest}s</p>
-                                    </div>
-                                </div>
-                            </div>
+                                ))}
+                           </div>
                         ))}
                     </CardContent>
                     <CardFooter>
