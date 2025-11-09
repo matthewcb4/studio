@@ -414,13 +414,13 @@ export default function WorkoutsPage() {
             <CardHeader>
               <CardTitle>{workout.name}</CardTitle>
                <CardDescription>
-                {(workout.exercises?.length || 0)} exercises in {workout.groupedExercises?.length || 0} groups
+                {(workout.exercises?.length || 0)} exercises in {(workout.groupedExercises || []).length} groups
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {workout.groupedExercises?.map((group, groupIndex) => (
-                  <div key={`${workout.id}-${group[0]?.supersetId || groupIndex}`} className="space-y-2">
+                  <div key={group[0]?.supersetId || groupIndex} className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">
                       {group.length > 1 ? `Superset ${groupIndex + 1}` : `Group ${groupIndex + 1}`}
                     </p>
