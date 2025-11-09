@@ -2,6 +2,7 @@ export type Exercise = {
   id: string;
   name: string;
   category: string;
+  videoId?: string | null;
 };
 
 export type WorkoutExercise = {
@@ -9,6 +10,7 @@ export type WorkoutExercise = {
   exerciseName: string;
   sets: number;
   reps: string; // e.g., "8-10"
+  videoId?: string | null;
 };
 
 export type CustomWorkout = {

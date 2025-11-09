@@ -42,6 +42,10 @@
         "description": {
           "type": "string",
           "description": "Description of the exercise."
+        },
+        "videoId": {
+          "type": "string",
+          "description": "The 11-character YouTube video ID for a demonstration."
         }
       },
       "required": [
@@ -67,11 +71,19 @@
           "type": "string",
           "description": "Name of the custom workout."
         },
-        "exerciseIds": {
+        "exercises": {
           "type": "array",
-          "description": "References to Exercises. (Relationship: CustomWorkout 1:N Exercise)",
+          "description": "Array of exercises within the workout.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "exerciseId": { "type": "string" },
+              "exerciseName": { "type": "string" },
+              "sets": { "type": "number" },
+              "reps": { "type": "string" },
+              "videoId": { "type": "string" }
+            },
+            "required": ["exerciseId", "exerciseName", "sets", "reps"]
           }
         }
       },
@@ -95,63 +107,52 @@
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N WorkoutLog)"
         },
-        "customWorkoutId": {
+        "workoutName": {
           "type": "string",
-          "description": "Reference to CustomWorkout. (Relationship: CustomWorkout 1:N WorkoutLog)"
+          "description": "Name of the workout performed."
         },
         "date": {
           "type": "string",
           "description": "Date of the workout log.",
           "format": "date-time"
         },
-        "sets": {
+        "duration": {
+            "type": "string",
+            "description": "Duration of the workout."
+        },
+        "volume": {
+            "type": "number",
+            "description": "Total weight lifted during the workout."
+        },
+        "exercises": {
           "type": "array",
-          "description": "Array of sets performed during the workout.",
+          "description": "Array of exercises performed during the workout.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+                "exerciseId": { "type": "string" },
+                "exerciseName": { "type": "string" },
+                "sets": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "reps": { "type": "number" },
+                            "weight": { "type": "number" }
+                        },
+                        "required": ["reps", "weight"]
+                    }
+                }
+            },
+            "required": ["exerciseId", "exerciseName", "sets"]
           }
         }
       },
       "required": [
         "id",
         "userId",
-        "customWorkoutId",
+        "workoutName",
         "date"
-      ]
-    },
-    "Set": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Set",
-      "type": "object",
-      "description": "Represents a set performed during a workout.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Set entity."
-        },
-        "exerciseId": {
-          "type": "string",
-          "description": "Reference to Exercise. (Relationship: Exercise 1:N Set)"
-        },
-        "workoutLogId": {
-          "type": "string",
-          "description": "Reference to WorkoutLog. (Relationship: WorkoutLog 1:N Set)"
-        },
-        "weight": {
-          "type": "number",
-          "description": "Weight used for the set."
-        },
-        "reps": {
-          "type": "number",
-          "description": "Number of repetitions performed."
-        }
-      },
-      "required": [
-        "id",
-        "exerciseId",
-        "workoutLogId",
-        "weight",
-        "reps"
       ]
     }
   },
@@ -187,7 +188,7 @@
           "schema": {
             "$ref": "#/backend/entities/Exercise"
           },
-          "description": "Stores master exercise data.  This collection is pre-populated and read-only for all users.",
+          "description": "Stores master exercise data. This collection is pre-populated and publicly readable, but authenticated users can update video links.",
           "params": [
             {
               "name": "exerciseId",
@@ -232,30 +233,6 @@
             {
               "name": "workoutLogId",
               "description": "The unique identifier of the workout log."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/workoutLogs/{workoutLogId}/sets/{setId}",
-        "definition": {
-          "entityName": "Set",
-          "schema": {
-            "$ref": "#/backend/entities/Set"
-          },
-          "description": "Stores sets performed during a workout.  Path-based ownership, following hierarchy. Includes denormalized 'userId' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "workoutLogId",
-              "description": "The unique identifier of the workout log."
-            },
-            {
-              "name": "setId",
-              "description": "The unique identifier of the set."
             }
           ]
         }

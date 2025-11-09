@@ -4,6 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Bot, PlusCircle, Trash2, Wand2, Loader2, Dumbbell, Video } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
 import { findExerciseVideo } from '@/ai/flows/find-exercise-video-flow';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { exercises as masterExerciseList } from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -36,8 +41,12 @@ const formSchema = z.object({
 });
 
 export default function GuidePage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [selectedVideoExercise, setSelectedVideoExercise] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
@@ -75,7 +84,11 @@ export default function GuidePage() {
       setGeneratedWorkout(result);
     } catch (error) {
       console.error('Failed to generate workout:', error);
-      // You could show a toast notification here
+      toast({
+        variant: "destructive",
+        title: "Oh no! Something went wrong.",
+        description: "Failed to generate workout. Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -92,8 +105,51 @@ export default function GuidePage() {
       }
     } catch (error) {
       console.error('Failed to find video:', error);
+      toast({
+        variant: "destructive",
+        title: "Video Search Failed",
+        description: "Could not find a video for this exercise.",
+      });
     } finally {
       setIsVideoLoading(false);
+    }
+  };
+
+  const handleSaveWorkout = async () => {
+    if (!generatedWorkout || !user || !firestore) return;
+
+    setIsSaving(true);
+    try {
+        const workoutData = {
+            userId: user.uid,
+            name: generatedWorkout.workoutName,
+            exercises: generatedWorkout.exercises.map(ex => {
+                const masterExercise = masterExerciseList.find(me => me.name.toLowerCase() === ex.name.toLowerCase());
+                return {
+                    exerciseId: masterExercise ? masterExercise.id : uuidv4(),
+                    exerciseName: ex.name,
+                    sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
+                    reps: ex.reps,
+                };
+            }),
+        };
+
+        const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
+        await addDocumentNonBlocking(workoutsCollection, workoutData);
+
+        toast({
+            title: "Workout Saved!",
+            description: `"${generatedWorkout.workoutName}" has been added to your workouts.`,
+        });
+    } catch (error) {
+        console.error("Failed to save workout:", error);
+        toast({
+            variant: "destructive",
+            title: "Save Failed",
+            description: "There was a problem saving your workout. Please try again.",
+        });
+    } finally {
+        setIsSaving(false);
     }
   };
 
@@ -308,8 +364,18 @@ export default function GuidePage() {
                           ))}
                       </CardContent>
                       <CardFooter>
-                          <Button className="w-full">
-                              <PlusCircle className="mr-2 h-4 w-4" /> Save this workout
+                          <Button className="w-full" onClick={handleSaveWorkout} disabled={isSaving}>
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Save this workout
+                                </>
+                            )}
                           </Button>
                       </CardFooter>
                    </Card>
@@ -317,7 +383,7 @@ export default function GuidePage() {
           </div>
         </div>
       </div>
-      <DialogContent className="aspect-[9/16] max-w-[300px] sm:max-w-[400px] p-0">
+       <DialogContent className="aspect-[9/16] max-w-[300px] sm:max-w-[400px] p-0">
           <DialogHeader>
             <DialogTitle>{selectedVideoExercise}</DialogTitle>
             <DialogDescription>
