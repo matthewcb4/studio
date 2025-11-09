@@ -8,6 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { findYoutubeShortId } from '@/ai/flows/find-youtube-short-id-flow';
 import { z } from 'genkit';
 
 const FindExerciseVideoInputSchema = z.object({
@@ -25,38 +26,29 @@ export async function findExerciseVideo(input: FindExerciseVideoInput): Promise<
 }
 
 const findVideoTool = ai.defineTool(
-    {
-      name: 'findYouTubeVideo',
-      description: 'Finds a YouTube video for a given search query.',
-      inputSchema: z.object({ query: z.string() }),
-      outputSchema: z.object({ videoId: z.string().nullable() }),
-    },
-    async ({ query }) => {
-      // In a real scenario, this would call the YouTube Data API
-      // For this example, we'll return a placeholder based on a simple lookup
-      // More specific queries will match first.
-      const queryLower = query.toLowerCase();
-      if (queryLower.includes('romanian deadlift')) return { videoId: 'jey_CzI_nUA' };
-      if (queryLower.includes('bench press')) return { videoId: '0Fzshb9T38A' };
-      if (queryLower.includes('lat pulldown')) return { videoId: 'u_i-3tC4J_o' };
-      if (queryLower.includes('goblet squat')) return { videoId: '5b-yC8aD_9Q' };
-      if (queryLower.includes('overhead press')) return { videoId: 'M2-iA6S7-DA' };
-      if (queryLower.includes('bicep curl')) return { videoId: '1n_n3G-Y7eM' };
-      if (queryLower.includes('tricep extension')) return { videoId: 'b_r_LW4HEcM' };
-      if (queryLower.includes('deadlift')) return { videoId: '_FkbD0FhgVE' };
-      if (queryLower.includes('leg press')) return { videoId: 's1pYtS6sN-8' };
-      if (queryLower.includes('lateral raise')) return { videoId: '3fiHn2fT-i0' };
-      if (queryLower.includes('chest fly')) return { videoId: '2z0o2v1i-vM' };
-      if (queryLower.includes('pull up')) return { videoId: 'poyr8KenUFc' };
+  {
+    name: 'findYouTubeVideo',
+    description: 'Finds a YouTube video ID for a given exercise name.',
+    inputSchema: z.object({ exercise: z.string() }),
+    outputSchema: z.object({ videoId: z.string().nullable() }),
+  },
+  async ({ exercise }) => {
+    // This tool now calls another AI flow to dynamically find a video ID.
+    try {
+      const result = await findYoutubeShortId({ exerciseName: exercise });
+      return { videoId: result.videoId };
+    } catch (error) {
+      console.error(`Error finding video for ${exercise}:`, error);
       return { videoId: null };
     }
-  );
+  }
+);
 
 const prompt = ai.definePrompt({
   name: 'findExerciseVideoPrompt',
   input: { schema: FindExerciseVideoInputSchema },
   output: { schema: FindExerciseVideoOutputSchema },
-  prompt: `Find a YouTube Short for the exercise: {{{exerciseName}}}. The search query for the tool should be "how to do a {{{exerciseName}}} #shorts". Only use the provided tools.`,
+  prompt: `Find a YouTube Short for the exercise: {{{exerciseName}}}. You must use the provided tool to get the video ID.`,
   tools: [findVideoTool]
 });
 
