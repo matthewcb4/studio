@@ -25,19 +25,19 @@ const categoryToMuscleGroup: Record<string, string> = {
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
     shoulders: { top: '22%', left: '50%' },
-    chest: { top: '32%', left: '50%' },
+    chest: { top: '35%', left: '50%' },
     back: { top: '35%', left: '50%' },
-    core: { top: '45%', left: '50%' },
-    arms: { top: '40%', left: '20%' }, // Represents one arm, mirrored for the other
-    legs: { top: '65%', left: '42%' }, // Represents one leg, mirrored for the other
+    core: { top: '48%', left: '50%' },
+    arms: { top: '38%', left: '20%' }, // Represents one arm, mirrored for the other
+    legs: { top: '60%', left: '42%' }, // Represents one leg, mirrored for the other
   },
   Female: {
     shoulders: { top: '26%', left: '50%' },
-    chest: { top: '33%', left: '50%' },
+    chest: { top: '36%', left: '50%' },
     back: { top: '38%', left: '50%' },
-    core: { top: '48%', left: '50%' },
-    arms: { top: '42%', left: '20%' },
-    legs: { top: '65%', left: '42%' },
+    core: { top: '50%', left: '50%' },
+    arms: { top: '40%', left: '20%' },
+    legs: { top: '60%', left: '42%' },
   },
 };
 
