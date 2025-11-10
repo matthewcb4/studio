@@ -281,6 +281,7 @@ export default function DashboardPage() {
                                 <SelectItem value="1">Last 24 hours</SelectItem>
                                 <SelectItem value="3">Last 3 days</SelectItem>
                                 <SelectItem value="7">Last 7 days</SelectItem>
+                                <SelectItem value="14">Last 14 days</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
