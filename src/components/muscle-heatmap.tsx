@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useDoc, useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import type { UserProfile, WorkoutLog } from '@/lib/types';
+import type { UserProfile, WorkoutLog, Exercise } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -32,7 +32,7 @@ const categoryToMuscleMap: Record<string, string> = {
   'Back': 'Back',
   'Shoulders': 'Shoulders',
   'Legs': 'Legs',
-  'Arms': 'Arms',
+  'Arms': 'Arms', // A general fallback
   'Biceps': 'Biceps',
   'Triceps': 'Triceps',
   'Core': 'Core',
@@ -48,12 +48,26 @@ export type MuscleData = {
 export function MuscleHeatmap() {
     const { user } = useUser();
     const firestore = useFirestore();
-    const [timeRange, setTimeRange] = useState('7');
+    const [timeRange, setTimeRange] = useState('30');
 
     const userProfileRef = useMemoFirebase(() => 
         user ? doc(firestore, `users/${user.uid}/profile/main`) : null
     , [firestore, user]);
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+
+    const masterExercisesQuery = useMemoFirebase(() =>
+        firestore ? collection(firestore, 'exercises') : null,
+    [firestore]);
+    const { data: masterExercises, isLoading: isLoadingMasterExercises } = useCollection<Exercise>(masterExercisesQuery);
+    
+    const exercisesById = useMemo(() => {
+        if (!masterExercises) return {};
+        return masterExercises.reduce((acc, ex) => {
+            acc[ex.id] = ex;
+            return acc;
+        }, {} as Record<string, Exercise>);
+    }, [masterExercises]);
+
 
     const workoutLogsQuery = useMemoFirebase(() => {
         if (!user) return null;
@@ -68,27 +82,27 @@ export function MuscleHeatmap() {
     const { data: workoutLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(workoutLogsQuery);
 
     const muscleData: MuscleData = useMemo(() => {
-        if (!workoutLogs) return {};
+        if (!workoutLogs || Object.keys(exercisesById).length === 0) return {};
 
         const data: { [key: string]: { volume: number } } = {};
         let maxVolume = 0;
 
         workoutLogs.forEach(log => {
-            log.exercises.forEach(exercise => {
-                // This is a simplification. A real app might have a more detailed mapping.
-                // We'll use the first word of the exercise name as a proxy for category if needed.
-                const category = exercise.exerciseName.split(' ')[0];
-                const muscle = categoryToMuscleMap[category] || null;
+            log.exercises.forEach(exerciseLog => {
+                const masterExercise = exercisesById[exerciseLog.exerciseId];
+                if (masterExercise && masterExercise.category) {
+                    const muscle = categoryToMuscleMap[masterExercise.category] || null;
 
-                if (muscle) {
-                    if (!data[muscle]) {
-                        data[muscle] = { volume: 0 };
-                    }
-                    const exerciseVolume = exercise.sets.reduce((acc, set) => acc + set.reps * set.weight, 0);
-                    data[muscle].volume += exerciseVolume;
+                    if (muscle) {
+                        if (!data[muscle]) {
+                            data[muscle] = { volume: 0 };
+                        }
+                        const exerciseVolume = exerciseLog.sets.reduce((acc, set) => acc + set.reps * set.weight, 0);
+                        data[muscle].volume += exerciseVolume;
 
-                    if (data[muscle].volume > maxVolume) {
-                        maxVolume = data[muscle].volume;
+                        if (data[muscle].volume > maxVolume) {
+                            maxVolume = data[muscle].volume;
+                        }
                     }
                 }
             });
@@ -102,19 +116,20 @@ export function MuscleHeatmap() {
                 intensity: maxVolume > 0 ? data[muscle].volume / maxVolume : 0,
             };
         }
-
         return finalData;
 
-    }, [workoutLogs]);
+    }, [workoutLogs, exercisesById]);
+    
+    const isLoading = isLoadingProfile || isLoadingLogs || isLoadingMasterExercises;
 
-    if (isLoadingProfile) {
+    if (isLoading) {
         return (
              <Card>
                 <CardHeader>
                     <CardTitle>Muscle Heatmap</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <div className="text-sm text-muted-foreground">Loading...</div>
+                <CardContent className="h-[450px] flex items-center justify-center">
+                    <div className="text-sm text-muted-foreground">Loading Heatmap...</div>
                 </CardContent>
             </Card>
         )
@@ -145,7 +160,7 @@ export function MuscleHeatmap() {
                 <CardDescription>Your workout activity focus.</CardDescription>
             </CardHeader>
             <CardContent>
-               {isLoadingLogs ? <p>Loading activity...</p> : <BodyComponent muscleData={muscleData} />}
+               {isLoadingLogs ? <div className="h-[450px] flex items-center justify-center"><p>Loading activity...</p></div> : <BodyComponent muscleData={muscleData} />}
             </CardContent>
             <CardFooter>
                  <Select onValueChange={setTimeRange} defaultValue={timeRange}>
