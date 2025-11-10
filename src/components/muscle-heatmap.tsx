@@ -51,11 +51,11 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
       style={{
         top,
         left: finalLeft,
-        width: '30%', // Increased size for better visibility
+        width: '30%',
         height: '30%',
-        background: `radial-gradient(circle, hsl(var(--primary) / ${intensity * 0.6}) 0%, hsl(var(--primary) / 0) 60%)`, // Adjusted gradient
+        background: `radial-gradient(circle, hsl(var(--accent) / ${intensity * 0.8}) 0%, hsl(var(--accent) / 0) 70%)`,
         transform: `translate(-50%, -50%)`,
-        opacity: Math.max(0.3, intensity), // ensure even low intensity is visible
+        opacity: Math.max(0.4, intensity),
         zIndex: 10,
       }}
     />
@@ -92,7 +92,6 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
     
     thisWeeksLogs.forEach(log => {
       log.exercises.forEach((loggedEx: LoggedExercise) => {
-        // CORRECTED: Use loggedEx.exerciseId to find the category
         const category = exerciseIdToCategory[loggedEx.exerciseId];
         if (category) {
           const muscleGroup = categoryToMuscleGroup[category];
