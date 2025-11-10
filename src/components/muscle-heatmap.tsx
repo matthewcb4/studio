@@ -28,16 +28,16 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     chest: { top: '32%', left: '50%' },
     back: { top: '35%', left: '50%' },
     core: { top: '45%', left: '50%' },
-    arms: { top: '38%', left: '35%' }, // Represents one arm, mirrored for the other
-    legs: { top: '70%', left: '42%' }, // Represents one leg, mirrored for the other
+    arms: { top: '38%', left: '28%' }, // Represents one arm, mirrored for the other
+    legs: { top: '70%', left: '40%' }, // Represents one leg, mirrored for the other
   },
   Female: {
     shoulders: { top: '24%', left: '50%' },
     chest: { top: '33%', left: '50%' },
     back: { top: '38%', left: '50%' },
     core: { top: '48%', left: '50%' },
-    arms: { top: '40%', left: '33%' },
-    legs: { top: '70%', left: '42%' },
+    arms: { top: '40%', left: '25%' },
+    legs: { top: '70%', left: '40%' },
   },
 };
 
@@ -82,20 +82,37 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   );
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
   
-  const muscleGroupFrequency = useMemo(() => {
-    // DEBUG: Force all muscle groups to full intensity
-    return {
-        'shoulders': 1,
-        'chest': 1,
-        'back': 1,
-        'core': 1,
-        'arms': 1,
-        'legs': 1,
-    };
-  }, []);
-  
-  const maxFrequency = 1; // DEBUG: Force max frequency to 1
+  const { muscleGroupFrequency, maxFrequency } = useMemo(() => {
+    if (!thisWeeksLogs || !masterExercises) {
+      return { muscleGroupFrequency: {}, maxFrequency: 0 };
+    }
 
+    const exerciseIdToCategory = masterExercises.reduce((acc, ex) => {
+      if (ex.category) {
+        acc[ex.id] = ex.category;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+
+    const frequencies: Record<string, number> = {};
+
+    thisWeeksLogs.forEach(log => {
+      log.exercises.forEach(loggedEx => {
+        const category = exerciseIdToCategory[loggedEx.exerciseId];
+        if (category) {
+          const muscleGroup = categoryToMuscleGroup[category];
+          if (muscleGroup) {
+            frequencies[muscleGroup] = (frequencies[muscleGroup] || 0) + 1;
+          }
+        }
+      });
+    });
+    
+    const max = Object.values(frequencies).reduce((max, count) => Math.max(max, count), 0);
+    
+    return { muscleGroupFrequency: frequencies, maxFrequency: max };
+  }, [thisWeeksLogs, masterExercises]);
+  
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
     ? "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female.png"
