@@ -51,11 +51,11 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
       style={{
         top,
         left: finalLeft,
-        width: '25%', // size of the heatmap circle
-        height: '25%',
-        background: `radial-gradient(circle, hsl(var(--primary) / ${intensity * 0.5}) 0%, hsl(var(--primary) / 0) 70%)`,
+        width: '30%', // Increased size for better visibility
+        height: '30%',
+        background: `radial-gradient(circle, hsl(var(--primary) / ${intensity * 0.6}) 0%, hsl(var(--primary) / 0) 60%)`, // Adjusted gradient
         transform: `translate(-50%, -50%)`,
-        opacity: Math.max(0.2, intensity), // ensure even low intensity is visible
+        opacity: Math.max(0.3, intensity), // ensure even low intensity is visible
         zIndex: 10,
       }}
     />
@@ -92,6 +92,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
     
     thisWeeksLogs.forEach(log => {
       log.exercises.forEach((loggedEx: LoggedExercise) => {
+        // CORRECTED: Use loggedEx.exerciseId to find the category
         const category = exerciseIdToCategory[loggedEx.exerciseId];
         if (category) {
           const muscleGroup = categoryToMuscleGroup[category];
@@ -107,8 +108,8 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
-    ? "https://raw.githubusercontent.com/matthewcb4/public_resources/648004cc67986bfcfe38eeb974f252ec69a2369f/Female.png"
-    : "https://raw.githubusercontent.com/matthewcb4/public_resources/1401389b789ae27dd8ce133567ebae3e240c139d/Male.png";
+    ? "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female.png"
+    : "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Male.png";
     
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
