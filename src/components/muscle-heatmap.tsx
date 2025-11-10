@@ -25,18 +25,18 @@ const categoryToMuscleGroup: Record<string, string> = {
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
     shoulders: { top: '23%', left: '38%' },
-    chest: { top: '28%', left: '49.5%' },
-    back: { top: '35.5%', left: '50.5%' },
-    core: { top: '42%', left: '49.5%' },
-    arms: { top: '26%', left: '41%' },
+    chest: { top: '28%', left: '50.5%' },
+    back: { top: '35.5%', left: '51.5%' },
+    core: { top: '42%', left: '50.5%' },
+    arms: { top: '26%', left: '44%' },
     legs: { top: '70%', left: '42%' },
   },
   Female: {
     shoulders: { top: '23%', left: '38%' },
-    chest: { top: '28%', left: '49.5%' },
-    back: { top: '35.5%', left: '50.5%' },
-    core: { top: '42%', left: '49.5%' },
-    arms: { top: '26%', left: '41%' },
+    chest: { top: '28%', left: '50.5%' },
+    back: { top: '35.5%', left: '51.5%' },
+    core: { top: '42%', left: '50.5%' },
+    arms: { top: '26%', left: '44%' },
     legs: { top: '70%', left: '42%' },
   },
 };
@@ -179,7 +179,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           
           const intensity = muscleGroupIntensities[group as keyof typeof muscleGroupIntensities] || 0;
           const isLegs = group === 'legs';
-          const size = isLegs ? '40%' : '25%';
+          const size = isLegs ? '40%' : '35%';
 
           return <HeatPoint key={group} intensity={intensity} size={size} coords={coords} />;
         })}
