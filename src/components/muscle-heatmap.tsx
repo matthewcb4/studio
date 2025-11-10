@@ -163,7 +163,7 @@ export function MuscleHeatmap() {
                {isLoadingLogs ? (
                  <div className="h-[450px] flex items-center justify-center"><p>Loading activity...</p></div>
                ) : (
-                <div className="w-full h-[450px] flex items-center justify-center">
+                <div className="w-full h-auto max-h-[350px] flex items-center justify-center">
                     <BodyComponent muscleData={muscleData} />
                 </div>
                )}
