@@ -293,7 +293,7 @@ export default function DashboardPage() {
                     <CardDescription>Your selected body type.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center p-4">
-                    <Image src="https://i.imgur.com/tG3aG17.png" alt="Body outline" width={150} height={400} className="object-contain" />
+                    <Image src="https://raw.githubusercontent.com/matthewcb4/public_resources/main/male.jpg" alt="Body outline" width={150} height={400} className="object-contain" />
                 </CardContent>
             </Card>
        </div>
