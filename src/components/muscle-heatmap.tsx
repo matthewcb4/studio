@@ -26,17 +26,17 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   Male: {
     shoulders: { top: '23%', left: '38%' },
     chest: { top: '28%', left: '49.5%' },
-    back: { top: '33%', left: '49.5%' },
+    back: { top: '35%', left: '49.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '28%', left: '32%' },
+    arms: { top: '26%', left: '35%' },
     legs: { top: '70%', left: '42%' },
   },
   Female: {
     shoulders: { top: '23%', left: '38%' },
     chest: { top: '28%', left: '49.5%' },
-    back: { top: '33%', left: '49.5%' },
+    back: { top: '35%', left: '49.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '28%', left: '32%' },
+    arms: { top: '26%', left: '35%' },
     legs: { top: '70%', left: '42%' },
   },
 };
@@ -179,7 +179,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           
           const intensity = muscleGroupIntensities[group as keyof typeof muscleGroupIntensities] || 0;
           const isLegs = group === 'legs';
-          const size = isLegs ? '35%' : '25%';
+          const size = isLegs ? '40%' : '25%';
 
           return <HeatPoint key={group} intensity={intensity} size={size} coords={coords} />;
         })}
