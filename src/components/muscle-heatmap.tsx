@@ -150,7 +150,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
 
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
-    ? "https://raw.githubusercontent.com/matthewcb4/public_resources/3d9e62e5cc4b73088b3dd54644b9878bc7539e4d/Female.png"
+    ? "https://raw.githubusercontent.com/matthewcb4/public_resources/e31c3cf4a26809aa1c026e3ed500ee7241a91bde/Female.png"
     : "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Male_black.png";
     
   if (isLoading || isLoadingExercises) {
