@@ -26,17 +26,17 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   Male: {
     shoulders: { top: '23%', left: '37%' },
     chest: { top: '28%', left: '49.5%' },
-    back: { top: '40.5%', left: '50.5%' },
+    back: { top: '35%', left: '49.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '26%', left: '27%' },
+    arms: { top: '26%', left: '26%' },
     legs: { top: '70%', left: '41%' },
   },
   Female: {
     shoulders: { top: '23%', left: '37%' },
     chest: { top: '28%', left: '49.5%' },
-    back: { top: '40.5%', left: '50.5%' },
+    back: { top: '35%', left: '49.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '26%', left: '27%' },
+    arms: { top: '26%', left: '26%' },
     legs: { top: '70%', left: '41%' },
   },
 };
@@ -144,16 +144,44 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
   
   const muscleGroupIntensities = useMemo(() => {
-    // Hardcode intensities for visualization purposes
-    return {
-      arms: 1,       // 100%
-      core: 0.5,     // 50%
-      legs: 1,       // 100%
-      chest: 0.75,   // 75%
-      back: 0.3,     // 30%
-      shoulders: 0,  // 0%
+    const muscleGroupReps: Record<string, number> = {
+      chest: 0, back: 0, shoulders: 0, legs: 0, arms: 0, core: 0,
     };
-  }, []);
+
+    if (!thisWeeksLogs || !masterExercises) return muscleGroupReps;
+
+    thisWeeksLogs.forEach(log => {
+      log.exercises.forEach(loggedEx => {
+        const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
+        if (masterEx?.category) {
+          const muscleGroup = categoryToMuscleGroup[masterEx.category];
+          if (muscleGroup) {
+            const totalReps = loggedEx.sets.reduce((sum, set) => sum + set.reps, 0);
+            muscleGroupReps[muscleGroup] = (muscleGroupReps[muscleGroup] || 0) + totalReps;
+          }
+        }
+      });
+    });
+    
+    // Define baseline and goal-adjusted rep targets
+    const baselineWeeklyReps = 150;
+    let weeklyRepTarget = baselineWeeklyReps;
+
+    if (userProfile?.fatLossGoal === 'reduce_body_fat' || userProfile?.strengthGoal === 'improve_endurance') {
+      weeklyRepTarget *= 1.5; // Increase target for endurance/fat loss
+    } else if (userProfile?.muscleGoal === 'gain_overall_mass' || userProfile?.strengthGoal === 'increase_max_lift') {
+      weeklyRepTarget *= 0.75; // Decrease target for mass/strength
+    }
+
+    const intensities: Record<string, number> = {};
+    for (const group in muscleGroupReps) {
+        intensities[group] = weeklyRepTarget > 0 
+            ? Math.min(muscleGroupReps[group] / weeklyRepTarget, 1) // Cap at 100%
+            : 0;
+    }
+    
+    return intensities;
+  }, [thisWeeksLogs, masterExercises, userProfile]);
 
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
