@@ -24,20 +24,20 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '28%', left: '50%' },
-    chest: { top: '35%', left: '50%' },
-    back: { top: '35%', left: '50%' },
+    shoulders: { top: '32%', left: '50%' },
+    chest: { top: '40%', left: '50%' },
+    back: { top: '40%', left: '50%' },
     core: { top: '48%', left: '50%' },
-    arms: { top: '35%', left: '30%' },
-    legs: { top: '58%', left: '42%' },
+    arms: { top: '42%', left: '35%' },
+    legs: { top: '65%', left: '42%' },
   },
   Female: {
-    shoulders: { top: '28%', left: '50%' },
-    chest: { top: '35%', left: '50%' },
-    back: { top: '38%', left: '50%' },
+    shoulders: { top: '32%', left: '50%' },
+    chest: { top: '40%', left: '50%' },
+    back: { top: '40%', left: '50%' },
     core: { top: '48%', left: '50%' },
-    arms: { top: '35%', left: '30%' },
-    legs: { top: '60%', left: '42%' },
+    arms: { top: '42%', left: '35%' },
+    legs: { top: '65%', left: '42%' },
   },
 };
 
@@ -53,8 +53,8 @@ const HeatPoint = ({ top, left, intensity, label, isMirrored = false }: { top: s
       style={{
         top,
         left: finalLeft,
-        width: '30%',
-        height: '30%',
+        width: '25%',
+        height: '25%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
         opacity: Math.max(0.2, intensity),
