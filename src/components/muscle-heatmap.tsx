@@ -70,7 +70,7 @@ export function MuscleHeatmap() {
                         width={300}
                         height={400}
                         data-ai-hint={bodyOutlineImage.imageHint}
-                        className="object-contain h-[350px] w-auto"
+                        className="object-contain h-[450px] w-auto"
                     />
                  )}
             </CardContent>
