@@ -153,7 +153,7 @@ export default function DashboardPage() {
     return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
   }, [firestore, user]);
 
-  const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allLogsQuery);
+  const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
 
   const userProfileRef = useMemoFirebase(() => 
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
@@ -164,7 +164,7 @@ export default function DashboardPage() {
 
   const weeklyStats = useMemo(() => {
     if (!allLogs) {
-      return { volume: 0, workouts: 0, time: 0 };
+      return { volume: 0, workouts: 0, time: 0, thisWeeksLogs: [] };
     }
     const now = new Date();
     const startOfThisWeek = startOfWeek(now, { weekStartsOn: 1 }); // Monday
