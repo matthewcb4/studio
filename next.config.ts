@@ -31,8 +31,8 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
-        hostname: 'i.ytimg.com',
+        protocol: 'https-i',
+        hostname: 'ytimg.com',
         port: '',
         pathname: '/**',
       },

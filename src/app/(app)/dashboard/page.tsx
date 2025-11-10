@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -31,7 +32,6 @@ import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from "@
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp } from "lucide-react";
-import { BodyOutline } from "@/components/body-outline";
 
 const parseDuration = (duration: string): number => {
     const parts = duration.split(':');
@@ -246,7 +246,7 @@ export default function DashboardPage() {
             </Card>
             )}
         </div>
-        <Card className="lg:col-span-2">
+        <Card className="col-span-1 lg:col-span-2">
             <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
@@ -293,12 +293,10 @@ export default function DashboardPage() {
                     <CardDescription>Your selected body type.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center p-4">
-                    <BodyOutline />
+                    <Image src="https://i.imgur.com/tG3aG17.png" alt="Body outline" width={150} height={400} className="object-contain" />
                 </CardContent>
             </Card>
        </div>
     </div>
   );
 }
-
-    
