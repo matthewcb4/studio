@@ -3,10 +3,10 @@
 
 import React, { useMemo } from 'react';
 import Image from 'next/image';
-import type { UserProfile, WorkoutLog, LoggedExercise } from '@/lib/types';
+import type { UserProfile, WorkoutLog, LoggedExercise, Exercise } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
-import type { Exercise } from '@/lib/types';
+
 
 // Mapping from exercise category to a simpler muscle group
 const categoryToMuscleGroup: Record<string, string> = {
@@ -42,21 +42,25 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
 };
 
 const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; left: string; intensity: number; isMirrored?: boolean }) => {
-  const transform = isMirrored ? 'translateX(-100%)' : 'translateX(-50%)';
   const finalLeft = isMirrored ? `calc(100% - ${left})` : left;
   
+  // Use red (hsl(0, 100%, 50%)) and control its alpha with intensity
+  const color = `hsl(0 100% 50% / ${intensity * 0.9})`; // More vibrant red
+  const shadowColor = `hsl(0 100% 50% / ${intensity * 0.5})`;
+
   return (
     <div
       className="absolute rounded-full"
       style={{
         top,
         left: finalLeft,
-        width: '30%',
-        height: '30%',
-        background: `radial-gradient(circle, hsl(var(--accent) / ${intensity * 0.8}) 0%, hsl(var(--accent) / 0) 70%)`,
+        width: '40%', // Made points larger
+        height: '40%',
+        background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
-        opacity: Math.max(0.4, intensity),
+        opacity: Math.max(0.2, intensity), // Ensure even low intensity is slightly visible
         zIndex: 10,
+        filter: `blur(5px) drop-shadow(0 0 10px ${shadowColor})`,
       }}
     />
   );
@@ -77,19 +81,36 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
     [firestore]
   );
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
-
-  // DEBUG: Force all muscle groups to have full intensity
-  const muscleGroupFrequency: Record<string, number> = {
-    shoulders: 1,
-    chest: 1,
-    back: 1,
-    core: 1,
-    arms: 1,
-    legs: 1,
-  };
-  const maxFrequency = 1;
-
   
+  const muscleGroupFrequency = useMemo(() => {
+    const frequency: Record<string, number> = {};
+    if (!thisWeeksLogs || !masterExercises) return frequency;
+
+    const exerciseIdToCategory = masterExercises.reduce((acc, ex) => {
+      if(ex.category) acc[ex.id] = ex.category;
+      return acc;
+    }, {} as Record<string, string>);
+
+    thisWeeksLogs.forEach(log => {
+      log.exercises.forEach(loggedEx => {
+        const category = exerciseIdToCategory[loggedEx.exerciseId];
+        if (category) {
+          const muscleGroup = categoryToMuscleGroup[category];
+          if (muscleGroup) {
+            frequency[muscleGroup] = (frequency[muscleGroup] || 0) + 1;
+          }
+        }
+      });
+    });
+
+    return frequency;
+  }, [thisWeeksLogs, masterExercises]);
+  
+  const maxFrequency = useMemo(() => {
+    const frequencies = Object.values(muscleGroupFrequency);
+    return frequencies.length > 0 ? Math.max(...frequencies) : 1;
+  }, [muscleGroupFrequency]);
+
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
     ? "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female.png"
@@ -97,6 +118,20 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
     
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
+  }
+  
+  if (Object.keys(muscleGroupFrequency).length === 0) {
+     return (
+        <div className="relative w-full max-w-xs mx-auto aspect-[9/16] flex items-center justify-center">
+            <Image
+                src={bodyImageUrl}
+                alt={`${bodyType} body outline`}
+                fill
+                className="object-contain z-0"
+            />
+            <p className="z-10 text-xs text-muted-foreground text-center p-4 bg-background/50 rounded-md">Log a workout to see your heatmap.</p>
+        </div>
+     )
   }
 
   return (
@@ -109,10 +144,10 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
       />
       <div className="absolute inset-0 z-10">
         {Object.entries(muscleGroupFrequency).map(([group, freq]) => {
-          const coords = heatmapCoordinates[bodyType][group];
+          const coords = heatmapCoordinates[bodyType]?.[group];
           if (!coords) return null;
           
-          const intensity = freq / maxFrequency;
+          const intensity = maxFrequency > 0 ? freq / maxFrequency : 0;
 
           // For arms and legs, render a mirrored point
           if (group === 'arms' || group === 'legs') {
