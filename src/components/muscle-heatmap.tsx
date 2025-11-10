@@ -121,14 +121,14 @@ export function MuscleHeatmap() {
     }, [workoutLogs, exercisesById]);
     
     const isLoading = isLoadingProfile || isLoadingLogs || isLoadingMasterExercises;
-
+    
     if (isLoading) {
         return (
              <Card>
                 <CardHeader>
                     <CardTitle>Muscle Heatmap</CardTitle>
                 </CardHeader>
-                <CardContent className="h-[450px] flex items-center justify-center">
+                <CardContent className="h-[350px] flex items-center justify-center">
                     <div className="text-sm text-muted-foreground">Loading Heatmap...</div>
                 </CardContent>
             </Card>
@@ -161,7 +161,7 @@ export function MuscleHeatmap() {
             </CardHeader>
             <CardContent>
                {isLoadingLogs ? (
-                 <div className="h-[450px] flex items-center justify-center"><p>Loading activity...</p></div>
+                 <div className="h-[350px] flex items-center justify-center"><p>Loading activity...</p></div>
                ) : (
                 <div className="w-full h-auto max-h-[350px] flex items-center justify-center">
                     <BodyComponent muscleData={muscleData} />
