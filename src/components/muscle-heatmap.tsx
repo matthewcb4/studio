@@ -28,7 +28,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     chest: { top: '28%', left: '49.5%' },
     back: { top: '35%', left: '49.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '26%', left: '35%' },
+    arms: { top: '26%', left: '30%' },
     legs: { top: '70%', left: '42%' },
   },
   Female: {
@@ -36,7 +36,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     chest: { top: '28%', left: '49.5%' },
     back: { top: '35%', left: '49.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '26%', left: '35%' },
+    arms: { top: '26%', left: '30%' },
     legs: { top: '70%', left: '42%' },
   },
 };
