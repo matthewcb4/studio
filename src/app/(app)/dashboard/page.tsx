@@ -26,12 +26,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format, startOfWeek, isWithinInterval, subDays } from "date-fns";
+import { format, startOfWeek, isWithinInterval } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp } from "lucide-react";
-import { MuscleHeatmap } from "@/components/muscle-heatmap";
+import { BodyOutline } from "@/components/body-outline";
 
 const parseDuration = (duration: string): number => {
     const parts = duration.split(':');
@@ -179,11 +179,10 @@ export default function DashboardPage() {
 
   const hasData = useMemo(() => allLogs && allLogs.length > 0, [allLogs]);
 
-
   return (
-    <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:grid-cols-3">
-      <div className="grid gap-4 lg:col-span-2">
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+      <div className="md:col-span-2 grid gap-4 auto-rows-max">
+        <div className="grid gap-4 sm:grid-cols-2">
             <Card>
             <CardHeader>
                 <CardTitle>Start Workout</CardTitle>
@@ -236,7 +235,7 @@ export default function DashboardPage() {
                 </Card>
             </>
             ) : (
-            <Card className="sm:col-span-1 md:col-span-2 flex flex-col items-center justify-center p-6">
+            <Card className="sm:col-span-2 flex flex-col items-center justify-center p-6">
                 <CardHeader className="text-center">
                 <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
                 <CardTitle className="mt-4">No Workout Data Yet</CardTitle>
@@ -247,7 +246,7 @@ export default function DashboardPage() {
             </Card>
             )}
         </div>
-        <Card className="lg:col-span-2">
+        <Card className="md:col-span-2">
             <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
@@ -287,10 +286,19 @@ export default function DashboardPage() {
         </Card>
       </div>
       
-       <div className="grid gap-4 auto-rows-max lg:col-span-1">
-           <MuscleHeatmap />
+       <div className="md:col-span-1 grid gap-4 auto-rows-max">
+           <Card>
+                <CardHeader>
+                    <CardTitle>Body Outline</CardTitle>
+                    <CardDescription>Your selected body type.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-center p-4">
+                    <BodyOutline />
+                </CardContent>
+            </Card>
        </div>
-
     </div>
   );
 }
+
+    
