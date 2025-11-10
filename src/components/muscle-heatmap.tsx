@@ -24,20 +24,20 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '23%', left: '38%' },
-    chest: { top: '28%', left: '50.5%' },
-    back: { top: '37.5%', left: '51.5%' },
+    shoulders: { top: '23%', left: '37%' },
+    chest: { top: '28%', left: '49.5%' },
+    back: { top: '40.5%', left: '50.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '26%', left: '28%' },
-    legs: { top: '70%', left: '42%' },
+    arms: { top: '26%', left: '27%' },
+    legs: { top: '70%', left: '41%' },
   },
   Female: {
-    shoulders: { top: '23%', left: '38%' },
-    chest: { top: '28%', left: '50.5%' },
-    back: { top: '37.5%', left: '51.5%' },
+    shoulders: { top: '23%', left: '37%' },
+    chest: { top: '28%', left: '49.5%' },
+    back: { top: '40.5%', left: '50.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '26%', left: '28%' },
-    legs: { top: '70%', left: '42%' },
+    arms: { top: '26%', left: '27%' },
+    legs: { top: '70%', left: '41%' },
   },
 };
 
@@ -45,7 +45,6 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
   const isMirrored = ['arms', 'shoulders', 'legs'].includes(Object.keys(heatmapCoordinates.Male).find(key => heatmapCoordinates.Male[key] === coords) || '');
 
   // Gradient: Blue (0%, hue 240) -> Green (50%, hue 100) -> Red (100%, hue 0)
-  // Adjusted green hue from 120 to 100 for a deeper shade.
   const hue = intensity <= 0.5
     ? 240 - (intensity * 2 * 140) // Transition from Blue (240) to deeper Green (100)
     : 100 - ((intensity - 0.5) * 2 * 100); // Transition from Green (100) to Red (0)
