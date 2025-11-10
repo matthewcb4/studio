@@ -24,19 +24,19 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '23%', left: '33%' },
+    shoulders: { top: '23%', left: '38%' },
     chest: { top: '28%', left: '49.5%' },
     back: { top: '32%', left: '49.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '28%', left: '23%' },
+    arms: { top: '28%', left: '30%' },
     legs: { top: '70%', left: '42%' },
   },
   Female: {
-    shoulders: { top: '23%', left: '33%' },
+    shoulders: { top: '23%', left: '38%' },
     chest: { top: '28%', left: '49.5%' },
     back: { top: '32%', left: '49.5%' },
     core: { top: '42%', left: '49.5%' },
-    arms: { top: '28%', left: '23%' },
+    arms: { top: '28%', left: '30%' },
     legs: { top: '70%', left: '42%' },
   },
 };
@@ -44,8 +44,11 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
 const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: string; coords: { top: string, left: string } }) => {
   const isMirrored = ['arms', 'shoulders', 'legs'].includes(Object.keys(heatmapCoordinates.Male).find(key => heatmapCoordinates.Male[key] === coords) || '');
 
-  // Gradient: Blue (0%, hue 240) -> Green (50%, hue 120) -> Red (100%, hue 0)
-  const hue = 240 - (intensity * 240);
+  // Gradient: Blue (0%, hue 240) -> Green (50%, hue 100) -> Red (100%, hue 0)
+  // Adjusted green hue from 120 to 100 for a deeper shade.
+  const hue = intensity <= 0.5
+    ? 240 - (intensity * 2 * 140) // Transition from Blue (240) to deeper Green (100)
+    : 100 - ((intensity - 0.5) * 2 * 100); // Transition from Green (100) to Red (0)
   const color = `hsl(${hue}, 100%, 40%)`;
 
   const renderPoints = () => {
@@ -60,7 +63,7 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
           height: size,
           background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
           transform: 'translate(-50%, -50%)',
-          opacity: Math.max(0.6, intensity * 0.9),
+          opacity: Math.max(0.8, intensity * 0.9),
           filter: `blur(14px)`,
           zIndex: 10,
         }}
@@ -78,7 +81,7 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
             height: size,
             background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
             transform: 'translate(-50%, -50%)',
-            opacity: Math.max(0.6, intensity * 0.9),
+            opacity: Math.max(0.8, intensity * 0.9),
             filter: `blur(14px)`,
             zIndex: 10,
           }}
