@@ -46,7 +46,7 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
 
   // Gradient: Blue (0%, hue 240) -> Green (50%, hue 120) -> Red (100%, hue 0)
   const hue = 240 - (intensity * 240);
-  const color = `hsl(${hue}, 100%, 50%)`;
+  const color = `hsl(${hue}, 100%, 40%)`;
 
   const renderPoints = () => {
     const points = [
@@ -60,8 +60,8 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
           height: size,
           background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
           transform: 'translate(-50%, -50%)',
-          opacity: Math.max(0.2, intensity),
-          filter: `blur(12px)`,
+          opacity: Math.max(0.3, intensity * 0.9),
+          filter: `blur(14px)`,
           zIndex: 10,
         }}
       />
@@ -78,8 +78,8 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
             height: size,
             background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
             transform: 'translate(-50%, -50%)',
-            opacity: Math.max(0.2, intensity),
-            filter: `blur(12px)`,
+            opacity: Math.max(0.3, intensity * 0.9),
+            filter: `blur(14px)`,
             zIndex: 10,
           }}
         />
