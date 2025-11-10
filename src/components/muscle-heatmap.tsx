@@ -24,20 +24,20 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '35%', left: '50%' },
+    shoulders: { top: '35%', left: '33%' },
     chest: { top: '42%', left: '50%' },
-    back: { top: '42', left: '50%' },
-    core: { top: '48%', left: '50%' },
-    arms: { top: '43%', left: '33%' },
-    legs: { top: '65%', left: '42%' },
+    back: { top: '42%', left: '50%' }, 
+    core: { top: '55%', left: '50%' },
+    arms: { top: '45%', left: '25%' },
+    legs: { top: '70%', left: '42%' },
   },
   Female: {
-    shoulders: { top: '35%', left: '50%' },
+    shoulders: { top: '35%', left: '33%' },
     chest: { top: '42%', left: '50%' },
     back: { top: '42%', left: '50%' },
-    core: { top: '48%', left: '50%' },
-    arms: { top: '43%', left: '33%' },
-    legs: { top: '65%', left: '42%' },
+    core: { top: '55%', left: '50%' },
+    arms: { top: '45%', left: '25%' },
+    legs: { top: '70%', left: '42%' },
   },
 };
 
@@ -53,8 +53,8 @@ const HeatPoint = ({ top, left, intensity, label, isMirrored = false }: { top: s
       style={{
         top,
         left: finalLeft,
-        width: '20%',
-        height: '20%',
+        width: '25%',
+        height: '25%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
         opacity: Math.max(0.2, intensity),
@@ -62,7 +62,7 @@ const HeatPoint = ({ top, left, intensity, label, isMirrored = false }: { top: s
         filter: `blur(5px) drop-shadow(0 0 10px ${shadowColor})`,
       }}
     >
-        <span className="text-white text-xs font-bold z-20 capitalize">{label}</span>
+        <span className="text-white text-xs font-bold z-20 capitalize" style={{textShadow: '0 0 3px black'}}>{label}</span>
     </div>
   );
 };
@@ -148,8 +148,8 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           
           const intensity = maxFrequency > 0 ? freq / maxFrequency : 0;
 
-          // For arms and legs, render a mirrored point
-          if (group === 'arms' || group === 'legs') {
+          // For arms, shoulders and legs, render a mirrored point
+          if (['arms', 'shoulders', 'legs'].includes(group)) {
             return (
               <React.Fragment key={group}>
                 <HeatPoint top={coords.top} left={coords.left} intensity={intensity} label={group} />
