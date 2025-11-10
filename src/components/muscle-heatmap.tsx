@@ -24,11 +24,11 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '25%', left: '50%' },
+    shoulders: { top: '22%', left: '50%' },
     chest: { top: '32%', left: '50%' },
     back: { top: '35%', left: '50%' },
     core: { top: '45%', left: '50%' },
-    arms: { top: '40%', left: '28%' }, // Represents one arm, mirrored for the other
+    arms: { top: '40%', left: '20%' }, // Represents one arm, mirrored for the other
     legs: { top: '65%', left: '42%' }, // Represents one leg, mirrored for the other
   },
   Female: {
@@ -36,12 +36,12 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     chest: { top: '33%', left: '50%' },
     back: { top: '38%', left: '50%' },
     core: { top: '48%', left: '50%' },
-    arms: { top: '42%', left: '25%' },
+    arms: { top: '42%', left: '20%' },
     legs: { top: '65%', left: '42%' },
   },
 };
 
-const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; left: string; intensity: number; isMirrored?: boolean }) => {
+const HeatPoint = ({ top, left, intensity, label, isMirrored = false }: { top: string; left: string; intensity: number; label: string; isMirrored?: boolean }) => {
   const finalLeft = isMirrored ? `calc(100% - ${left})` : left;
   
   // Use red (hsl(0, 100%, 50%)) and control its alpha with intensity
@@ -50,7 +50,7 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
 
   return (
     <div
-      className="absolute rounded-full"
+      className="absolute rounded-full flex items-center justify-center"
       style={{
         top,
         left: finalLeft,
@@ -62,7 +62,9 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
         zIndex: 10,
         filter: `blur(5px) drop-shadow(0 0 10px ${shadowColor})`,
       }}
-    />
+    >
+        <span className="text-white text-xs font-bold z-20 capitalize">{label}</span>
+    </div>
   );
 };
 
@@ -138,13 +140,13 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           if (group === 'arms' || group === 'legs') {
             return (
               <React.Fragment key={group}>
-                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} />
-                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} isMirrored />
+                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} label={group} />
+                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} label={group} isMirrored />
               </React.Fragment>
             );
           }
 
-          return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} />;
+          return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} label={group}/>;
         })}
       </div>
     </div>
