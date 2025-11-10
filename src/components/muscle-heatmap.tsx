@@ -145,47 +145,16 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
   
   const muscleGroupIntensities = useMemo(() => {
-    const weeklyRepCounts: Record<string, number> = {};
-
-    // Define baseline weekly rep goals per muscle group
-    let baseRepGoal = 150; // A general baseline
-
-    // Adjust goal based on user's primary fitness goal
-    const primaryGoal = userProfile?.muscleGoal || userProfile?.strengthGoal || userProfile?.fatLossGoal;
-    
-    if (primaryGoal === 'reduce_body_fat' || primaryGoal === 'improve_endurance') {
-      baseRepGoal = 200; // Higher reps for fat loss/endurance
-    } else if (primaryGoal === 'increase_max_lift' || primaryGoal === 'gain_overall_mass') {
-      baseRepGoal = 100; // Lower reps for strength/mass
-    }
-
-    if (!thisWeeksLogs || !masterExercises) {
-      return {};
-    }
-
-    // Calculate total reps for each exercise in the logs
-    for (const log of thisWeeksLogs) {
-      for (const loggedEx of log.exercises) {
-        const masterEx = masterExercises.find(ex => ex.id === loggedEx.exerciseId);
-        const muscleGroup = masterEx?.category ? categoryToMuscleGroup[masterEx.category] : undefined;
-
-        if (muscleGroup) {
-          const totalReps = loggedEx.sets.reduce((sum, set) => sum + set.reps, 0);
-          weeklyRepCounts[muscleGroup] = (weeklyRepCounts[muscleGroup] || 0) + totalReps;
-        }
-      }
-    }
-    
-    const intensities: Record<string, number> = {};
-    for (const group in categoryToMuscleGroup) {
-        const muscle = categoryToMuscleGroup[group];
-        const count = weeklyRepCounts[muscle] || 0;
-        // Intensity is the percentage of reps completed towards the goal
-        intensities[muscle] = Math.min(1, count / baseRepGoal); // Cap at 100%
-    }
-    return intensities;
-
-  }, [thisWeeksLogs, masterExercises, userProfile]);
+    // Hardcode intensities for visualization purposes
+    return {
+      arms: 1,       // 100%
+      core: 0.5,     // 50%
+      legs: 1,       // 100%
+      chest: 0.75,   // 75%
+      back: 0.3,     // 30%
+      shoulders: 0,  // 0%
+    };
+  }, []);
 
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
