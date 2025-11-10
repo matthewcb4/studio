@@ -253,7 +253,7 @@ export default function DashboardPage() {
                 <CardDescription>Your selected body type.</CardDescription>
             </CardHeader>
             <CardContent className="relative p-4 aspect-video">
-                <Image src="https://raw.githubusercontent.com/matthewcb4/public_resources/main/male.jpg" alt="Body outline" fill className="object-contain" />
+                <Image src="https://raw.githubusercontent.com/matthewcb4/public_resources/1401389b789ae27dd8ce133567ebae3e240c139d/Male.png" alt="Body outline" fill className="object-contain" />
             </CardContent>
         </Card>
 
