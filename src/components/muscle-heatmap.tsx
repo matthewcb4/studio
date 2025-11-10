@@ -78,32 +78,17 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   );
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
 
-  const muscleGroupFrequency = useMemo(() => {
-    if (!thisWeeksLogs || !masterExercises) return {};
+  // DEBUG: Force all muscle groups to have full intensity
+  const muscleGroupFrequency: Record<string, number> = {
+    shoulders: 1,
+    chest: 1,
+    back: 1,
+    core: 1,
+    arms: 1,
+    legs: 1,
+  };
+  const maxFrequency = 1;
 
-    const exerciseIdToCategory = masterExercises.reduce((acc, ex) => {
-      if (ex.category) {
-        acc[ex.id] = ex.category;
-      }
-      return acc;
-    }, {} as Record<string, string>);
-
-    const frequency: Record<string, number> = {};
-    
-    thisWeeksLogs.forEach(log => {
-      log.exercises.forEach((loggedEx: LoggedExercise) => {
-        const category = exerciseIdToCategory[loggedEx.exerciseId];
-        if (category) {
-          const muscleGroup = categoryToMuscleGroup[category];
-          if (muscleGroup) {
-            frequency[muscleGroup] = (frequency[muscleGroup] || 0) + 1;
-          }
-        }
-      });
-    });
-
-    return frequency;
-  }, [thisWeeksLogs, masterExercises]);
   
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
@@ -113,8 +98,6 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
   }
-  
-  const maxFrequency = Math.max(...Object.values(muscleGroupFrequency), 1);
 
   return (
     <div className="relative w-full max-w-xs mx-auto aspect-[9/16]">
