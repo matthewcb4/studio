@@ -41,7 +41,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
 };
 
-const HeatPoint = ({ top, left, intensity, label, isMirrored = false }: { top: string; left: string; intensity: number; label: string; isMirrored?: boolean }) => {
+const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; left: string; intensity: number; isMirrored?: boolean }) => {
   const finalLeft = isMirrored ? `calc(100% - ${left})` : left;
   
   const color = `hsl(0 100% 50% / ${intensity * 0.9})`;
@@ -61,9 +61,7 @@ const HeatPoint = ({ top, left, intensity, label, isMirrored = false }: { top: s
         zIndex: 10,
         filter: `blur(5px) drop-shadow(0 0 10px ${shadowColor})`,
       }}
-    >
-        <span className="text-white text-xs font-bold z-20 capitalize" style={{textShadow: '0 0 3px black'}}>{label}</span>
-    </div>
+    />
   );
 };
 
@@ -84,7 +82,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
   
   const { muscleGroupFrequency, maxFrequency } = useMemo(() => {
-     if (isLoadingExercises || !masterExercises) {
+     if (isLoadingExercises || !masterExercises || !thisWeeksLogs) {
       return { muscleGroupFrequency: {}, maxFrequency: 0 };
     }
 
@@ -96,16 +94,22 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
     }, {} as Record<string, string>);
 
     const frequencies: Record<string, number> = {};
-    
-    // Hardcode for layout confirmation
-    frequencies['shoulders'] = 1;
-    frequencies['chest'] = 1;
-    frequencies['back'] = 1;
-    frequencies['core'] = 1;
-    frequencies['arms'] = 1;
-    frequencies['legs'] = 1;
+    let max = 0;
 
-    const max = 1;
+    thisWeeksLogs.forEach(log => {
+      log.exercises.forEach(loggedEx => {
+        const category = exerciseIdToCategory[loggedEx.exerciseId];
+        if(category) {
+          const muscleGroup = categoryToMuscleGroup[category];
+          if (muscleGroup) {
+            frequencies[muscleGroup] = (frequencies[muscleGroup] || 0) + 1;
+            if (frequencies[muscleGroup] > max) {
+              max = frequencies[muscleGroup];
+            }
+          }
+        }
+      })
+    });
 
     return { muscleGroupFrequency: frequencies, maxFrequency: max };
   }, [isLoadingExercises, masterExercises, thisWeeksLogs]);
@@ -113,7 +117,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
     ? "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female.png"
-    : "https://i.imgur.com/gFe5W6P.png";
+    : "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Male.png";
     
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
@@ -152,13 +156,13 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           if (['arms', 'shoulders', 'legs'].includes(group)) {
             return (
               <React.Fragment key={group}>
-                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} label={group} />
-                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} label={group} isMirrored />
+                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} />
+                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} isMirrored />
               </React.Fragment>
             );
           }
 
-          return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} label={group}/>;
+          return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} />;
         })}
       </div>
     </div>
