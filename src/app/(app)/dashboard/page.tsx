@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format, startOfWeek, isWithinInterval } from "date-fns";
+import { format, startOfWeek, isWithinInterval, subDays } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
@@ -141,6 +141,7 @@ export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
+  const [heatmapDays, setHeatmapDays] = useState('7');
 
   const customWorkoutsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -164,7 +165,7 @@ export default function DashboardPage() {
 
   const weeklyStats = useMemo(() => {
     if (!allLogs) {
-      return { volume: 0, workouts: 0, time: 0, thisWeeksLogs: [] };
+      return { volume: 0, workouts: 0, time: 0 };
     }
     const now = new Date();
     const startOfThisWeek = startOfWeek(now, { weekStartsOn: 1 }); // Monday
@@ -179,8 +180,20 @@ export default function DashboardPage() {
     const timeInSeconds = thisWeeksLogs.reduce((acc, log) => acc + parseDuration(log.duration), 0);
     const timeInMinutes = Math.floor(timeInSeconds / 60);
 
-    return { volume, workouts, time: timeInMinutes, thisWeeksLogs };
+    return { volume, workouts, time: timeInMinutes };
   }, [allLogs]);
+  
+  const heatmapLogs = useMemo(() => {
+    if (!allLogs) return [];
+    const now = new Date();
+    const days = parseInt(heatmapDays, 10);
+    const startDate = subDays(now, days);
+    
+    return allLogs.filter(log => {
+        const logDate = new Date(log.date);
+        return isWithinInterval(logDate, { start: startDate, end: now });
+    });
+  }, [allLogs, heatmapDays]);
 
   const hasData = useMemo(() => allLogs && allLogs.length > 0, [allLogs]);
 
@@ -254,13 +267,29 @@ export default function DashboardPage() {
         
        <Card>
             <CardHeader>
-                <CardTitle>Weekly Muscle Heatmap</CardTitle>
-                <CardDescription>Muscles worked in the last 7 days.</CardDescription>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle>Muscle Heatmap</CardTitle>
+                        <CardDescription>Muscles worked recently.</CardDescription>
+                    </div>
+                    <div className="w-[120px]">
+                        <Select value={heatmapDays} onValueChange={setHeatmapDays}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Time range" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="1">Last 24 hours</SelectItem>
+                                <SelectItem value="3">Last 3 days</SelectItem>
+                                <SelectItem value="7">Last 7 days</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
                 <MuscleHeatmap 
                   userProfile={userProfile} 
-                  thisWeeksLogs={weeklyStats.thisWeeksLogs} 
+                  thisWeeksLogs={heatmapLogs} 
                   isLoading={isLoadingLogs}
                 />
             </CardContent>
@@ -307,3 +336,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
