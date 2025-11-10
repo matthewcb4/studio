@@ -558,6 +558,9 @@ function WorkoutsPageContent() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
+               <Button asChild>
+                <Link href={`/workout/${workout.id}`}>Start Workout</Link>
+               </Button>
                <Button
                 variant="ghost"
                 size="icon"

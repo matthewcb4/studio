@@ -18,6 +18,7 @@ export type WorkoutExercise = {
 
 export type CustomWorkout = {
   id: string;
+  userId: string;
   name: string;
   exercises: WorkoutExercise[];
 };
@@ -35,6 +36,7 @@ export type LoggedExercise = {
 
 export type WorkoutLog = {
   id: string;
+  userId: string;
   workoutName: string;
   date: string; // ISO string
   duration: string; // e.g. "45 min"

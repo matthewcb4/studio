@@ -3,7 +3,6 @@
 
 import Link from "next/link";
 import { useState, useMemo } from "react";
-import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -32,6 +31,7 @@ import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from "@
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { MuscleHeatmap } from "@/components/muscle-heatmap";
 
 const parseDuration = (duration: string): number => {
     const parts = duration.split(':');
@@ -153,7 +153,7 @@ export default function DashboardPage() {
     return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
   }, [firestore, user]);
 
-  const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
+  const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allLogsQuery);
 
   const userProfileRef = useMemoFirebase(() => 
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
@@ -179,15 +179,10 @@ export default function DashboardPage() {
     const timeInSeconds = thisWeeksLogs.reduce((acc, log) => acc + parseDuration(log.duration), 0);
     const timeInMinutes = Math.floor(timeInSeconds / 60);
 
-    return { volume, workouts, time: timeInMinutes };
+    return { volume, workouts, time: timeInMinutes, thisWeeksLogs };
   }, [allLogs]);
 
   const hasData = useMemo(() => allLogs && allLogs.length > 0, [allLogs]);
-
-  const bodyImageUrl = userProfile?.biologicalSex === 'Female' 
-    ? "https://raw.githubusercontent.com/matthewcb4/public_resources/648004cc67986bfcfe38eeb974f252ec69a2369f/Female.png"
-    : "https://raw.githubusercontent.com/matthewcb4/public_resources/1401389b789ae27dd8ce133567ebae3e240c139d/Male.png";
-
 
   return (
     <div className="flex flex-col gap-4 md:gap-8">
@@ -259,11 +254,15 @@ export default function DashboardPage() {
         
        <Card>
             <CardHeader>
-                <CardTitle>Body Outline</CardTitle>
-                <CardDescription>Your selected body type.</CardDescription>
+                <CardTitle>Weekly Muscle Heatmap</CardTitle>
+                <CardDescription>Muscles worked in the last 7 days.</CardDescription>
             </CardHeader>
-            <CardContent className="relative p-4 aspect-video">
-                <Image src={bodyImageUrl} alt="Body outline" fill className="object-contain" />
+            <CardContent>
+                <MuscleHeatmap 
+                  userProfile={userProfile} 
+                  thisWeeksLogs={weeklyStats.thisWeeksLogs} 
+                  isLoading={isLoadingLogs}
+                />
             </CardContent>
         </Card>
 
