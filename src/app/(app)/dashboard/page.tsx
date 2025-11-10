@@ -180,10 +180,9 @@ export default function DashboardPage() {
   const hasData = useMemo(() => allLogs && allLogs.length > 0, [allLogs]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
-      <div className="lg:col-span-2 grid gap-4 auto-rows-max">
-        <div className="grid gap-4 sm:grid-cols-2">
-            <Card>
+    <div className="flex flex-col gap-4 md:gap-8">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="lg:col-span-2">
             <CardHeader>
                 <CardTitle>Start Workout</CardTitle>
                 <CardDescription>
@@ -224,7 +223,7 @@ export default function DashboardPage() {
                         <div className="text-4xl font-bold">{weeklyStats.volume.toLocaleString()} lbs</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="lg:hidden">
                     <CardHeader className="pb-2">
                         <CardTitle>Workouts</CardTitle>
                         <CardDescription>This week</CardDescription>
@@ -235,7 +234,7 @@ export default function DashboardPage() {
                 </Card>
             </>
             ) : (
-            <Card className="sm:col-span-2 flex flex-col items-center justify-center p-6">
+            <Card className="sm:col-span-2 lg:col-span-2 flex flex-col items-center justify-center p-6">
                 <CardHeader className="text-center">
                 <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
                 <CardTitle className="mt-4">No Workout Data Yet</CardTitle>
@@ -245,8 +244,29 @@ export default function DashboardPage() {
                 </CardHeader>
             </Card>
             )}
+            
+            { hasData && <Card className="hidden lg:block">
+                <CardHeader className="pb-2">
+                    <CardTitle>Workouts</CardTitle>
+                    <CardDescription>This week</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-4xl font-bold">{weeklyStats.workouts}</div>
+                </CardContent>
+            </Card>}
         </div>
-        <Card className="col-span-1 lg:col-span-2">
+        
+       <Card>
+            <CardHeader>
+                <CardTitle>Body Outline</CardTitle>
+                <CardDescription>Your selected body type.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center p-4 h-64">
+                <Image src="https://raw.githubusercontent.com/matthewcb4/public_resources/main/male.jpg" alt="Body outline" width={200} height={200} className="object-contain h-full w-auto" />
+            </CardContent>
+        </Card>
+
+        <Card>
             <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
@@ -284,19 +304,6 @@ export default function DashboardPage() {
             </Table>
             </CardContent>
         </Card>
-      </div>
-      
-       <div className="lg:col-span-1 grid gap-4 auto-rows-max">
-           <Card>
-                <CardHeader>
-                    <CardTitle>Body Outline</CardTitle>
-                    <CardDescription>Your selected body type.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-center p-4">
-                    <Image src="https://raw.githubusercontent.com/matthewcb4/public_resources/main/male.jpg" alt="Body outline" width={150} height={400} className="object-contain" />
-                </CardContent>
-            </Card>
-       </div>
     </div>
   );
 }
