@@ -24,20 +24,20 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '35%', left: '33%' },
-    chest: { top: '42%', left: '50%' },
-    back: { top: '42%', left: '50%' }, 
-    core: { top: '55%', left: '50%' },
-    arms: { top: '45%', left: '25%' },
-    legs: { top: '70%', left: '42%' },
+    shoulders: { top: '23%', left: '33%' },
+    chest: { top: '30%', left: '50%' },
+    back: { top: '30%', left: '50%' }, 
+    core: { top: '42%', left: '50%' },
+    arms: { top: '35%', left: '20%' },
+    legs: { top: '65%', left: '42%' },
   },
   Female: {
-    shoulders: { top: '35%', left: '33%' },
-    chest: { top: '42%', left: '50%' },
-    back: { top: '42%', left: '50%' },
-    core: { top: '55%', left: '50%' },
-    arms: { top: '45%', left: '25%' },
-    legs: { top: '70%', left: '42%' },
+    shoulders: { top: '23%', left: '33%' },
+    chest: { top: '30%', left: '50%' },
+    back: { top: '30%', left: '50%' }, 
+    core: { top: '42%', left: '50%' },
+    arms: { top: '35%', left: '20%' },
+    legs: { top: '65%', left: '42%' },
   },
 };
 
@@ -113,7 +113,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
     ? "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female.png"
-    : "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Male.png";
+    : "https://i.imgur.com/gFe5W6P.png";
     
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
