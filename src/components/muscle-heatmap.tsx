@@ -82,7 +82,9 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
     if (!thisWeeksLogs || !masterExercises) return {};
 
     const exerciseIdToCategory = masterExercises.reduce((acc, ex) => {
-      acc[ex.id] = ex.category;
+      if (ex.category) {
+        acc[ex.id] = ex.category;
+      }
       return acc;
     }, {} as Record<string, string>);
 
