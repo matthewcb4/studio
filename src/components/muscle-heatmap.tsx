@@ -60,7 +60,7 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
           height: size,
           background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
           transform: 'translate(-50%, -50%)',
-          opacity: Math.max(0.3, intensity * 0.9),
+          opacity: Math.max(0.6, intensity * 0.9),
           filter: `blur(14px)`,
           zIndex: 10,
         }}
@@ -78,7 +78,7 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
             height: size,
             background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
             transform: 'translate(-50%, -50%)',
-            opacity: Math.max(0.3, intensity * 0.9),
+            opacity: Math.max(0.6, intensity * 0.9),
             filter: `blur(14px)`,
             zIndex: 10,
           }}
