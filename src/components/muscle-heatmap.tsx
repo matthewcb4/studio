@@ -32,7 +32,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     legs: { top: '60%', left: '42%' }, // Represents one leg, mirrored for the other
   },
   Female: {
-    shoulders: { top: '26%', left: '50%' },
+    shoulders: { top: '22%', left: '50%' },
     chest: { top: '36%', left: '50%' },
     back: { top: '38%', left: '50%' },
     core: { top: '50%', left: '50%' },
@@ -54,8 +54,8 @@ const HeatPoint = ({ top, left, intensity, label, isMirrored = false }: { top: s
       style={{
         top,
         left: finalLeft,
-        width: '40%',
-        height: '40%',
+        width: '30%',
+        height: '30%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
         opacity: Math.max(0.2, intensity),
