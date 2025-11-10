@@ -160,7 +160,15 @@ export function MuscleHeatmap() {
                 <CardDescription>Your workout activity focus.</CardDescription>
             </CardHeader>
             <CardContent>
-               {isLoadingLogs ? <div className="h-[450px] flex items-center justify-center"><p>Loading activity...</p></div> : <BodyComponent muscleData={muscleData} />}
+               {isLoadingLogs ? (
+                 <div className="h-[450px] flex items-center justify-center"><p>Loading activity...</p></div>
+               ) : (
+                <div className="relative w-full" style={{ paddingBottom: '133.33%' }}>
+                  <div className="absolute top-0 left-0 w-full h-full">
+                    <BodyComponent muscleData={muscleData} />
+                  </div>
+                </div>
+               )}
             </CardContent>
             <CardFooter>
                  <Select onValueChange={setTimeRange} defaultValue={timeRange}>
