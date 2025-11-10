@@ -180,8 +180,8 @@ export default function DashboardPage() {
   const hasData = useMemo(() => allLogs && allLogs.length > 0, [allLogs]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
-      <div className="md:col-span-2 grid gap-4 auto-rows-max">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+      <div className="lg:col-span-2 grid gap-4 auto-rows-max">
         <div className="grid gap-4 sm:grid-cols-2">
             <Card>
             <CardHeader>
@@ -246,7 +246,7 @@ export default function DashboardPage() {
             </Card>
             )}
         </div>
-        <Card className="md:col-span-2">
+        <Card>
             <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
@@ -286,7 +286,7 @@ export default function DashboardPage() {
         </Card>
       </div>
       
-       <div className="md:col-span-1 grid gap-4 auto-rows-max">
+       <div className="lg:col-span-1 grid gap-4 auto-rows-max">
            <Card>
                 <CardHeader>
                     <CardTitle>Body Outline</CardTitle>
@@ -300,5 +300,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
