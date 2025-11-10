@@ -5,6 +5,12 @@
       "description": "Person working out in a modern gym",
       "imageUrl": "https://images.unsplash.com/photo-1601422407692-ec4eeec1d9b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxneW0lMjB3b3Jrb3V0fGVufDB8fHx8MTc2MjY2ODA0Mnww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "gym workout"
+    },
+    {
+      "id": "body-outline",
+      "description": "A silhouette of a human body for a workout app",
+      "imageUrl": "https://images.unsplash.com/photo-1729339984218-1f1e3b0d13ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Ym9keSUyMG91dGxpbmV8ZW58MHx8fHwxNzYyNzQ3NjAxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "body outline"
     }
   ]
 }
