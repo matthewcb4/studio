@@ -23,6 +23,7 @@ export type GenerateWorkoutInput = z.infer<typeof GenerateWorkoutInputSchema>;
 
 const ExerciseSchema = z.object({
   name: z.string().describe("Name of the exercise."),
+  category: z.string().describe("The primary muscle group targeted by this exercise (e.g., Chest, Back, Legs, Shoulders, Arms, Core)."),
   sets: z.string().describe("Number of sets to perform, can be a range like '3-4'."),
   reps: z.string().describe("Number of repetitions per set, can be a range like '8-12'."),
   rest: z.string().describe("Rest time in seconds between sets."),
@@ -53,6 +54,8 @@ const prompt = ai.definePrompt({
   Focus area: {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
   
   Generate a complete workout routine including a workout name, a short description, and a list of exercises.
+  
+  For each exercise, you MUST provide a 'category' from this specific list: Chest, Back, Shoulders, Legs, Arms, Core.
   
   IMPORTANT: You MUST group exercises into supersets or individual groups. A superset consists of two exercises performed back-to-back with no rest in between. 
   To create a superset, assign the same 'supersetId' (e.g., "superset_1") to two exercises. 
@@ -85,5 +88,3 @@ const workoutGuideFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

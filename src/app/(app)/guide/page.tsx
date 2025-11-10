@@ -135,7 +135,7 @@ export default function GuidePage() {
             const newExerciseDocRef = doc(masterExercisesRef); // Auto-generate ID
             const newExercise: Omit<Exercise, 'id' | 'videoId'> = {
               name: ex.name,
-              category: 'AI Generated', // Or derive a category if possible
+              category: ex.category, // Save the category from the AI
             };
             await setDocumentNonBlocking(newExerciseDocRef, newExercise, { merge: false });
             masterExerciseId = newExerciseDocRef.id;
@@ -506,5 +506,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
