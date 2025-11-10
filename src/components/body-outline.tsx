@@ -7,7 +7,7 @@ export function BodyOutline() {
   return (
     <div className="w-full h-[400px] flex items-center justify-center">
       <Image
-        src="https://storage.googleapis.com/aifire.dev/fitness-app/body-outline.png"
+        src="https://i.imgur.com/tG3aG17.png"
         alt="Body outline"
         width={300}
         height={400}
