@@ -246,7 +246,7 @@ export default function DashboardPage() {
             </Card>
             )}
         </div>
-        <Card>
+        <Card className="lg:col-span-2">
             <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
@@ -300,3 +300,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
