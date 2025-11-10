@@ -181,7 +181,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4 md:gap-8">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card className="lg:col-span-2">
             <CardHeader>
                 <CardTitle>Start Workout</CardTitle>
@@ -209,11 +209,32 @@ export default function DashboardPage() {
                 </div>
             </CardContent>
             </Card>
-            
+
+            {hasData ? (
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle>Workouts</CardTitle>
+                        <CardDescription>This week</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-4xl font-bold">{weeklyStats.workouts}</div>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
+                    <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <CardTitle className="mt-4">No Workout Data</CardTitle>
+                    <CardDescription>
+                        Complete a workout to see your stats.
+                    </CardDescription>
+                </Card>
+            )}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
             <ProgressSummaryCard />
             
-            {hasData ? (
-            <>
+            {hasData && (
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle>Total Volume</CardTitle>
@@ -223,37 +244,7 @@ export default function DashboardPage() {
                         <div className="text-4xl font-bold">{weeklyStats.volume.toLocaleString()} lbs</div>
                     </CardContent>
                 </Card>
-                <Card className="lg:hidden">
-                    <CardHeader className="pb-2">
-                        <CardTitle>Workouts</CardTitle>
-                        <CardDescription>This week</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold">{weeklyStats.workouts}</div>
-                    </CardContent>
-                </Card>
-            </>
-            ) : (
-            <Card className="sm:col-span-2 lg:col-span-2 flex flex-col items-center justify-center p-6">
-                <CardHeader className="text-center">
-                <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
-                <CardTitle className="mt-4">No Workout Data Yet</CardTitle>
-                <CardDescription>
-                    Complete your first workout to see your stats here.
-                </CardDescription>
-                </CardHeader>
-            </Card>
             )}
-            
-            { hasData && <Card className="hidden lg:block">
-                <CardHeader className="pb-2">
-                    <CardTitle>Workouts</CardTitle>
-                    <CardDescription>This week</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-4xl font-bold">{weeklyStats.workouts}</div>
-                </CardContent>
-            </Card>}
         </div>
         
        <Card>
