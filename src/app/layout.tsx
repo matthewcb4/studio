@@ -1,12 +1,36 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 
+const APP_NAME = "Tonal Tracker";
+const APP_DEFAULT_TITLE = "Tonal Tracker";
+const APP_TITLE_TEMPLATE = "%s - Tonal Tracker";
+const APP_DESCRIPTION = "Track your Tonal free-lift workouts with ease.";
+
+
 export const metadata: Metadata = {
-  title: 'Tonal Tracker',
-  description: 'Track your Tonal free-lift workouts with ease.',
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DESCRIPTION,
+  manifest: "/manifest.ts",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_DEFAULT_TITLE,
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+};
+
 
 export default function RootLayout({
   children,
