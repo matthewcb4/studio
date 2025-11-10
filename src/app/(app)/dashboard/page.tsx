@@ -155,6 +155,11 @@ export default function DashboardPage() {
 
   const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
 
+  const userProfileRef = useMemoFirebase(() => 
+    user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+  , [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
   const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
 
   const weeklyStats = useMemo(() => {
@@ -178,6 +183,11 @@ export default function DashboardPage() {
   }, [allLogs]);
 
   const hasData = useMemo(() => allLogs && allLogs.length > 0, [allLogs]);
+
+  const bodyImageUrl = userProfile?.biologicalSex === 'Female' 
+    ? "https://raw.githubusercontent.com/matthewcb4/public_resources/648004cc67986bfcfe38eeb974f252ec69a2369f/Female.png"
+    : "https://raw.githubusercontent.com/matthewcb4/public_resources/1401389b789ae27dd8ce133567ebae3e240c139d/Male.png";
+
 
   return (
     <div className="flex flex-col gap-4 md:gap-8">
@@ -253,7 +263,7 @@ export default function DashboardPage() {
                 <CardDescription>Your selected body type.</CardDescription>
             </CardHeader>
             <CardContent className="relative p-4 aspect-video">
-                <Image src="https://raw.githubusercontent.com/matthewcb4/public_resources/1401389b789ae27dd8ce133567ebae3e240c139d/Male.png" alt="Body outline" fill className="object-contain" />
+                <Image src={bodyImageUrl} alt="Body outline" fill className="object-contain" />
             </CardContent>
         </Card>
 
