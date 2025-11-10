@@ -93,41 +93,6 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
   return <>{renderPoints()}</>;
 };
 
-const HeatmapLabels = ({ bodyType }: { bodyType: 'Male' | 'Female' }) => {
-    const coords = heatmapCoordinates[bodyType];
-
-    const labelStyle: React.CSSProperties = {
-        position: 'absolute',
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: '10px',
-        textAlign: 'center',
-        transform: 'translate(-50%, -50%)',
-        textTransform: 'uppercase',
-        zIndex: 15,
-        pointerEvents: 'none',
-    };
-
-    const isMirrored = (group: string) => ['arms', 'shoulders', 'legs'].includes(group);
-
-    return (
-        <>
-            {Object.entries(coords).map(([group, pos]) => (
-                <React.Fragment key={group}>
-                    <div style={{ ...labelStyle, top: pos.top, left: pos.left }}>
-                        {group}
-                    </div>
-                    {isMirrored(group) && (
-                         <div style={{ ...labelStyle, top: pos.top, left: `calc(100% - ${pos.left})` }}>
-                            {group}
-                        </div>
-                    )}
-                </React.Fragment>
-            ))}
-        </>
-    );
-};
-
 interface MuscleHeatmapProps {
   userProfile?: UserProfile | null;
   thisWeeksLogs: WorkoutLog[];
@@ -205,14 +170,12 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           
           const intensity = muscleGroupIntensities[group as keyof typeof muscleGroupIntensities] || 0;
           const isLegs = group === 'legs';
-          const size = isLegs ? '40%' : '35%';
+          const size = isLegs ? '45%' : '35%';
 
           return <HeatPoint key={group} intensity={intensity} size={size} coords={coords} />;
         })}
       </div>
       
-      <HeatmapLabels bodyType={bodyType} />
-
       <Image
         src={bodyImageUrl}
         alt={`${bodyType} body outline`}
