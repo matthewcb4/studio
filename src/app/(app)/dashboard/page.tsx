@@ -252,8 +252,8 @@ export default function DashboardPage() {
                 <CardTitle>Body Outline</CardTitle>
                 <CardDescription>Your selected body type.</CardDescription>
             </CardHeader>
-            <CardContent className="flex items-center justify-center p-4 h-64">
-                <Image src="https://raw.githubusercontent.com/matthewcb4/public_resources/main/male.jpg" alt="Body outline" width={200} height={200} className="object-contain h-full w-auto" />
+            <CardContent className="relative p-4 aspect-video">
+                <Image src="https://raw.githubusercontent.com/matthewcb4/public_resources/main/male.jpg" alt="Body outline" fill className="object-contain" />
             </CardContent>
         </Card>
 
