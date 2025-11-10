@@ -31,7 +31,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     arms: { top: '35%', left: '18%' },
     legs: { top: '65%', left: '44%' },
   },
-  Female: { // Keeping female coords as they were, can adjust later if needed
+  Female: {
     shoulders: { top: '23%', left: '33%' },
     chest: { top: '30%', left: '50%' },
     back: { top: '30%', left: '50%' }, 
@@ -44,7 +44,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
 const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; left: string; intensity: number; isMirrored?: boolean; }) => {
   const finalLeft = isMirrored ? `calc(100% - ${left})` : left;
   
-  const color = `hsl(0 100% 50% / ${intensity * 1})`; // Darker red
+  const color = `hsl(0 100% 50% / ${intensity * 1})`;
   const shadowColor = `hsl(0 100% 50% / ${intensity * 0.7})`;
 
   return (
@@ -53,18 +53,47 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
       style={{
         top,
         left: finalLeft,
-        width: '20%', // Enlarged space
-        height: '20%', // Enlarged space
+        width: '20%', 
+        height: '20%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
         opacity: Math.max(0.2, intensity),
-        filter: `blur(8px)`, // Slightly more blur for a softer edge on the larger size
+        filter: `blur(8px)`,
         zIndex: 10,
       }}
     >
     </div>
   );
 };
+
+const HeatmapLabels = ({ bodyType, muscleGroups }: { bodyType: 'Male' | 'Female'; muscleGroups: { group: string, coords: { top: string, left: string } }[] }) => (
+    <div className="absolute inset-0 z-15">
+      {muscleGroups.map(({ group, coords }) => {
+        const mirroredGroups = ['arms', 'shoulders', 'legs'];
+        const isMirrored = mirroredGroups.includes(group);
+
+        const Label = ({ mirrored }: { mirrored?: boolean }) => (
+             <div
+                className="absolute -translate-x-1/2 -translate-y-1/2 text-white text-xs font-bold pointer-events-none"
+                style={{
+                  top: coords.top,
+                  left: mirrored ? `calc(100% - ${coords.left})` : coords.left,
+                  textShadow: '0 0 5px black',
+                }}
+              >
+                {group.charAt(0).toUpperCase() + group.slice(1)}
+              </div>
+        );
+
+        return (
+          <React.Fragment key={group}>
+            <Label />
+            {isMirrored && <Label mirrored />}
+          </React.Fragment>
+        );
+      })}
+    </div>
+);
 
 
 interface MuscleHeatmapProps {
@@ -102,6 +131,11 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
   }
+  
+  const muscleGroupsForLabels = Object.keys(muscleGroupFrequency).map(group => ({
+    group,
+    coords: heatmapCoordinates[bodyType]?.[group],
+  })).filter(item => item.coords);
   
   if (Object.keys(muscleGroupFrequency).length === 0) {
      return (
@@ -144,8 +178,12 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} />;
         })}
       </div>
+      
+      {/* Layer 3: Labels */}
+      <HeatmapLabels bodyType={bodyType} muscleGroups={muscleGroupsForLabels} />
 
-      {/* Layer 3: Body Image */}
+
+      {/* Layer 4: Body Image */}
       <Image
         src={bodyImageUrl}
         alt={`${bodyType} body outline`}
