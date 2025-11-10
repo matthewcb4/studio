@@ -24,19 +24,19 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '22%', left: '50%' },
-    chest: { top: '35%', left: '50%' },
+    shoulders: { top: '23%', left: '50%' },
+    chest: { top: '32%', left: '50%' },
     back: { top: '35%', left: '50%' },
-    core: { top: '48%', left: '50%' },
-    arms: { top: '38%', left: '20%' }, // Represents one arm, mirrored for the other
-    legs: { top: '60%', left: '42%' }, // Represents one leg, mirrored for the other
+    core: { top: '43%', left: '50%' },
+    arms: { top: '35%', left: '30%' },
+    legs: { top: '58%', left: '42%' },
   },
   Female: {
-    shoulders: { top: '22%', left: '50%' },
-    chest: { top: '36%', left: '50%' },
+    shoulders: { top: '23%', left: '50%' },
+    chest: { top: '32%', left: '50%' },
     back: { top: '38%', left: '50%' },
-    core: { top: '50%', left: '50%' },
-    arms: { top: '40%', left: '20%' },
+    core: { top: '48%', left: '50%' },
+    arms: { top: '35%', left: '30%' },
     legs: { top: '60%', left: '42%' },
   },
 };
@@ -44,7 +44,6 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
 const HeatPoint = ({ top, left, intensity, label, isMirrored = false }: { top: string; left: string; intensity: number; label: string; isMirrored?: boolean }) => {
   const finalLeft = isMirrored ? `calc(100% - ${left})` : left;
   
-  // Use red (hsl(0, 100%, 50%)) and control its alpha with intensity
   const color = `hsl(0 100% 50% / ${intensity * 0.9})`;
   const shadowColor = `hsl(0 100% 50% / ${intensity * 0.5})`;
 
