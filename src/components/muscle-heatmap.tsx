@@ -24,14 +24,14 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '23%', left: '33%' },
-    chest: { top: '23%', left: '50%' },
-    back: { top: '30%', left: '50%' }, 
-    core: { top: '42%', left: '50%' },
-    arms: { top: '23%', left: '18%' },
-    legs: { top: '65%', left: '42%' },
+    shoulders: { top: '23%', left: '35%' },
+    chest: { top: '30%', left: '52%' },
+    back: { top: '30%', left: '52%' }, 
+    core: { top: '42%', left: '52%' },
+    arms: { top: '35%', left: '20%' },
+    legs: { top: '60%', left: '44%' },
   },
-  Female: {
+  Female: { // Keeping female coords as they were, can adjust later if needed
     shoulders: { top: '23%', left: '33%' },
     chest: { top: '30%', left: '50%' },
     back: { top: '30%', left: '50%' }, 
@@ -98,7 +98,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
     ? "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female.png"
-    : "https://raw.githubusercontent.com/matthewcb4/public_resources/829df0894db95489d34b409e6b79e707c126755b/Male_black.png";
+    : "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Male_black.png";
     
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
