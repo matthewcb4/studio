@@ -83,33 +83,18 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
   
   const muscleGroupFrequency = useMemo(() => {
-    const frequency: Record<string, number> = {};
-    if (!thisWeeksLogs || !masterExercises) return frequency;
-
-    const exerciseIdToCategory = masterExercises.reduce((acc, ex) => {
-      if(ex.category) acc[ex.id] = ex.category;
-      return acc;
-    }, {} as Record<string, string>);
-
-    thisWeeksLogs.forEach(log => {
-      log.exercises.forEach(loggedEx => {
-        const category = exerciseIdToCategory[loggedEx.exerciseId];
-        if (category) {
-          const muscleGroup = categoryToMuscleGroup[category];
-          if (muscleGroup) {
-            frequency[muscleGroup] = (frequency[muscleGroup] || 0) + 1;
-          }
-        }
-      });
-    });
-
-    return frequency;
-  }, [thisWeeksLogs, masterExercises]);
+    // DEBUG: Force all muscle groups to full intensity
+    return {
+        'shoulders': 1,
+        'chest': 1,
+        'back': 1,
+        'core': 1,
+        'arms': 1,
+        'legs': 1,
+    };
+  }, []);
   
-  const maxFrequency = useMemo(() => {
-    const frequencies = Object.values(muscleGroupFrequency);
-    return frequencies.length > 0 ? Math.max(...frequencies) : 1;
-  }, [muscleGroupFrequency]);
+  const maxFrequency = 1; // DEBUG: Force max frequency to 1
 
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
