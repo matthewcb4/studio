@@ -163,10 +163,8 @@ export function MuscleHeatmap() {
                {isLoadingLogs ? (
                  <div className="h-[450px] flex items-center justify-center"><p>Loading activity...</p></div>
                ) : (
-                <div className="relative w-full" style={{ paddingBottom: '133.33%' }}>
-                  <div className="absolute top-0 left-0 w-full h-full">
+                <div className="w-full h-[450px] flex items-center justify-center">
                     <BodyComponent muscleData={muscleData} />
-                  </div>
                 </div>
                )}
             </CardContent>
