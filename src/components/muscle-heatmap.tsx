@@ -24,12 +24,12 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '23%', left: '35%' },
-    chest: { top: '30%', left: '52%' },
-    back: { top: '30%', left: '52%' }, 
-    core: { top: '42%', left: '52%' },
-    arms: { top: '35%', left: '20%' },
-    legs: { top: '60%', left: '44%' },
+    shoulders: { top: '23%', left: '33%' },
+    chest: { top: '30%', left: '50%' },
+    back: { top: '30%', left: '50%' }, 
+    core: { top: '42%', left: '50%' },
+    arms: { top: '35%', left: '18%' },
+    legs: { top: '65%', left: '44%' },
   },
   Female: { // Keeping female coords as they were, can adjust later if needed
     shoulders: { top: '23%', left: '33%' },
@@ -41,28 +41,27 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
 };
 
-const HeatPoint = ({ top, left, intensity, isMirrored = false, label }: { top: string; left: string; intensity: number; isMirrored?: boolean; label: string }) => {
+const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; left: string; intensity: number; isMirrored?: boolean; }) => {
   const finalLeft = isMirrored ? `calc(100% - ${left})` : left;
   
-  const color = `hsl(0 100% 50% / ${intensity * 0.9})`;
-  const shadowColor = `hsl(0 100% 50% / ${intensity * 0.5})`;
+  const color = `hsl(0 100% 50% / ${intensity * 1})`; // Darker red
+  const shadowColor = `hsl(0 100% 50% / ${intensity * 0.7})`;
 
   return (
     <div
-      className="absolute rounded-full flex items-center justify-center"
+      className="absolute rounded-full"
       style={{
         top,
         left: finalLeft,
-        width: '15%',
-        height: '15%',
+        width: '20%', // Enlarged space
+        height: '20%', // Enlarged space
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
         opacity: Math.max(0.2, intensity),
-        filter: `blur(5px)`,
+        filter: `blur(8px)`, // Slightly more blur for a softer edge on the larger size
         zIndex: 10,
       }}
     >
-        <span className="text-white text-xs font-bold" style={{ textShadow: '0 0 3px black' }}>{label}</span>
     </div>
   );
 };
@@ -113,6 +112,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
                 width={400}
                 height={711}
                 className="relative z-0 w-full h-auto"
+                unoptimized
             />
             <p className="absolute inset-0 flex items-center justify-center z-10 text-xs text-muted-foreground text-center p-4 bg-background/50 rounded-md">Log a workout to see your heatmap.</p>
         </div>
@@ -135,13 +135,13 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           if (['arms', 'shoulders', 'legs'].includes(group)) {
             return (
               <React.Fragment key={group}>
-                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} label={group} />
-                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} isMirrored label={group} />
+                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} />
+                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} isMirrored />
               </React.Fragment>
             );
           }
 
-          return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} label={group} />;
+          return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} />;
         })}
       </div>
 
@@ -152,6 +152,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
         width={400}
         height={711}
         className="relative object-contain z-20 mix-blend-multiply w-full h-auto"
+        unoptimized
       />
     </div>
   );
