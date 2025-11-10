@@ -53,13 +53,13 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false, label }: { top: s
       style={{
         top,
         left: finalLeft,
-        width: '20%',
-        height: '20%',
+        width: '15%',
+        height: '15%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
         opacity: Math.max(0.2, intensity),
+        filter: `blur(5px)`,
         zIndex: 10,
-        filter: `blur(5px) drop-shadow(0 0 10px ${shadowColor})`,
       }}
     >
         <span className="text-white text-xs font-bold" style={{ textShadow: '0 0 3px black' }}>{label}</span>
@@ -84,7 +84,6 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
   
   const { muscleGroupFrequency, maxFrequency } = useMemo(() => {
-     // --- START TEST DATA ---
      const testFrequencies: Record<string, number> = {
       'shoulders': 1,
       'chest': 1,
@@ -94,7 +93,6 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
       'legs': 1,
     };
     return { muscleGroupFrequency: testFrequencies, maxFrequency: 1 };
-    // --- END TEST DATA ---
   }, [isLoadingExercises, masterExercises, thisWeeksLogs]);
   
   const bodyType = userProfile?.biologicalSex || 'Male';
@@ -108,7 +106,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   
   if (Object.keys(muscleGroupFrequency).length === 0) {
      return (
-        <div className="relative w-full max-w-xs mx-auto aspect-[9/16] flex items-center justify-center">
+        <div className="relative w-full max-w-sm mx-auto aspect-[9/16] flex items-center justify-center">
             <Image
                 src={bodyImageUrl}
                 alt={`${bodyType} body outline`}
@@ -121,13 +119,11 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   }
 
   return (
-    <div className="relative w-full max-w-xs mx-auto aspect-[9/16]">
-      <Image
-        src={bodyImageUrl}
-        alt={`${bodyType} body outline`}
-        fill
-        className="object-contain z-0"
-      />
+    <div className="relative w-full max-w-sm mx-auto aspect-[9/16]">
+      {/* Layer 1: White Background */}
+      <div className="absolute inset-0 bg-white z-0"></div>
+
+      {/* Layer 2: Heatmap Points */}
       <div className="absolute inset-0 z-10">
         {Object.entries(muscleGroupFrequency).map(([group, freq]) => {
           const coords = heatmapCoordinates[bodyType]?.[group];
@@ -135,7 +131,6 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           
           const intensity = maxFrequency > 0 ? freq / maxFrequency : 0;
 
-          // For arms, shoulders and legs, render a mirrored point
           if (['arms', 'shoulders', 'legs'].includes(group)) {
             return (
               <React.Fragment key={group}>
@@ -148,6 +143,14 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} label={group} />;
         })}
       </div>
+
+      {/* Layer 3: Body Image */}
+      <Image
+        src={bodyImageUrl}
+        alt={`${bodyType} body outline`}
+        fill
+        className="object-contain z-20 mix-blend-multiply"
+      />
     </div>
   );
 }
