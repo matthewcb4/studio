@@ -29,7 +29,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     back: { top: '30%', left: '50%' }, 
     core: { top: '42%', left: '50%' },
     arms: { top: '23%', left: '18%' },
-    legs: { top: '60%', left: '42%' },
+    legs: { top: '65%', left: '42%' },
   },
   Female: {
     shoulders: { top: '23%', left: '33%' },
@@ -106,20 +106,21 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   
   if (Object.keys(muscleGroupFrequency).length === 0) {
      return (
-        <div className="relative w-full max-w-sm mx-auto aspect-[9/16] flex items-center justify-center">
+        <div className="relative w-full max-w-sm mx-auto">
             <Image
                 src={bodyImageUrl}
                 alt={`${bodyType} body outline`}
-                fill
-                className="object-contain z-0"
+                width={400}
+                height={711}
+                className="relative z-0 w-full h-auto"
             />
-            <p className="z-10 text-xs text-muted-foreground text-center p-4 bg-background/50 rounded-md">Log a workout to see your heatmap.</p>
+            <p className="absolute inset-0 flex items-center justify-center z-10 text-xs text-muted-foreground text-center p-4 bg-background/50 rounded-md">Log a workout to see your heatmap.</p>
         </div>
      )
   }
 
   return (
-    <div className="relative w-full max-w-sm mx-auto aspect-[9/16]">
+    <div className="relative w-full max-w-sm mx-auto">
       {/* Layer 1: White Background */}
       <div className="absolute inset-0 bg-white z-0"></div>
 
@@ -148,8 +149,9 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
       <Image
         src={bodyImageUrl}
         alt={`${bodyType} body outline`}
-        fill
-        className="object-contain z-20 mix-blend-multiply"
+        width={400}
+        height={711}
+        className="relative object-contain z-20 mix-blend-multiply w-full h-auto"
       />
     </div>
   );
