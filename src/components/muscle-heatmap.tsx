@@ -24,20 +24,20 @@ const categoryToMuscleGroup: Record<string, string> = {
 // Values are percentages for top and left positioning.
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
-    shoulders: { top: '23%', left: '33%' },
+    shoulders: { top: '23%', left: '26%' },
     chest: { top: '30%', left: '50%' },
-    back: { top: '30%', left: '50%' }, 
+    back: { top: '32%', left: '50%' }, 
     core: { top: '42%', left: '50%' },
-    arms: { top: '35%', left: '18%' },
-    legs: { top: '65%', left: '44%' },
+    arms: { top: '35%', left: '16%' },
+    legs: { top: '70%', left: '42%' },
   },
   Female: {
-    shoulders: { top: '23%', left: '33%' },
+    shoulders: { top: '23%', left: '26%' },
     chest: { top: '30%', left: '50%' },
-    back: { top: '30%', left: '50%' }, 
+    back: { top: '32%', left: '50%' }, 
     core: { top: '42%', left: '50%' },
-    arms: { top: '35%', left: '20%' },
-    legs: { top: '60%', left: '42%' },
+    arms: { top: '35%', left: '18%' },
+    legs: { top: '70%', left: '42%' },
   },
 };
 
@@ -45,7 +45,6 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
   const finalLeft = isMirrored ? `calc(100% - ${left})` : left;
   
   const color = `hsl(0 100% 50% / ${intensity * 1})`;
-  const shadowColor = `hsl(0 100% 50% / ${intensity * 0.7})`;
 
   return (
     <div
@@ -53,12 +52,12 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
       style={{
         top,
         left: finalLeft,
-        width: '20%', 
-        height: '20%',
+        width: '25%', 
+        height: '25%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
         opacity: Math.max(0.2, intensity),
-        filter: `blur(8px)`,
+        filter: `blur(12px)`,
         zIndex: 10,
       }}
     >
@@ -66,8 +65,8 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
   );
 };
 
-const HeatmapLabels = ({ bodyType, muscleGroups }: { bodyType: 'Male' | 'Female'; muscleGroups: { group: string, coords: { top: string, left: string } }[] }) => (
-    <div className="absolute inset-0 z-15">
+const HeatmapLabels = ({ muscleGroups }: { muscleGroups: { group: string, coords: { top: string, left: string } }[] }) => (
+    <div className="absolute inset-0 z-10">
       {muscleGroups.map(({ group, coords }) => {
         const mirroredGroups = ['arms', 'shoulders', 'legs'];
         const isMirrored = mirroredGroups.includes(group);
@@ -78,7 +77,6 @@ const HeatmapLabels = ({ bodyType, muscleGroups }: { bodyType: 'Male' | 'Female'
                 style={{
                   top: coords.top,
                   left: mirrored ? `calc(100% - ${coords.left})` : coords.left,
-                  textShadow: '0 0 5px black',
                 }}
               >
                 {group.charAt(0).toUpperCase() + group.slice(1)}
@@ -180,7 +178,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
       </div>
       
       {/* Layer 3: Labels */}
-      <HeatmapLabels bodyType={bodyType} muscleGroups={muscleGroupsForLabels} />
+      <HeatmapLabels muscleGroups={muscleGroupsForLabels} />
 
 
       {/* Layer 4: Body Image */}
