@@ -3,7 +3,7 @@
 
 import React, { useMemo } from 'react';
 import Image from 'next/image';
-import type { UserProfile, WorkoutLog, LoggedExercise, Exercise } from '@/lib/types';
+import type { UserProfile, WorkoutLog, Exercise } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 
@@ -28,16 +28,16 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     chest: { top: '32%', left: '50%' },
     back: { top: '35%', left: '50%' },
     core: { top: '45%', left: '50%' },
-    arms: { top: '38%', left: '28%' }, // Represents one arm, mirrored for the other
-    legs: { top: '70%', left: '40%' }, // Represents one leg, mirrored for the other
+    arms: { top: '40%', left: '28%' }, // Represents one arm, mirrored for the other
+    legs: { top: '70%', left: '42%' }, // Represents one leg, mirrored for the other
   },
   Female: {
     shoulders: { top: '24%', left: '50%' },
     chest: { top: '33%', left: '50%' },
     back: { top: '38%', left: '50%' },
     core: { top: '48%', left: '50%' },
-    arms: { top: '40%', left: '25%' },
-    legs: { top: '70%', left: '40%' },
+    arms: { top: '42%', left: '25%' },
+    legs: { top: '70%', left: '42%' },
   },
 };
 
@@ -45,7 +45,7 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
   const finalLeft = isMirrored ? `calc(100% - ${left})` : left;
   
   // Use red (hsl(0, 100%, 50%)) and control its alpha with intensity
-  const color = `hsl(0 100% 50% / ${intensity * 0.9})`; // More vibrant red
+  const color = `hsl(0 100% 50% / ${intensity * 0.9})`;
   const shadowColor = `hsl(0 100% 50% / ${intensity * 0.5})`;
 
   return (
@@ -54,11 +54,11 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
       style={{
         top,
         left: finalLeft,
-        width: '40%', // Made points larger
+        width: '40%',
         height: '40%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
-        opacity: Math.max(0.2, intensity), // Ensure even low intensity is slightly visible
+        opacity: Math.max(0.2, intensity),
         zIndex: 10,
         filter: `blur(5px) drop-shadow(0 0 10px ${shadowColor})`,
       }}
@@ -82,36 +82,19 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   );
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
   
+  // Hardcode muscleGroupFrequency for layout confirmation
   const { muscleGroupFrequency, maxFrequency } = useMemo(() => {
-    if (!thisWeeksLogs || !masterExercises) {
-      return { muscleGroupFrequency: {}, maxFrequency: 0 };
-    }
-
-    const exerciseIdToCategory = masterExercises.reduce((acc, ex) => {
-      if (ex.category) {
-        acc[ex.id] = ex.category;
-      }
-      return acc;
-    }, {} as Record<string, string>);
-
-    const frequencies: Record<string, number> = {};
-
-    thisWeeksLogs.forEach(log => {
-      log.exercises.forEach(loggedEx => {
-        const category = exerciseIdToCategory[loggedEx.exerciseId];
-        if (category) {
-          const muscleGroup = categoryToMuscleGroup[category];
-          if (muscleGroup) {
-            frequencies[muscleGroup] = (frequencies[muscleGroup] || 0) + 1;
-          }
-        }
-      });
-    });
-    
-    const max = Object.values(frequencies).reduce((max, count) => Math.max(max, count), 0);
-    
+    const frequencies: Record<string, number> = {
+        shoulders: 1,
+        chest: 1,
+        back: 1,
+        core: 1,
+        arms: 1,
+        legs: 1,
+    };
+    const max = 1;
     return { muscleGroupFrequency: frequencies, maxFrequency: max };
-  }, [thisWeeksLogs, masterExercises]);
+  }, []);
   
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
