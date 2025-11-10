@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useMemo } from 'react';
 import { useDoc, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/lib/types';
 import {
@@ -16,7 +15,6 @@ import { FemaleBody } from './female-body';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import { doc } from 'firebase/firestore';
-
 
 export function MuscleHeatmap() {
     const { user } = useUser();
@@ -65,7 +63,7 @@ export function MuscleHeatmap() {
                 <CardDescription>Your selected body type.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="w-full h-[350px] flex items-center justify-center">
+                <div className="h-[350px] flex items-center justify-center">
                     <BodyComponent />
                 </div>
             </CardContent>
