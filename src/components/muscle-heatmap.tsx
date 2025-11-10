@@ -25,11 +25,11 @@ const categoryToMuscleGroup: Record<string, string> = {
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
     shoulders: { top: '23%', left: '33%' },
-    chest: { top: '30%', left: '50%' },
+    chest: { top: '23%', left: '50%' },
     back: { top: '30%', left: '50%' }, 
     core: { top: '42%', left: '50%' },
-    arms: { top: '35%', left: '20%' },
-    legs: { top: '65%', left: '42%' },
+    arms: { top: '23%', left: '18%' },
+    legs: { top: '60%', left: '42%' },
   },
   Female: {
     shoulders: { top: '23%', left: '33%' },
@@ -37,11 +37,11 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     back: { top: '30%', left: '50%' }, 
     core: { top: '42%', left: '50%' },
     arms: { top: '35%', left: '20%' },
-    legs: { top: '65%', left: '42%' },
+    legs: { top: '60%', left: '42%' },
   },
 };
 
-const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; left: string; intensity: number; isMirrored?: boolean }) => {
+const HeatPoint = ({ top, left, intensity, isMirrored = false, label }: { top: string; left: string; intensity: number; isMirrored?: boolean; label: string }) => {
   const finalLeft = isMirrored ? `calc(100% - ${left})` : left;
   
   const color = `hsl(0 100% 50% / ${intensity * 0.9})`;
@@ -53,15 +53,17 @@ const HeatPoint = ({ top, left, intensity, isMirrored = false }: { top: string; 
       style={{
         top,
         left: finalLeft,
-        width: '25%',
-        height: '25%',
+        width: '20%',
+        height: '20%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         transform: `translate(-50%, -50%)`,
         opacity: Math.max(0.2, intensity),
         zIndex: 10,
         filter: `blur(5px) drop-shadow(0 0 10px ${shadowColor})`,
       }}
-    />
+    >
+        <span className="text-white text-xs font-bold" style={{ textShadow: '0 0 3px black' }}>{label}</span>
+    </div>
   );
 };
 
@@ -82,42 +84,23 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
   
   const { muscleGroupFrequency, maxFrequency } = useMemo(() => {
-     if (isLoadingExercises || !masterExercises || !thisWeeksLogs) {
-      return { muscleGroupFrequency: {}, maxFrequency: 0 };
-    }
-
-    const exerciseIdToCategory = masterExercises.reduce((acc, ex) => {
-        if (ex.category) {
-            acc[ex.id] = ex.category;
-        }
-        return acc;
-    }, {} as Record<string, string>);
-
-    const frequencies: Record<string, number> = {};
-    let max = 0;
-
-    thisWeeksLogs.forEach(log => {
-      log.exercises.forEach(loggedEx => {
-        const category = exerciseIdToCategory[loggedEx.exerciseId];
-        if(category) {
-          const muscleGroup = categoryToMuscleGroup[category];
-          if (muscleGroup) {
-            frequencies[muscleGroup] = (frequencies[muscleGroup] || 0) + 1;
-            if (frequencies[muscleGroup] > max) {
-              max = frequencies[muscleGroup];
-            }
-          }
-        }
-      })
-    });
-
-    return { muscleGroupFrequency: frequencies, maxFrequency: max };
+     // --- START TEST DATA ---
+     const testFrequencies: Record<string, number> = {
+      'shoulders': 1,
+      'chest': 1,
+      'back': 1,
+      'core': 1,
+      'arms': 1,
+      'legs': 1,
+    };
+    return { muscleGroupFrequency: testFrequencies, maxFrequency: 1 };
+    // --- END TEST DATA ---
   }, [isLoadingExercises, masterExercises, thisWeeksLogs]);
   
   const bodyType = userProfile?.biologicalSex || 'Male';
   const bodyImageUrl = bodyType === 'Female'
     ? "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female.png"
-    : "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Male.png";
+    : "https://raw.githubusercontent.com/matthewcb4/public_resources/829df0894db95489d34b409e6b79e707c126755b/Male_black.png";
     
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
@@ -156,13 +139,13 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           if (['arms', 'shoulders', 'legs'].includes(group)) {
             return (
               <React.Fragment key={group}>
-                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} />
-                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} isMirrored />
+                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} label={group} />
+                <HeatPoint top={coords.top} left={coords.left} intensity={intensity} isMirrored label={group} />
               </React.Fragment>
             );
           }
 
-          return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} />;
+          return <HeatPoint key={group} top={coords.top} left={coords.left} intensity={intensity} label={group} />;
         })}
       </div>
     </div>
