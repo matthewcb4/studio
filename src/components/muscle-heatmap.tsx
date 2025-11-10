@@ -170,7 +170,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
           
           const intensity = muscleGroupIntensities[group as keyof typeof muscleGroupIntensities] || 0;
           const isLegs = group === 'legs';
-          const size = isLegs ? '45%' : '35%';
+          const size = isLegs ? '55%' : '35%';
 
           return <HeatPoint key={group} intensity={intensity} size={size} coords={coords} />;
         })}
