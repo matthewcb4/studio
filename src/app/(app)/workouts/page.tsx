@@ -42,7 +42,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Layers, Youtube } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown } from 'lucide-react';
 import type {
   CustomWorkout,
   WorkoutExercise,
@@ -203,6 +203,44 @@ function WorkoutForm({
     };
     onSave(newWorkout);
   };
+
+  const handleMoveGroup = (groupIndex: number, direction: 'up' | 'down') => {
+    const currentGroups = groupExercises(exercises);
+    if (direction === 'up' && groupIndex === 0) return;
+    if (direction === 'down' && groupIndex === currentGroups.length - 1) return;
+
+    const otherGroupIndex = direction === 'up' ? groupIndex - 1 : groupIndex + 1;
+    const groupToMove = currentGroups[groupIndex];
+    const otherGroup = currentGroups[otherGroupIndex];
+
+    const groupToMoveId = groupToMove[0].supersetId;
+    const otherGroupId = otherGroup[0].supersetId;
+    
+    // Find the indices in the flat `exercises` array
+    const firstIndexOfGroupToMove = exercises.findIndex(e => e.supersetId === groupToMoveId);
+    const lastIndexOfGroupToMove = exercises.map(e => e.supersetId).lastIndexOf(groupToMoveId);
+    const groupToMoveExercises = exercises.slice(firstIndexOfGroupToMove, lastIndexOfGroupToMove + 1);
+    
+    const firstIndexOfOtherGroup = exercises.findIndex(e => e.supersetId === otherGroupId);
+    const lastIndexOfOtherGroup = exercises.map(e => e.supersetId).lastIndexOf(otherGroupId);
+    const otherGroupExercises = exercises.slice(firstIndexOfOtherGroup, lastIndexOfOtherGroup + 1);
+
+    const newExercises = [...exercises];
+
+    if (direction === 'up') {
+        // Replace other group with the group to move
+        newExercises.splice(firstIndexOfOtherGroup, otherGroup.length, ...groupToMoveExercises);
+        // Replace group to move with the other group
+        newExercises.splice(firstIndexOfGroupToMove, groupToMove.length, ...otherGroupExercises);
+    } else { // down
+        // Replace group to move with the other group
+        newExercises.splice(firstIndexOfGroupToMove, groupToMove.length, ...otherGroupExercises);
+        // Replace other group with the group to move
+        newExercises.splice(firstIndexOfOtherGroup, otherGroup.length, ...groupToMoveExercises);
+    }
+
+    setExercises(newExercises);
+  };
   
   const exerciseGroups = useMemo(() => groupExercises(exercises), [exercises]);
 
@@ -238,7 +276,29 @@ function WorkoutForm({
                 key={group[0]?.supersetId || groupIndex}
                 className="p-4 border rounded-lg bg-secondary/30 space-y-4"
               >
-                <Label>Group {groupIndex + 1} {group.length > 1 && '(Superset)'}</Label>
+                <div className="flex justify-between items-center">
+                    <Label>Group {groupIndex + 1} {group.length > 1 && '(Superset)'}</Label>
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleMoveGroup(groupIndex, 'up')}
+                            disabled={groupIndex === 0}
+                            className="h-7 w-7"
+                        >
+                            <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleMoveGroup(groupIndex, 'down')}
+                            disabled={groupIndex === exerciseGroups.length - 1}
+                            className="h-7 w-7"
+                        >
+                            <ArrowDown className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
                 {group.map((ex, exIndex) => {
                   const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId || masterEx.name === ex.exerciseName);
                   const selectValue = matchedExercise ? matchedExercise.id : ex.exerciseId;
@@ -554,5 +614,3 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
-
-    
