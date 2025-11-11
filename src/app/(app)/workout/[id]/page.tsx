@@ -209,6 +209,7 @@ export default function WorkoutSessionPage() {
   
   const handleNextGroup = () => {
      if (isLastGroup) {
+      finishWorkout();
       setIsFinished(true);
     } else {
       setCurrentGroupIndex(prev => prev + 1);
@@ -252,7 +253,6 @@ export default function WorkoutSessionPage() {
       title: 'Workout Complete!',
       description: 'Your session has been logged successfully.',
     });
-    router.push('/history');
   };
 
   const progressValue = totalGroups > 0 ? ((currentGroupIndex) / totalGroups) * 100 : 0;
@@ -261,7 +261,7 @@ export default function WorkoutSessionPage() {
     return (
       <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center">
         <CheckCircle className="w-24 h-24 text-green-500 mb-4" />
-        <h1 className="text-4xl font-bold mb-2">Workout Complete!</h1>
+        <h1 className="text-4xl font-bold mb-2">Workout Logged!</h1>
         <p className="text-muted-foreground text-lg mb-6">
           Great job finishing your workout.
         </p>
@@ -296,8 +296,8 @@ export default function WorkoutSessionPage() {
             </div>
           </CardContent>
         </Card>
-        <Button onClick={finishWorkout} className="w-full mt-6">
-          Save & Go to History
+        <Button onClick={() => router.push('/history')} className="w-full mt-6">
+          View in History
         </Button>
       </div>
     );
@@ -410,7 +410,7 @@ export default function WorkoutSessionPage() {
         );
       })}
        <Button onClick={handleNextGroup} className="w-full" disabled={!isGroupFinished}>
-            {isLastGroup ? 'Log & Finish' : 'Next Exercise Group'}
+            {isLastGroup ? 'Finish Workout' : 'Next Exercise Group'}
             <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
     </div>
