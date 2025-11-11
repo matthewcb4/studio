@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -22,10 +23,23 @@ import {
   SheetDescription,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { WorkoutLog } from "@/lib/types";
-import { useCollection, useUser, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { useCollection, useUser, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
+import { collection, query, orderBy, doc } from "firebase/firestore";
+import { Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 
 function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
@@ -72,6 +86,7 @@ export default function HistoryPage() {
   const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const workoutLogsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -79,6 +94,16 @@ export default function HistoryPage() {
   }, [firestore, user]);
   
   const { data: workoutLogs, isLoading } = useCollection<WorkoutLog>(workoutLogsQuery);
+
+  const handleDeleteLog = (logId: string) => {
+    if (!user) return;
+    const logDocRef = doc(firestore, `users/${user.uid}/workoutLogs`, logId);
+    deleteDocumentNonBlocking(logDocRef);
+    toast({
+      title: "Workout Log Deleted",
+      description: "The workout log has been successfully removed.",
+    });
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -113,7 +138,7 @@ export default function HistoryPage() {
                     <TableCell>{log.workoutName}</TableCell>
                     <TableCell className="hidden md:table-cell">{log.duration}</TableCell>
                     <TableCell className="text-right">{log.volume.toLocaleString()} lbs</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-2">
                       <SheetTrigger asChild>
                         <Button
                           variant="outline"
@@ -123,6 +148,27 @@ export default function HistoryPage() {
                           Details
                         </Button>
                       </SheetTrigger>
+                       <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="icon">
+                                  <Trash2 className="h-4 w-4" />
+                              </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                      This action cannot be undone. This will permanently delete this workout log.
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteLog(log.id)}>
+                                      Delete
+                                  </AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}
