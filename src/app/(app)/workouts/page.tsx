@@ -170,6 +170,14 @@ function WorkoutForm({
     setExercises(newExercises);
   };
 
+  const handleVideoIdChange = (exerciseId: string, urlOrId: string) => {
+    // Regex to find YouTube video ID from various URL formats
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
+    const match = urlOrId.match(youtubeRegex);
+    const videoId = match ? match[1] : urlOrId;
+    updateExercise(exerciseId, 'videoId', videoId);
+  };
+
   const removeExercise = (exerciseIdToRemove: string) => {
     const exerciseToRemove = exercises.find(ex => ex.id === exerciseIdToRemove);
     if (!exerciseToRemove) return;
@@ -346,12 +354,11 @@ function WorkoutForm({
                          <Label className="text-xs">Linked Video ID</Label>
                          <Input
                            className="mt-1 h-8 text-sm"
-                           placeholder="Paste 11-character ID from YouTube URL"
+                           placeholder="Paste YouTube URL or 11-character ID"
                            value={ex.videoId || ''}
                            onChange={(e) =>
-                             updateExercise(ex.id, 'videoId', e.target.value)
+                            handleVideoIdChange(ex.id, e.target.value)
                            }
-                           maxLength={11}
                          />
                        </div>
                     </div>
@@ -597,3 +604,5 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
+
+    
