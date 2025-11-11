@@ -5,21 +5,38 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, writeBatch } from 'firebase/firestore';
-import type { UserEquipment, UserProfile } from '@/lib/types';
+import { collection, doc, writeBatch, query, orderBy } from 'firebase/firestore';
+import type { UserEquipment, UserProfile, Exercise } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { seedExercises } from '@/lib/seed-data';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 const equipmentFormSchema = z.object({
   name: z.string().min(2, { message: 'Equipment name must be at least 2 characters.' }),
+});
+
+const exerciseFormSchema = z.object({
+  name: z.string().min(2, { message: 'Exercise name must be at least 2 characters.' }),
+  category: z.string().min(2, { message: 'Please select a category.' }),
 });
 
 const goalsFormSchema = z.object({
@@ -36,6 +53,7 @@ export default function SettingsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmittingEquipment, setIsSubmittingEquipment] = useState(false);
+  const [isSubmittingExercise, setIsSubmittingExercise] = useState(false);
   const [isSubmittingGoals, setIsSubmittingGoals] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
 
@@ -43,6 +61,17 @@ export default function SettingsPage() {
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
   , [firestore, user]);
   const { data: equipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
+
+  const exercisesCollection = useMemoFirebase(() =>
+    firestore ? query(collection(firestore, 'exercises'), orderBy('name')) : null
+  , [firestore]);
+  const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollection);
+  
+  const exerciseCategories = useMemo(() => {
+    if (!masterExercises) return [];
+    const categories = masterExercises.map(ex => ex.category).filter(Boolean) as string[];
+    return [...new Set(categories)].sort();
+  }, [masterExercises]);
 
   const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
@@ -53,6 +82,14 @@ export default function SettingsPage() {
     resolver: zodResolver(equipmentFormSchema),
     defaultValues: {
       name: '',
+    },
+  });
+
+  const exerciseForm = useForm<z.infer<typeof exerciseFormSchema>>({
+    resolver: zodResolver(exerciseFormSchema),
+    defaultValues: {
+      name: '',
+      category: '',
     },
   });
 
@@ -94,11 +131,26 @@ export default function SettingsPage() {
     }
   };
 
+  const onExerciseSubmit = async (values: z.infer<typeof exerciseFormSchema>) => {
+    if (!exercisesCollection) return;
+    setIsSubmittingExercise(true);
+    try {
+      const exerciseCollectionRef = collection(firestore, 'exercises');
+      await addDocumentNonBlocking(exerciseCollectionRef, values);
+      toast({ title: 'Success', description: `${values.name} added to exercises.` });
+      exerciseForm.reset();
+    } catch (error) {
+      console.error("Error adding exercise:", error);
+      toast({ title: 'Error', description: 'Failed to add exercise.', variant: 'destructive' });
+    } finally {
+        setIsSubmittingExercise(false);
+    }
+  };
+
   const onGoalsSubmit = async (values: z.infer<typeof goalsFormSchema>) => {
     if (!userProfileRef) return;
     setIsSubmittingGoals(true);
 
-    // Create a clean object to save, removing any undefined values
     const dataToSave: Partial<z.infer<typeof goalsFormSchema>> = {};
     Object.keys(values).forEach(key => {
         const formKey = key as keyof typeof values;
@@ -126,7 +178,7 @@ export default function SettingsPage() {
       const batch = writeBatch(firestore);
 
       seedExercises.forEach(exercise => {
-        const docRef = doc(exercisesRef); // Create a new doc with a unique ID
+        const docRef = doc(exercisesRef); 
         batch.set(docRef, exercise);
       });
       
@@ -146,11 +198,18 @@ export default function SettingsPage() {
   }
 
 
-  const handleDelete = (equipmentId: string) => {
+  const handleDeleteEquipment = (equipmentId: string) => {
     if (!equipmentCollection) return;
     const equipmentDoc = doc(equipmentCollection, equipmentId);
     deleteDocumentNonBlocking(equipmentDoc);
     toast({ title: 'Equipment Removed' });
+  };
+  
+  const handleDeleteExercise = (exerciseId: string) => {
+    if (!firestore) return;
+    const exerciseDoc = doc(firestore, 'exercises', exerciseId);
+    deleteDocumentNonBlocking(exerciseDoc);
+    toast({ title: 'Exercise Removed' });
   };
 
   return (
@@ -318,11 +377,14 @@ export default function SettingsPage() {
         <AccordionItem value="my-equipment" className="border-none">
             <Card>
             <AccordionTrigger className="p-6 text-left">
-                <div>
-                    <CardTitle>My Equipment</CardTitle>
-                    <CardDescription className="mt-1.5 text-left">
-                        Add or remove the gym equipment you have access to. This will speed up workout generation.
-                    </CardDescription>
+                <div className="flex items-center gap-3">
+                    <Dumbbell className="w-6 h-6 text-primary" />
+                    <div>
+                        <CardTitle>My Equipment</CardTitle>
+                        <CardDescription className="mt-1.5 text-left">
+                            Add or remove the gym equipment you have access to.
+                        </CardDescription>
+                    </div>
                 </div>
             </AccordionTrigger>
             <AccordionContent>
@@ -358,13 +420,114 @@ export default function SettingsPage() {
                     equipment.map((item) => (
                         <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
                         <p className="font-medium">{item.name}</p>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteEquipment(item.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                         </div>
                     ))
                     ) : (
                     !isLoadingEquipment && <p className="text-sm text-muted-foreground text-center py-4">No equipment added yet.</p>
+                    )}
+                </div>
+                </CardContent>
+            </AccordionContent>
+            </Card>
+        </AccordionItem>
+        <AccordionItem value="manage-exercises" className="border-none">
+            <Card>
+            <AccordionTrigger className="p-6 text-left">
+                <div className="flex items-center gap-3">
+                    <Dumbbell className="w-6 h-6 text-primary" />
+                    <div>
+                        <CardTitle>Manage Exercises</CardTitle>
+                        <CardDescription className="mt-1.5 text-left">
+                            Add or remove exercises from the master list.
+                        </CardDescription>
+                    </div>
+                </div>
+            </AccordionTrigger>
+            <AccordionContent>
+                <CardContent className="space-y-6">
+                <Form {...exerciseForm}>
+                    <form onSubmit={exerciseForm.handleSubmit(onExerciseSubmit)} className="space-y-4">
+                        <FormField
+                            control={exerciseForm.control}
+                            name="name"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Exercise Name</FormLabel>
+                                <FormControl>
+                                <Input placeholder="e.g., Barbell Curl" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={exerciseForm.control}
+                            name="category"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Category</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a category" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {exerciseCategories.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <Button type="submit" disabled={isSubmittingExercise}>
+                            {isSubmittingExercise ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                            <PlusCircle className="h-4 w-4" />
+                            )}
+                            <span className="ml-2">Add Exercise</span>
+                        </Button>
+                    </form>
+                </Form>
+
+                <div className="space-y-2">
+                    {isLoadingExercises && <p>Loading exercises...</p>}
+                    {masterExercises && masterExercises.length > 0 ? (
+                    masterExercises.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                        <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">{item.category}</p>
+                        </div>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete the exercise "{item.name}".
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        </div>
+                    ))
+                    ) : (
+                    !isLoadingExercises && <p className="text-sm text-muted-foreground text-center py-4">No exercises found.</p>
                     )}
                 </div>
                 </CardContent>
