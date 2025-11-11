@@ -206,39 +206,19 @@ function WorkoutForm({
 
   const handleMoveGroup = (groupIndex: number, direction: 'up' | 'down') => {
     const currentGroups = groupExercises(exercises);
+    if (!currentGroups) return;
     if (direction === 'up' && groupIndex === 0) return;
     if (direction === 'down' && groupIndex === currentGroups.length - 1) return;
-
+  
     const otherGroupIndex = direction === 'up' ? groupIndex - 1 : groupIndex + 1;
-    const groupToMove = currentGroups[groupIndex];
-    const otherGroup = currentGroups[otherGroupIndex];
-
-    const groupToMoveId = groupToMove[0].supersetId;
-    const otherGroupId = otherGroup[0].supersetId;
     
-    // Find the indices in the flat `exercises` array
-    const firstIndexOfGroupToMove = exercises.findIndex(e => e.supersetId === groupToMoveId);
-    const lastIndexOfGroupToMove = exercises.map(e => e.supersetId).lastIndexOf(groupToMoveId);
-    const groupToMoveExercises = exercises.slice(firstIndexOfGroupToMove, lastIndexOfGroupToMove + 1);
-    
-    const firstIndexOfOtherGroup = exercises.findIndex(e => e.supersetId === otherGroupId);
-    const lastIndexOfOtherGroup = exercises.map(e => e.supersetId).lastIndexOf(otherGroupId);
-    const otherGroupExercises = exercises.slice(firstIndexOfOtherGroup, lastIndexOfOtherGroup + 1);
-
-    const newExercises = [...exercises];
-
-    if (direction === 'up') {
-        // Replace other group with the group to move
-        newExercises.splice(firstIndexOfOtherGroup, otherGroup.length, ...groupToMoveExercises);
-        // Replace group to move with the other group
-        newExercises.splice(firstIndexOfGroupToMove, groupToMove.length, ...otherGroupExercises);
-    } else { // down
-        // Replace group to move with the other group
-        newExercises.splice(firstIndexOfGroupToMove, groupToMove.length, ...otherGroupExercises);
-        // Replace other group with the group to move
-        newExercises.splice(firstIndexOfOtherGroup, otherGroup.length, ...groupToMoveExercises);
-    }
-
+    // Create a new flat array by rearranging the groups
+    const newGroups = [...currentGroups];
+    const [movedGroup] = newGroups.splice(groupIndex, 1);
+    newGroups.splice(otherGroupIndex, 0, movedGroup);
+  
+    // Flatten the reordered groups back into a single exercise array
+    const newExercises = newGroups.flat();
     setExercises(newExercises);
   };
   
