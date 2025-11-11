@@ -57,6 +57,7 @@ export default function SettingsPage() {
   const [isSubmittingExercise, setIsSubmittingExercise] = useState(false);
   const [isSubmittingGoals, setIsSubmittingGoals] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [exerciseFilter, setExerciseFilter] = useState('');
 
   const equipmentCollection = useMemoFirebase(() => 
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -73,6 +74,14 @@ export default function SettingsPage() {
     const categories = masterExercises.map(ex => ex.category).filter(Boolean) as string[];
     return [...new Set(categories)].sort();
   }, [masterExercises]);
+
+  const filteredExercises = useMemo(() => {
+    if (!masterExercises) return [];
+    if (!exerciseFilter) return masterExercises;
+    return masterExercises.filter(ex => 
+      ex.name.toLowerCase().includes(exerciseFilter.toLowerCase())
+    );
+  }, [masterExercises, exerciseFilter]);
 
   const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
@@ -496,39 +505,50 @@ export default function SettingsPage() {
                     </form>
                 </Form>
 
-                <div className="space-y-2">
-                    {isLoadingExercises && <p>Loading exercises...</p>}
-                    {masterExercises && masterExercises.length > 0 ? (
-                    masterExercises.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                        <div>
-                            <p className="font-medium">{item.name}</p>
-                            <p className="text-xs text-muted-foreground">{item.category}</p>
-                        </div>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the exercise "{item.name}".
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                        </div>
-                    ))
-                    ) : (
-                    !isLoadingExercises && <p className="text-sm text-muted-foreground text-center py-4">No exercises found.</p>
-                    )}
+                <Separator />
+
+                <div className="space-y-4">
+                    <h4 className="font-medium mb-2">Exercise List</h4>
+                    <Input 
+                      placeholder="Filter exercises..."
+                      value={exerciseFilter}
+                      onChange={(e) => setExerciseFilter(e.target.value)}
+                      className="mb-4"
+                    />
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                        {isLoadingExercises && <p>Loading exercises...</p>}
+                        {filteredExercises && filteredExercises.length > 0 ? (
+                        filteredExercises.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                            <div>
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-xs text-muted-foreground">{item.category}</p>
+                            </div>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete the exercise "{item.name}".
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                            </div>
+                        ))
+                        ) : (
+                        !isLoadingExercises && <p className="text-sm text-muted-foreground text-center py-4">No exercises found.</p>
+                        )}
+                    </div>
                 </div>
                 
                 <Separator className="my-6" />
@@ -555,3 +575,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
