@@ -199,7 +199,8 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4 md:gap-8">
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold">Dashboard</h1>
             <div className="w-[180px]">
                 <Select value={dateRange} onValueChange={setDateRange}>
                     <SelectTrigger>
@@ -337,5 +338,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
