@@ -11,13 +11,20 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
+const WorkoutHistoryItemSchema = z.object({
+  date: z.string().describe("The date of the past workout."),
+  name: z.string().describe("The name of the past workout."),
+  exercises: z.string().describe("A comma-separated list of exercises from the past workout."),
+});
+
 const GenerateWorkoutInputSchema = z.object({
   availableEquipment: z.array(z.string()).describe("A list of available fitness equipment."),
   fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals."),
   fitnessLevel: z.string().describe("The user's current fitness level (e.g., beginner, intermediate, advanced)."),
   workoutDuration: z.number().describe("The desired workout duration in minutes."),
   focusArea: z.array(z.string()).describe("The primary muscle group or area to focus on (e.g., Full Body, Upper Body, Lower Body, Core, Arms, Legs, Chest, Back, Shoulders)."),
-  focusOnSupersets: z.boolean().describe("Whether to create supersets focusing on the chosen muscle group.")
+  focusOnSupersets: z.boolean().describe("Whether to create supersets focusing on the chosen muscle group."),
+  workoutHistory: z.array(WorkoutHistoryItemSchema).optional().describe("A list of the user's recent workouts to avoid repetition."),
 });
 export type GenerateWorkoutInput = z.infer<typeof GenerateWorkoutInputSchema>;
 
@@ -52,6 +59,13 @@ const prompt = ai.definePrompt({
   User's fitness level: {{{fitnessLevel}}}
   Desired workout duration: {{{workoutDuration}}} minutes
   Focus area: {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+
+  {{#if workoutHistory}}
+  Here is the user's recent workout history. Take this into account to create a new workout that is varied and avoids repeating the same exercises or workout styles too frequently.
+  {{#each workoutHistory}}
+  - On {{date}}, they did "{{name}}" which included: {{exercises}}
+  {{/each}}
+  {{/if}}
   
   Generate a complete workout routine including a workout name, a short description, and a list of exercises.
   
@@ -88,3 +102,5 @@ const workoutGuideFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
