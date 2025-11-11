@@ -12,6 +12,7 @@ export type WorkoutExercise = {
   exerciseName: string;
   sets: number;
   reps: string; // e.g., "8-10"
+  unit: 'reps' | 'seconds'; // The unit for the 'reps' field value
   videoId?: string | null;
   supersetId: string; // Used to group exercises into supersets
 };
@@ -24,8 +25,9 @@ export type CustomWorkout = {
 };
 
 export type LoggedSet = {
-  reps: number;
-  weight: number;
+  reps?: number;
+  weight?: number;
+  duration?: number; // Duration in seconds
 };
 
 export type LoggedExercise = {

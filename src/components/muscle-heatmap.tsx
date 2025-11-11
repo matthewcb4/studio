@@ -9,15 +9,18 @@ import { collection, query } from 'firebase/firestore';
 
 
 // Mapping from exercise category to a simpler muscle group
-const categoryToMuscleGroup: Record<string, string> = {
-  'Chest': 'chest',
-  'Back': 'back',
-  'Shoulders': 'shoulders',
-  'Legs': 'legs',
-  'Arms': 'arms',
-  'Biceps': 'arms',
-  'Triceps': 'arms',
-  'Core': 'core',
+const categoryToMuscleGroup: Record<string, string[]> = {
+  'Chest': ['chest', 'shoulders', 'arms'],
+  'Back': ['back', 'arms'],
+  'Shoulders': ['shoulders', 'arms'],
+  'Legs': ['legs'],
+  'Arms': ['arms'],
+  'Biceps': ['arms'],
+  'Triceps': ['arms'],
+  'Core': ['core'],
+  'Full Body': ['chest', 'back', 'shoulders', 'legs', 'arms', 'core'],
+  'Upper Body': ['chest', 'back', 'shoulders', 'arms'],
+  'Lower Body': ['legs', 'core'],
 };
 
 // Simplified coordinate system for heatmap points on the body outline
@@ -109,39 +112,48 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading }: MuscleH
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
   
   const muscleGroupIntensities = useMemo(() => {
-    const muscleGroupReps: Record<string, number> = {
+    const muscleGroupEffort: Record<string, number> = {
       chest: 0, back: 0, shoulders: 0, legs: 0, arms: 0, core: 0,
     };
 
-    if (!thisWeeksLogs || !masterExercises) return muscleGroupReps;
+    if (!thisWeeksLogs || !masterExercises) return muscleGroupEffort;
 
     thisWeeksLogs.forEach(log => {
       log.exercises.forEach(loggedEx => {
         const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
         if (masterEx?.category) {
-          const muscleGroup = categoryToMuscleGroup[masterEx.category];
-          if (muscleGroup) {
-            const totalReps = loggedEx.sets.reduce((sum, set) => sum + set.reps, 0);
-            muscleGroupReps[muscleGroup] = (muscleGroupReps[muscleGroup] || 0) + totalReps;
+          const muscleGroups = categoryToMuscleGroup[masterEx.category];
+          if (muscleGroups) {
+            // Equivalent reps calculation
+            const totalEffort = loggedEx.sets.reduce((sum, set) => {
+              if (set.duration) {
+                // Count every 10 seconds as one "rep" of effort
+                return sum + Math.floor(set.duration / 10);
+              }
+              return sum + (set.reps || 0);
+            }, 0);
+
+            muscleGroups.forEach(group => {
+                muscleGroupEffort[group] = (muscleGroupEffort[group] || 0) + totalEffort;
+            });
           }
         }
       });
     });
     
-    // Define baseline and goal-adjusted rep targets
     const baselineWeeklyReps = 150;
     let weeklyRepTarget = baselineWeeklyReps;
 
     if (userProfile?.fatLossGoal === 'reduce_body_fat' || userProfile?.strengthGoal === 'improve_endurance') {
-      weeklyRepTarget *= 1.5; // Increase target for endurance/fat loss
+      weeklyRepTarget *= 1.5;
     } else if (userProfile?.muscleGoal === 'gain_overall_mass' || userProfile?.strengthGoal === 'increase_max_lift') {
-      weeklyRepTarget *= 0.75; // Decrease target for mass/strength
+      weeklyRepTarget *= 0.75;
     }
 
     const intensities: Record<string, number> = {};
-    for (const group in muscleGroupReps) {
+    for (const group in muscleGroupEffort) {
         intensities[group] = weeklyRepTarget > 0 
-            ? Math.min(muscleGroupReps[group] / weeklyRepTarget, 1) // Cap at 100%
+            ? Math.min(muscleGroupEffort[group] / weeklyRepTarget, 1)
             : 0;
     }
     

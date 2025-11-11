@@ -103,7 +103,8 @@ function WorkoutForm({
     if (workout) {
       setName(workout.name);
       // Deep copy exercises to avoid direct mutation of props
-      setExercises(JSON.parse(JSON.stringify(workout.exercises || [])));
+      const initializedExercises = workout.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || [];
+      setExercises(JSON.parse(JSON.stringify(initializedExercises)));
     } else {
       setName('');
       setExercises([]);
@@ -118,6 +119,7 @@ function WorkoutForm({
       exerciseName: '',
       sets: 3,
       reps: '8-12',
+      unit: 'reps',
       videoId: null,
       supersetId: newSupersetId,
     };
@@ -131,6 +133,7 @@ function WorkoutForm({
       exerciseName: '',
       sets: 3,
       reps: '8-12',
+      unit: 'reps',
       videoId: null,
       supersetId: supersetId,
     };
@@ -150,8 +153,6 @@ function WorkoutForm({
       if (ex.id === exerciseIdToUpdate) {
         const updatedEx = { ...ex };
         if (field === 'exerciseId') {
-          // The `exerciseId` can come from the master list (e.g., '1') or be a name (e.g., from AI).
-          // We find the master exercise by either `id` or `name`.
           const selectedExercise = masterExercises.find(e => e.id === value);
           if (selectedExercise) {
             updatedEx.exerciseId = selectedExercise.id;
@@ -171,7 +172,6 @@ function WorkoutForm({
   };
 
   const handleVideoIdChange = (exerciseId: string, urlOrId: string) => {
-    // Regex to find YouTube video ID from various URL formats
     const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
     const match = urlOrId.match(youtubeRegex);
     const videoId = match ? match[1] : urlOrId;
@@ -195,14 +195,12 @@ function WorkoutForm({
 
 
   const handleSave = () => {
-    // Before saving, ensure any exercise that has a name but not an ID gets the ID from the master list
     const finalizedExercises = exercises.map(ex => {
         const matched = masterExercises.find(me => me.name === ex.exerciseName || me.id === ex.exerciseId);
         if (matched) {
-            return { ...ex, exerciseId: matched.id, exerciseName: matched.name };
+            return { ...ex, exerciseId: matched.id, exerciseName: matched.name, unit: ex.unit || 'reps' };
         }
-        // If not found (should be rare if list is up to date), save as is
-        return ex;
+        return { ...ex, unit: ex.unit || 'reps' };
     });
 
     const newWorkout: Omit<CustomWorkout, 'id' | 'userId'> = {
@@ -220,12 +218,10 @@ function WorkoutForm({
   
     const otherGroupIndex = direction === 'up' ? groupIndex - 1 : groupIndex + 1;
     
-    // Create a new flat array by rearranging the groups
     const newGroups = [...currentGroups];
     const [movedGroup] = newGroups.splice(groupIndex, 1);
     newGroups.splice(otherGroupIndex, 0, movedGroup);
   
-    // Flatten the reordered groups back into a single exercise array
     const newExercises = newGroups.flat();
     setExercises(newExercises);
   };
@@ -280,7 +276,7 @@ function WorkoutForm({
                             variant="ghost"
                             size="icon"
                             onClick={() => handleMoveGroup(groupIndex, 'down')}
-                            disabled={groupIndex === exerciseGroups.length - 1}
+                            disabled={exerciseGroups.length < 2 || groupIndex === exerciseGroups.length - 1}
                             className="h-7 w-7"
                         >
                             <ArrowDown className="h-4 w-4" />
@@ -335,13 +331,24 @@ function WorkoutForm({
                          />
                        </div>
                        <div className="grid grid-cols-2 gap-2">
-                         <Input
+                        <Input
                            value={ex.reps}
                            onChange={(e) =>
                              updateExercise(ex.id, 'reps', e.target.value)
                            }
-                           placeholder="e.g. 8-12 Reps"
+                           placeholder={ex.unit === 'reps' ? "e.g. 8-12" : "e.g. 30"}
                          />
+                         <Select value={ex.unit || 'reps'} onValueChange={(value) => updateExercise(ex.id, 'unit', value)}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="reps">Reps</SelectItem>
+                                <SelectItem value="seconds">Seconds</SelectItem>
+                            </SelectContent>
+                         </Select>
+                       </div>
+                       <div className="grid grid-cols-1">
                          <Button
                            variant="destructive"
                            size="sm"
@@ -536,7 +543,7 @@ function WorkoutsPageContent() {
                       >
                         <span className="font-medium">{ex.exerciseName}</span>
                         <span className="text-muted-foreground">
-                          {ex.sets} sets of {ex.reps}
+                          {ex.sets} sets of {ex.reps} {ex.unit || 'reps'}
                         </span>
                       </div>
                     ))}
@@ -604,5 +611,3 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
-
-    

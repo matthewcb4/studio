@@ -70,6 +70,7 @@ type ExerciseState = {
   logs: LoggedSet[];
   weight: string;
   reps: string;
+  duration: string;
 };
 
 // Group exercises by supersetId for display
@@ -139,6 +140,7 @@ export default function WorkoutSessionPage() {
           logs: [],
           weight: '',
           reps: '',
+          duration: '',
         };
       });
       setExerciseStates(newStates);
@@ -181,26 +183,30 @@ export default function WorkoutSessionPage() {
 
   const handleLogSet = (exercise: WorkoutExercise) => {
     const state = exerciseStates[exercise.id];
-    if (!state.weight || !state.reps) {
-      toast({
-        title: 'Missing Info',
-        description: 'Please enter weight and reps.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    const unit = exercise.unit || 'reps';
 
-    const newLog: LoggedSet = { weight: parseFloat(state.weight), reps: parseFloat(state.reps) };
+    let newLog: LoggedSet;
+
+    if (unit === 'reps') {
+        if (!state.weight || !state.reps) {
+            toast({ title: 'Missing Info', description: 'Please enter weight and reps.', variant: 'destructive' });
+            return;
+        }
+        newLog = { weight: parseFloat(state.weight), reps: parseFloat(state.reps) };
+    } else { // 'seconds'
+        if (!state.duration) {
+            toast({ title: 'Missing Info', description: 'Please enter duration.', variant: 'destructive' });
+            return;
+        }
+        newLog = { duration: parseFloat(state.duration) };
+    }
     
-    // Update session log for the entire workout
     const fullSessionLog = sessionLog[exercise.id] || [];
     setSessionLog({ ...sessionLog, [exercise.id]: [...fullSessionLog, newLog]});
 
-    // Update the local state for the current exercise
     const newLogs = [...state.logs, newLog];
     const newState = { ...state, logs: newLogs };
     
-    // Move to next set or finish exercise
     if (state.currentSet < exercise.sets) {
       newState.currentSet += 1;
     } 
@@ -210,13 +216,11 @@ export default function WorkoutSessionPage() {
   const handleNextGroup = () => {
      if (isLastGroup) {
       finishWorkout();
-      setIsFinished(true);
     } else {
       setCurrentGroupIndex(prev => prev + 1);
     }
   }
 
-  // Check if all exercises in the current group are completed
   const isGroupFinished = currentGroup.every(ex => {
     const state = exerciseStates[ex.id];
     return state && state.currentSet >= ex.sets && state.logs.length >= ex.sets;
@@ -224,6 +228,7 @@ export default function WorkoutSessionPage() {
 
   const finishWorkout = () => {
     if (!user || !workout) return;
+    setIsFinished(true); // Move to summary screen immediately
     const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
     
     const loggedExercises = Object.entries(sessionLog).map(([exerciseInstanceId, sets]) => ({
@@ -234,7 +239,7 @@ export default function WorkoutSessionPage() {
     
     const totalVolume = loggedExercises.reduce(
       (total, ex) =>
-        total + ex.sets.reduce((sum, set) => sum + set.weight * set.reps, 0),
+        total + ex.sets.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0),
       0
     );
 
@@ -281,7 +286,7 @@ export default function WorkoutSessionPage() {
               {Object.entries(sessionLog).map(([exerciseId, sets]) => {
                 const exercise = workout.exercises.find((e) => e.id === exerciseId);
                 const totalVolume = sets.reduce(
-                  (acc, set) => acc + set.weight * set.reps,
+                  (acc, set) => acc + (set.weight || 0) * (set.reps || 0),
                   0
                 );
                 return (
@@ -349,27 +354,35 @@ export default function WorkoutSessionPage() {
         if (!state) return <div key={index}>Loading exercise...</div>;
 
         const isExerciseComplete = state.currentSet > exercise.sets;
+        const unit = exercise.unit || 'reps';
 
         return (
           <Card key={exercise.id} className={isExerciseComplete ? 'opacity-50' : ''}>
             <CardHeader>
               <CardTitle className="text-2xl">{exercise.exerciseName}</CardTitle>
               <CardDescription>
-                Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} reps
+                Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} {unit}
               </CardDescription>
             </CardHeader>
             {!isExerciseComplete && (
                  <CardContent className="space-y-4">
-                     <div className="grid grid-cols-2 gap-4">
-                         <div className="space-y-1">
-                         <Label htmlFor={`weight-${exercise.id}`}>Weight (lbs)</Label>
-                         <Input id={`weight-${exercise.id}`} type="number" placeholder="e.g. 135" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} />
-                         </div>
-                         <div className="space-y-1">
-                         <Label htmlFor={`reps-${exercise.id}`}>Reps</Label>
-                         <Input id={`reps-${exercise.id}`} type="number" placeholder="e.g. 8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} />
-                         </div>
-                     </div>
+                    {unit === 'reps' ? (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <Label htmlFor={`weight-${exercise.id}`}>Weight (lbs)</Label>
+                                <Input id={`weight-${exercise.id}`} type="number" placeholder="e.g. 135" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} />
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor={`reps-${exercise.id}`}>Reps</Label>
+                                <Input id={`reps-${exercise.id}`} type="number" placeholder="e.g. 8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-1">
+                            <Label htmlFor={`duration-${exercise.id}`}>Duration (seconds)</Label>
+                            <Input id={`duration-${exercise.id}`} type="number" placeholder="e.g. 60" value={state.duration} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, duration: e.target.value}})} />
+                        </div>
+                    )}
                      <Button onClick={() => handleLogSet(exercise)} className="w-full">
                          Log Set
                      </Button>
@@ -385,7 +398,11 @@ export default function WorkoutSessionPage() {
                                     <Check className="h-4 w-4 text-green-500" />
                                     <span className="font-medium text-secondary-foreground">Set {index + 1}</span>
                                 </div>
-                                <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
+                                {unit === 'reps' ? (
+                                    <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
+                                ) : (
+                                    <span className="text-muted-foreground">{set.duration} seconds</span>
+                                )}
                             </li>
                         ))}
                     </ul>
