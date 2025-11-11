@@ -198,7 +198,7 @@ export default function WorkoutSessionPage() {
 
     // Update the local state for the current exercise
     const newLogs = [...state.logs, newLog];
-    const newState = { ...state, logs: newLogs, weight: '', reps: '' };
+    const newState = { ...state, logs: newLogs };
     
     // Move to next set or finish exercise
     if (state.currentSet < exercise.sets) {
