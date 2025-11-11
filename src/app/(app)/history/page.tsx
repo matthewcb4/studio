@@ -138,37 +138,40 @@ export default function HistoryPage() {
                     <TableCell>{log.workoutName}</TableCell>
                     <TableCell className="hidden md:table-cell">{log.duration}</TableCell>
                     <TableCell className="text-right">{log.volume.toLocaleString()} lbs</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <SheetTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedLog(log)}
-                        >
-                          Details
-                        </Button>
-                      </SheetTrigger>
-                       <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="icon">
-                                  <Trash2 className="h-4 w-4" />
+                    <TableCell className="text-right">
+                       <div className="flex flex-col items-center gap-2">
+                          <SheetTrigger asChild>
+                              <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedLog(log)}
+                                  className="w-[70px]"
+                              >
+                                  Details
                               </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                              <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                      This action cannot be undone. This will permanently delete this workout log.
-                                  </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteLog(log.id)}>
-                                      Delete
-                                  </AlertDialogAction>
-                              </AlertDialogFooter>
-                          </AlertDialogContent>
-                      </AlertDialog>
+                          </SheetTrigger>
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button variant="destructive" size="icon" className="w-8 h-8">
+                                      <Trash2 className="h-4 w-4" />
+                                  </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          This action cannot be undone. This will permanently delete this workout log.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteLog(log.id)}>
+                                          Delete
+                                      </AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
