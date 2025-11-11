@@ -28,6 +28,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Separator } from '@/components/ui/separator';
 
 
 const equipmentFormSchema = z.object({
@@ -62,10 +63,10 @@ export default function SettingsPage() {
   , [firestore, user]);
   const { data: equipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
 
-  const exercisesCollection = useMemoFirebase(() =>
+  const exercisesCollectionQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'exercises'), orderBy('name')) : null
   , [firestore]);
-  const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollection);
+  const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollectionQuery);
   
   const exerciseCategories = useMemo(() => {
     if (!masterExercises) return [];
@@ -132,7 +133,6 @@ export default function SettingsPage() {
   };
 
   const onExerciseSubmit = async (values: z.infer<typeof exerciseFormSchema>) => {
-    if (!exercisesCollection) return;
     setIsSubmittingExercise(true);
     try {
       const exerciseCollectionRef = collection(firestore, 'exercises');
@@ -437,7 +437,7 @@ export default function SettingsPage() {
             <Card>
             <AccordionTrigger className="p-6 text-left">
                 <div className="flex items-center gap-3">
-                    <Dumbbell className="w-6 h-6 text-primary" />
+                    <Database className="w-6 h-6 text-primary" />
                     <div>
                         <CardTitle>Manage Exercises</CardTitle>
                         <CardDescription className="mt-1.5 text-left">
@@ -530,36 +530,26 @@ export default function SettingsPage() {
                     !isLoadingExercises && <p className="text-sm text-muted-foreground text-center py-4">No exercises found.</p>
                     )}
                 </div>
+                
+                <Separator className="my-6" />
+
+                <div>
+                    <h4 className="font-medium mb-2">Seed Database</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                    If the exercise list is empty, you can populate it with a starter set of common exercises. This is a one-time action and may create duplicates if run more than once.
+                    </p>
+                    <Button onClick={handleSeedDatabase} disabled={isSeeding}>
+                    {isSeeding ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Seeding...</>
+                    ) : (
+                        "Seed Exercise Database"
+                    )}
+                    </Button>
+                </div>
+
                 </CardContent>
             </AccordionContent>
             </Card>
-        </AccordionItem>
-        <AccordionItem value="database-seeding" className="border-none">
-          <Card>
-            <AccordionTrigger className="p-6 text-left">
-                <div className="flex items-center gap-3">
-                    <Database className="w-6 h-6 text-primary" />
-                    <div>
-                        <CardTitle>Advanced Settings</CardTitle>
-                        <CardDescription className="mt-1.5 text-left">Handle with care.</CardDescription>
-                    </div>
-                </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  If the exercise list is empty, you can populate it with a starter set of common exercises. This is a one-time action and may create duplicates if run more than once.
-                </p>
-                <Button onClick={handleSeedDatabase} disabled={isSeeding}>
-                  {isSeeding ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Seeding...</>
-                  ) : (
-                    "Seed Exercise Database"
-                  )}
-                </Button>
-              </CardContent>
-            </AccordionContent>
-          </Card>
         </AccordionItem>
       </Accordion>
     </div>
