@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format, startOfWeek, isWithinInterval, subDays } from "date-fns";
+import { format, isWithinInterval, subDays } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
@@ -141,7 +141,7 @@ export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
-  const [heatmapDays, setHeatmapDays] = useState('7');
+  const [dateRange, setDateRange] = useState('7');
 
   const customWorkoutsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -163,42 +163,59 @@ export default function DashboardPage() {
 
   const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
 
-  const weeklyStats = useMemo(() => {
-    if (!allLogs) {
-      return { volume: 0, workouts: 0, time: 0 };
-    }
-    const now = new Date();
-    const startOfThisWeek = startOfWeek(now, { weekStartsOn: 1 }); // Monday
-    
-    const thisWeeksLogs = allLogs.filter(log => {
-      const logDate = new Date(log.date);
-      return isWithinInterval(logDate, { start: startOfThisWeek, end: now });
-    });
-
-    const volume = thisWeeksLogs.reduce((acc, log) => acc + (log.volume || 0), 0);
-    const workouts = thisWeeksLogs.length;
-    const timeInSeconds = thisWeeksLogs.reduce((acc, log) => acc + parseDuration(log.duration), 0);
-    const timeInMinutes = Math.floor(timeInSeconds / 60);
-
-    return { volume, workouts, time: timeInMinutes };
-  }, [allLogs]);
-  
-  const heatmapLogs = useMemo(() => {
+  const filteredLogs = useMemo(() => {
     if (!allLogs) return [];
     const now = new Date();
-    const days = parseInt(heatmapDays, 10);
+    const days = parseInt(dateRange, 10);
     const startDate = subDays(now, days);
     
     return allLogs.filter(log => {
         const logDate = new Date(log.date);
         return isWithinInterval(logDate, { start: startDate, end: now });
     });
-  }, [allLogs, heatmapDays]);
+  }, [allLogs, dateRange]);
+
+  const dashboardStats = useMemo(() => {
+    const volume = filteredLogs.reduce((acc, log) => acc + (log.volume || 0), 0);
+    const workouts = filteredLogs.length;
+    const timeInSeconds = filteredLogs.reduce((acc, log) => acc + parseDuration(log.duration), 0);
+    const timeInMinutes = Math.floor(timeInSeconds / 60);
+
+    return { volume, workouts, time: timeInMinutes };
+  }, [filteredLogs]);
 
   const hasData = useMemo(() => allLogs && allLogs.length > 0, [allLogs]);
 
+  const dateRangeLabel = useMemo(() => {
+      const option = {
+          '1': "Last 24 hours",
+          '3': "Last 3 days",
+          '7': "Last 7 days",
+          '14': "Last 14 days",
+          '30': "Last 30 days",
+      }[dateRange];
+      return option || `Last ${dateRange} days`;
+  }, [dateRange]);
+
   return (
     <div className="flex flex-col gap-4 md:gap-8">
+        <div className="flex justify-end">
+            <div className="w-[180px]">
+                <Select value={dateRange} onValueChange={setDateRange}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Time range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="1">Last 24 hours</SelectItem>
+                        <SelectItem value="3">Last 3 days</SelectItem>
+                        <SelectItem value="7">Last 7 days</SelectItem>
+                        <SelectItem value="14">Last 14 days</SelectItem>
+                        <SelectItem value="30">Last 30 days</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card className="lg:col-span-2">
             <CardHeader>
@@ -232,10 +249,10 @@ export default function DashboardPage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle>Workouts</CardTitle>
-                        <CardDescription>This week</CardDescription>
+                        <CardDescription>{dateRangeLabel}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-4xl font-bold">{weeklyStats.workouts}</div>
+                        <div className="text-4xl font-bold">{dashboardStats.workouts}</div>
                     </CardContent>
                 </Card>
             ) : (
@@ -256,10 +273,10 @@ export default function DashboardPage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle>Total Volume</CardTitle>
-                        <CardDescription>This week</CardDescription>
+                        <CardDescription>{dateRangeLabel}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-4xl font-bold">{weeklyStats.volume.toLocaleString()} lbs</div>
+                        <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
                     </CardContent>
                 </Card>
             )}
@@ -267,30 +284,13 @@ export default function DashboardPage() {
         
        <Card>
             <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle>Muscle Heatmap</CardTitle>
-                        <CardDescription>Muscles worked recently.</CardDescription>
-                    </div>
-                    <div className="w-[120px]">
-                        <Select value={heatmapDays} onValueChange={setHeatmapDays}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Time range" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="1">Last 24 hours</SelectItem>
-                                <SelectItem value="3">Last 3 days</SelectItem>
-                                <SelectItem value="7">Last 7 days</SelectItem>
-                                <SelectItem value="14">Last 14 days</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
+                <CardTitle>Muscle Heatmap</CardTitle>
+                <CardDescription>Muscles worked in the {dateRangeLabel.toLowerCase()}.</CardDescription>
             </CardHeader>
             <CardContent>
                 <MuscleHeatmap 
                   userProfile={userProfile} 
-                  thisWeeksLogs={heatmapLogs} 
+                  thisWeeksLogs={filteredLogs} 
                   isLoading={isLoadingLogs}
                 />
             </CardContent>
