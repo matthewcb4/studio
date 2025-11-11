@@ -30,7 +30,7 @@ import { format, isWithinInterval, subDays } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
-import { Dumbbell, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { Dumbbell, Target, TrendingDown, TrendingUp, Star } from "lucide-react";
 import { MuscleHeatmap } from "@/components/muscle-heatmap";
 
 const parseDuration = (duration: string): number => {
@@ -41,6 +41,22 @@ const parseDuration = (duration: string): number => {
     }
     return 0;
 };
+
+function StarRating({ rating }: { rating: number }) {
+    if (rating < 1) return null;
+    return (
+        <div className="flex items-center">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                    key={star}
+                    className="w-4 h-4"
+                    fill={star <= rating ? 'hsl(var(--primary))' : 'transparent'}
+                    stroke="currentColor"
+                />
+            ))}
+        </div>
+    )
+}
 
 function ProgressSummaryCard() {
     const { user } = useUser();
@@ -310,7 +326,7 @@ export default function DashboardPage() {
                 <TableRow>
                     <TableHead>Workout</TableHead>
                     <TableHead className="hidden sm:table-cell">Date</TableHead>
-                    <TableHead className="hidden sm:table-cell">Duration</TableHead>
+                    <TableHead className="hidden sm:table-cell">Rating</TableHead>
                     <TableHead className="text-right">Total Volume</TableHead>
                 </TableRow>
                 </TableHeader>
@@ -326,7 +342,7 @@ export default function DashboardPage() {
                         {format(new Date(log.date), "PPP")}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                        {log.duration}
+                        {log.rating ? <StarRating rating={log.rating} /> : <span className="text-xs text-muted-foreground">N/A</span>}
                     </TableCell>
                     <TableCell className="text-right">{log.volume.toLocaleString()} lbs</TableCell>
                     </TableRow>

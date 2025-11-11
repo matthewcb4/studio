@@ -44,6 +44,7 @@ export type WorkoutLog = {
   duration: string; // e.g. "45 min"
   exercises: LoggedExercise[];
   volume: number;
+  rating?: number;
 };
 
 export type UserEquipment = {

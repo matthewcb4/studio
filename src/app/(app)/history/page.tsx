@@ -38,9 +38,24 @@ import { Button } from "@/components/ui/button";
 import type { WorkoutLog } from "@/lib/types";
 import { useCollection, useUser, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, doc } from "firebase/firestore";
-import { Trash2 } from "lucide-react";
+import { Trash2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+function StarRating({ rating }: { rating: number }) {
+    if (rating < 1) return null;
+    return (
+        <div className="flex items-center">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                    key={star}
+                    className="w-4 h-4"
+                    fill={star <= rating ? 'hsl(var(--primary))' : 'transparent'}
+                    stroke="currentColor"
+                />
+            ))}
+        </div>
+    )
+}
 
 function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
   return (
@@ -60,6 +75,12 @@ function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
               <span className="text-muted-foreground">Total Volume</span>
               <span className="font-medium">{log.volume.toLocaleString()} lbs</span>
           </div>
+          {log.rating && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Rating</span>
+              <StarRating rating={log.rating} />
+            </div>
+          )}
       </div>
       <div className="space-y-4">
         <h3 className="font-semibold text-lg">Logged Exercises</h3>
@@ -123,13 +144,14 @@ export default function HistoryPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Workout</TableHead>
                   <TableHead className="hidden md:table-cell">Duration</TableHead>
-                  <TableHead className="text-right">Volume</TableHead>
+                  <TableHead>Volume</TableHead>
+                  <TableHead>Rating</TableHead>
                   <TableHead className="text-right"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && <TableRow><TableCell colSpan={5} className="text-center">Loading history...</TableCell></TableRow>}
-                {!isLoading && workoutLogs?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No workout logs yet.</TableCell></TableRow>}
+                {isLoading && <TableRow><TableCell colSpan={6} className="text-center">Loading history...</TableCell></TableRow>}
+                {!isLoading && workoutLogs?.length === 0 && <TableRow><TableCell colSpan={6} className="text-center">No workout logs yet.</TableCell></TableRow>}
                 {workoutLogs?.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-medium">
@@ -137,7 +159,10 @@ export default function HistoryPage() {
                     </TableCell>
                     <TableCell>{log.workoutName}</TableCell>
                     <TableCell className="hidden md:table-cell">{log.duration}</TableCell>
-                    <TableCell className="text-right">{log.volume.toLocaleString()} lbs</TableCell>
+                    <TableCell>{log.volume.toLocaleString()} lbs</TableCell>
+                    <TableCell>
+                        {log.rating ? <StarRating rating={log.rating} /> : <span className="text-muted-foreground text-xs">N/A</span>}
+                    </TableCell>
                     <TableCell className="text-right">
                        <div className="flex flex-col items-center gap-2">
                           <SheetTrigger asChild>

@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Check,
   Video,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,8 +48,9 @@ import {
   useFirestore,
   addDocumentNonBlocking,
   useMemoFirebase,
+  updateDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { doc, collection, DocumentReference } from 'firebase/firestore';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -124,6 +127,9 @@ export default function WorkoutSessionPage() {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [finishedLogId, setFinishedLogId] = useState<string | null>(null);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [currentRating, setCurrentRating] = useState(0);
   
   const exerciseGroups = useMemo(() => {
     if (!workout?.exercises) return [];
@@ -226,7 +232,7 @@ export default function WorkoutSessionPage() {
     return state && state.currentSet >= ex.sets && state.logs.length >= ex.sets;
   });
 
-  const finishWorkout = () => {
+  const finishWorkout = async () => {
     if (!user || !workout) return;
     setIsFinished(true); // Move to summary screen immediately
     const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
@@ -252,13 +258,27 @@ export default function WorkoutSessionPage() {
       volume: totalVolume,
     };
 
-    addDocumentNonBlocking(logsCollection, workoutLog);
+    const newLogRef = await addDocumentNonBlocking(logsCollection, workoutLog);
+    if (newLogRef) {
+        setFinishedLogId(newLogRef.id);
+    }
 
     toast({
       title: 'Workout Complete!',
       description: 'Your session has been logged successfully.',
     });
   };
+
+  const handleRatingSubmit = (rating: number) => {
+    if (!user || !finishedLogId) return;
+    setCurrentRating(rating);
+    const logDocRef = doc(firestore, `users/${user.uid}/workoutLogs`, finishedLogId);
+    updateDocumentNonBlocking(logDocRef, { rating });
+    toast({
+        title: 'Rating Saved!',
+        description: `You rated this workout ${rating} out of 5 stars.`
+    });
+  }
 
   const progressValue = totalGroups > 0 ? ((currentGroupIndex) / totalGroups) * 100 : 0;
   
@@ -268,8 +288,21 @@ export default function WorkoutSessionPage() {
         <CheckCircle className="w-24 h-24 text-green-500 mb-4" />
         <h1 className="text-4xl font-bold mb-2">Workout Logged!</h1>
         <p className="text-muted-foreground text-lg mb-6">
-          Great job finishing your workout.
+          Great job finishing your workout. How would you rate it?
         </p>
+        <div className="flex items-center gap-2 mb-6">
+            {[1,2,3,4,5].map(star => (
+                <Star
+                    key={star}
+                    className="w-10 h-10 cursor-pointer transition-colors"
+                    fill={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'transparent'}
+                    stroke={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'currentColor'}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    onClick={() => handleRatingSubmit(star)}
+                />
+            ))}
+        </div>
         <Card className="w-full text-left">
           <CardHeader>
             <CardTitle>{workout.name}</CardTitle>

@@ -94,6 +94,7 @@
         "date": { "type": "string", "description": "Date of the workout log.", "format": "date-time" },
         "duration": { "type": "string", "description": "Duration of the workout." },
         "volume": { "type": "number", "description": "Total weight lifted during the workout." },
+        "rating": { "type": "number", "description": "User's star rating of the workout, from 1 to 5." },
         "exercises": {
           "type": "array",
           "description": "Array of exercises performed during the workout.",
