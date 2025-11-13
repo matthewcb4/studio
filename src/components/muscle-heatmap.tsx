@@ -200,7 +200,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     return <div className="text-center p-8">Loading heatmap...</div>;
   }
   
-  const frontMuscleGroups = ['shoulders', 'chest', 'abs', 'biceps', 'quads'];
+  const frontMuscleGroups = ['shoulders', 'chest', 'abs', 'biceps', 'quads', 'calves'];
   const backMuscleGroups = ['traps', 'shoulders', 'lats', 'back_lower', 'triceps', 'glutes', 'hamstrings', 'calves'];
 
   const muscleGroupsToShow = view === 'front' ? frontMuscleGroups : backMuscleGroups;
@@ -233,7 +233,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   let size = '18%';
                   if (group === 'glutes' || group === 'quads') {
                       size = '25%';
-                  } else if (group === 'lats') {
+                  } else if (group === 'lats' || group === 'abs') {
                       size = '45%';
                   }
 
@@ -282,5 +282,3 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     </Card>
   );
 }
-
-    
