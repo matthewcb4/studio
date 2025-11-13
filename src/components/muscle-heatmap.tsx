@@ -7,6 +7,7 @@ import type { UserProfile, WorkoutLog, Exercise } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 
 // Mapping from exercise category to a simpler muscle group
