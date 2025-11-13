@@ -230,7 +230,12 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   if (!coords) return null;
                   
                   const intensity = muscleGroupIntensities[group] || 0;
-                  const size = (group === 'glutes' || group === 'quads') ? '25%' : '18%';
+                  let size = '18%';
+                  if (group === 'glutes' || group === 'quads') {
+                      size = '25%';
+                  } else if (group === 'lats') {
+                      size = '45%';
+                  }
 
                   return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} />;
                 })}
@@ -277,3 +282,5 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     </Card>
   );
 }
+
+    
