@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 
-const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Legs", "Shoulders", "Triceps"];
+const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Obliques", "Legs", "Shoulders", "Triceps"];
 
 const formSchema = z.object({
   availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -520,5 +520,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
