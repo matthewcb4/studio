@@ -299,19 +299,12 @@ export default function DashboardPage() {
             )}
         </div>
         
-       <Card>
-            <CardHeader>
-                <CardTitle>Muscle Heatmap</CardTitle>
-                <CardDescription>Muscles worked in the {dateRangeLabel.toLowerCase()}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <MuscleHeatmap 
-                  userProfile={userProfile} 
-                  thisWeeksLogs={filteredLogs} 
-                  isLoading={isLoadingLogs}
-                />
-            </CardContent>
-        </Card>
+       <MuscleHeatmap 
+          userProfile={userProfile} 
+          thisWeeksLogs={filteredLogs} 
+          isLoading={isLoadingLogs}
+          dateRangeLabel={dateRangeLabel}
+        />
 
         <Card>
             <CardHeader>
