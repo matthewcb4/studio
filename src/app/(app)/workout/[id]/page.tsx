@@ -11,6 +11,7 @@ import {
   Check,
   Video,
   Star,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,7 +51,7 @@ import {
   useMemoFirebase,
   updateDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection, DocumentReference } from 'firebase/firestore';
+import { doc, collection, addDoc, DocumentReference } from 'firebase/firestore';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -126,6 +127,7 @@ export default function WorkoutSessionPage() {
   const [sessionLog, setSessionLog] = useState<Record<string, LoggedSet[]>>({});
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [finishedLogId, setFinishedLogId] = useState<string | null>(null);
   const [hoverRating, setHoverRating] = useState(0);
@@ -157,10 +159,12 @@ export default function WorkoutSessionPage() {
   useEffect(() => {
     setStartTime(new Date());
     const timer = setInterval(() => {
-      setElapsedTime((prev) => prev + 1);
+      if (!isFinished) {
+        setElapsedTime((prev) => prev + 1);
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isFinished]);
 
   if (isLoadingWorkout) {
     return <div>Loading workout...</div>;
@@ -233,8 +237,9 @@ export default function WorkoutSessionPage() {
   });
 
   const finishWorkout = async () => {
-    if (!user || !workout) return;
-    setIsFinished(true); // Move to summary screen immediately
+    if (!user || !workout || isFinishing) return;
+    setIsFinishing(true);
+    
     const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
     
     const loggedExercises = Object.entries(sessionLog).map(([exerciseInstanceId, sets]) => ({
@@ -256,17 +261,27 @@ export default function WorkoutSessionPage() {
       duration: formatTime(elapsedTime),
       exercises: loggedExercises,
       volume: totalVolume,
+      rating: 0, // Default rating
     };
 
-    const newLogRef = await addDocumentNonBlocking(logsCollection, workoutLog);
-    if (newLogRef) {
+    try {
+        const newLogRef = await addDoc(logsCollection, workoutLog);
         setFinishedLogId(newLogRef.id);
+        setIsFinished(true); // Move to summary screen
+        toast({
+            title: 'Workout Complete!',
+            description: 'Your session has been logged successfully.',
+        });
+    } catch (error) {
+        console.error("Error finishing workout:", error);
+        toast({
+            title: "Error",
+            description: "Failed to save workout log.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsFinishing(false);
     }
-
-    toast({
-      title: 'Workout Complete!',
-      description: 'Your session has been logged successfully.',
-    });
   };
 
   const handleRatingSubmit = (rating: number) => {
@@ -326,7 +341,7 @@ export default function WorkoutSessionPage() {
                   <div key={exerciseId} className="text-sm">
                     <p className="font-medium">{exercise?.exerciseName}</p>
                     <p className="text-muted-foreground">
-                      {sets.length} sets, Total Volume: {totalVolume} lbs
+                      {sets.length} sets, Total Volume: {totalVolume.toLocaleString()} lbs
                     </p>
                   </div>
                 );
@@ -459,10 +474,13 @@ export default function WorkoutSessionPage() {
           </Card>
         );
       })}
-       <Button onClick={handleNextGroup} className="w-full" disabled={!isGroupFinished}>
+       <Button onClick={handleNextGroup} className="w-full" disabled={!isGroupFinished || isFinishing}>
+            {isFinishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isLastGroup ? 'Finish Workout' : 'Next Exercise Group'}
             <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
     </div>
   );
 }
+
+    
