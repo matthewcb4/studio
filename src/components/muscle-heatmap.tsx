@@ -38,7 +38,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '35%', left: '50%' },
-    triceps: { top: '33%', left: '60%' },
+    triceps: { top: '28%', left: '62%' },
     glutes: { top: '50%', left: '50%' },
     hamstrings: { top: '65%', left: '50%' },
     calves: { top: '80%', left: '50%' },
@@ -54,7 +54,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '35%', left: '50%' },
-    triceps: { top: '33%', left: '60%' },
+    triceps: { top: '28%', left: '62%' },
     glutes: { top: '52%', left: '50%' },
     hamstrings: { top: '68%', left: '50%' },
     calves: { top: '82%', left: '50%' },
