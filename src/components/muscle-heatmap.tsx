@@ -221,6 +221,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
         </CardHeader>
         <CardContent>
             <div className="relative w-full max-w-xs mx-auto">
+              {/* This div is a temporary fix for the image background issue */}
               <div className="absolute inset-0 bg-white z-0"></div>
 
               <div className="absolute inset-0 z-10">
@@ -235,6 +236,34 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                 })}
               </div>
               
+              {/* Layer for labels */}
+              <div className="absolute inset-0 z-30 pointer-events-none">
+                {muscleGroupsToShow.map((group) => {
+                  const coords = heatmapCoordinates[bodyType]?.[group];
+                  if (!coords) return null;
+                  const isMirrored = ['shoulders', 'biceps', 'triceps', 'quads', 'calves', 'hamstrings'].includes(group);
+
+                  return (
+                    <React.Fragment key={`label-${group}`}>
+                      <div
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white text-[10px] px-1 py-0.5 rounded"
+                        style={{ top: coords.top, left: coords.left }}
+                      >
+                        {group}
+                      </div>
+                      {isMirrored && (
+                         <div
+                            className="absolute transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white text-[10px] px-1 py-0.5 rounded"
+                            style={{ top: coords.top, left: `calc(100% - ${coords.left})` }}
+                        >
+                            {group}
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+
               <Image
                 src={bodyImageUrl}
                 alt={`${bodyType} body ${view} view`}
