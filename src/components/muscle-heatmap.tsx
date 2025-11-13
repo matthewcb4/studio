@@ -62,7 +62,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
 };
 
-const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: string; coords: { top: string, left: string } }) => {
+const HeatPoint = ({ intensity, size, coords, zIndex = 10 }: { intensity: number; size: string; coords: { top: string, left: string }, zIndex?: number }) => {
   // Mirrored for shoulders, arms (biceps/triceps), and legs (quads/calves/hamstrings on front view)
   const isMirrored = ['shoulders', 'biceps', 'triceps', 'quads', 'calves', 'hamstrings'].includes(Object.keys(heatmapCoordinates.Male).find(key => heatmapCoordinates.Male[key] === coords) || '');
 
@@ -86,7 +86,7 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
           transform: 'translate(-50%, -50%)',
           opacity: Math.max(0.8, intensity * 0.9),
           filter: `blur(10px)`,
-          zIndex: 10,
+          zIndex: zIndex,
         }}
       />
     ];
@@ -104,7 +104,7 @@ const HeatPoint = ({ intensity, size, coords }: { intensity: number; size: strin
             transform: 'translate(-50%, -50%)',
             opacity: Math.max(0.8, intensity * 0.9),
             filter: `blur(10px)`,
-            zIndex: 10,
+            zIndex: zIndex,
           }}
         />
       );
@@ -236,8 +236,10 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   } else if (group === 'lats' || group === 'abs') {
                       size = '45%';
                   }
+                  
+                  const zIndex = group === 'chest' ? 11 : 10;
 
-                  return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} />;
+                  return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} zIndex={zIndex} />;
                 })}
               </div>
               
