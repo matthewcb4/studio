@@ -187,6 +187,33 @@ function WorkoutForm({
     window.open(url, '_blank');
   };
 
+  const handleVideoIdChange = (masterExerciseId: string, urlOrId: string) => {
+    if (!masterExerciseId || !firestore) return;
+
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
+    const match = urlOrId.match(youtubeRegex);
+    const videoId = match ? match[1] : (urlOrId.length === 11 ? urlOrId : null);
+
+    const exerciseDocRef = doc(firestore, 'exercises', masterExerciseId);
+
+    if (videoId) {
+        updateDocumentNonBlocking(exerciseDocRef, { videoId });
+        toast({
+            title: "Video ID Updated",
+            description: `Video linked to master exercise.`
+        });
+    } else if (urlOrId === '') { // Allow clearing the video
+        updateDocumentNonBlocking(exerciseDocRef, { videoId: null });
+        toast({ title: "Video ID Cleared" });
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Invalid YouTube ID",
+            description: "Please paste a valid 11-character YouTube video ID or a full URL."
+        });
+    }
+  };
+
 
   const handleSave = () => {
     const finalizedExercises = exercises.map(ex => {
@@ -280,6 +307,7 @@ function WorkoutForm({
                 {group.map((ex, exIndex) => {
                   const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId);
                   const selectValue = matchedExercise ? matchedExercise.id : ex.exerciseId;
+                  const currentVideoId = masterExercises.find(me => me.id === ex.exerciseId)?.videoId;
 
                   return (
                     <div
@@ -288,9 +316,13 @@ function WorkoutForm({
                     >
                           <div className="flex justify-between items-center">
                             <Label className="text-xs">Exercise {exIndex + 1}</Label>
-                            <Button variant="outline" size="sm" disabled={!ex.exerciseName} onClick={() => handleFindVideo(ex.exerciseName)}>
-                                <Youtube className="h-4 w-4 mr-2" />
-                                Find Video
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removeExercise(ex.id)}
+                              className='h-7'
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" /> Remove
                             </Button>
                           </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -342,15 +374,22 @@ function WorkoutForm({
                             </SelectContent>
                          </Select>
                        </div>
-                       <div className="grid grid-cols-1">
-                         <Button
-                           variant="destructive"
-                           size="sm"
-                           onClick={() => removeExercise(ex.id)}
-                         >
-                           <Trash2 className="h-4 w-4 mr-1" /> Remove
-                         </Button>
-                       </div>
+                       <div className="space-y-1">
+                          <Label htmlFor={`video-id-${ex.id}`} className="text-xs">Linked Video ID</Label>
+                           <div className="flex items-center gap-2">
+                                <Input
+                                    id={`video-id-${ex.id}`}
+                                    className="mt-1 h-8 text-sm"
+                                    placeholder="Paste YouTube URL or ID"
+                                    defaultValue={currentVideoId || ''}
+                                    onBlur={(e) => handleVideoIdChange(ex.exerciseId, e.target.value)}
+                                    disabled={!ex.exerciseId}
+                                />
+                                <Button variant="outline" size="icon" className="h-8 w-8" disabled={!ex.exerciseName} onClick={() => handleFindVideo(ex.exerciseName)}>
+                                    <Youtube className="h-4 w-4" />
+                                </Button>
+                           </div>
+                        </div>
                     </div>
                   )
                 })}
@@ -571,7 +610,7 @@ function WorkoutsPageContent() {
                     <DialogDescription>
                       This action cannot be undone. This will permanently delete
                       the workout "{workout.name}".
-                    </DialogDescription>
+                    </dDialogDescription>
                   </DialogHeader>
                   <DialogFooter>
                     <DialogClose asChild>
