@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
-import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
+import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc, writeBatch, query, orderBy } from 'firebase/firestore';
 import type { UserEquipment, UserProfile, Exercise } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -219,6 +219,33 @@ export default function SettingsPage() {
     const exerciseDoc = doc(firestore, 'exercises', exerciseId);
     deleteDocumentNonBlocking(exerciseDoc);
     toast({ title: 'Exercise Removed' });
+  };
+
+  const handleVideoIdChange = (masterExerciseId: string, urlOrId: string) => {
+    if (!masterExerciseId || !firestore) return;
+
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
+    const match = urlOrId.match(youtubeRegex);
+    const videoId = match ? match[1] : (urlOrId.length === 11 ? urlOrId : null);
+
+    const exerciseDocRef = doc(firestore, 'exercises', masterExerciseId);
+
+    if (videoId) {
+        updateDocumentNonBlocking(exerciseDocRef, { videoId });
+        toast({
+            title: "Video ID Updated",
+            description: `Video linked to master exercise.`
+        });
+    } else if (urlOrId === '') { // Allow clearing the video
+        updateDocumentNonBlocking(exerciseDocRef, { videoId: null });
+        toast({ title: "Video ID Cleared" });
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Invalid YouTube ID",
+            description: "Please paste a valid 11-character YouTube video ID or a full URL."
+        });
+    }
   };
 
   return (
@@ -450,7 +477,7 @@ export default function SettingsPage() {
                     <div>
                         <CardTitle>Manage Exercises</CardTitle>
                         <CardDescription className="mt-1.5 text-left">
-                            Add or remove exercises from the master list.
+                            Add, remove, or link videos to exercises from the master list.
                         </CardDescription>
                     </div>
                 </div>
@@ -515,34 +542,46 @@ export default function SettingsPage() {
                       onChange={(e) => setExerciseFilter(e.target.value)}
                       className="mb-4"
                     />
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                         {isLoadingExercises && <p>Loading exercises...</p>}
                         {filteredExercises && filteredExercises.length > 0 ? (
                         filteredExercises.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                            <div>
-                                <p className="font-medium">{item.name}</p>
-                                <p className="text-xs text-muted-foreground">{item.category}</p>
-                            </div>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete the exercise "{item.name}".
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            <div key={item.id} className="p-3 bg-secondary rounded-md space-y-2">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="font-medium">{item.name}</p>
+                                        <p className="text-xs text-muted-foreground">{item.category}</p>
+                                    </div>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete the exercise "{item.name}".
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                                <div>
+                                    <Label htmlFor={`video-id-${item.id}`} className="text-xs">Linked Video ID</Label>
+                                    <Input
+                                        id={`video-id-${item.id}`}
+                                        className="mt-1 h-8 text-sm"
+                                        placeholder="Paste YouTube URL or ID"
+                                        defaultValue={item.videoId || ''}
+                                        onBlur={(e) => handleVideoIdChange(item.id, e.target.value)}
+                                    />
+                                </div>
                             </div>
                         ))
                         ) : (
