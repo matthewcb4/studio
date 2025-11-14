@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell, Youtube } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -247,6 +247,13 @@ export default function SettingsPage() {
             description: "Please paste a valid 11-character YouTube video ID or a full URL."
         });
     }
+  };
+
+  const handleFindVideo = (exerciseName: string) => {
+    if (!exerciseName) return;
+    const query = encodeURIComponent(`how to do ${exerciseName} #shorts`);
+    const url = `https://www.youtube.com/results?search_query=${query}`;
+    window.open(url, '_blank');
   };
 
   return (
@@ -553,25 +560,30 @@ export default function SettingsPage() {
                                         <p className="font-medium">{item.name}</p>
                                         <p className="text-xs text-muted-foreground">{item.category}</p>
                                     </div>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete the exercise "{item.name}".
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
+                                    <div className="flex items-center">
+                                        <Button variant="outline" size="sm" className="mr-2" onClick={() => handleFindVideo(item.name)}>
+                                            <Youtube className="h-4 w-4" />
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the exercise "{item.name}".
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
                                 </div>
                                 <div>
                                     <Label htmlFor={`video-id-${item.id}`} className="text-xs">Linked Video ID</Label>
