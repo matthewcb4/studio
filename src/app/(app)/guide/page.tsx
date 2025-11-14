@@ -145,6 +145,7 @@ export default function GuidePage() {
 
           if (querySnapshot.empty) {
             const newExerciseDocRef = doc(masterExercisesRef); // Auto-generate ID
+            // Use the category from the AI, not a generic one.
             const newExercise: Omit<Exercise, 'id' | 'videoId'> = {
               name: ex.name,
               category: ex.category,
