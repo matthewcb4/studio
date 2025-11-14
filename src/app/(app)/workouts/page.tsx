@@ -276,7 +276,7 @@ function WorkoutForm({
 
           <h3 className="font-semibold mt-4">Exercise Groups</h3>
           <div className="space-y-4">
-            {exerciseGroups.map((group, groupIndex) => (
+            {exerciseGroups?.map((group, groupIndex) => (
               <div
                 key={group[0]?.supersetId || groupIndex}
                 className="p-4 border rounded-lg bg-secondary/30 space-y-4"
@@ -297,7 +297,7 @@ function WorkoutForm({
                             variant="ghost"
                             size="icon"
                             onClick={() => handleMoveGroup(groupIndex, 'down')}
-                            disabled={exerciseGroups.length < 2 || groupIndex === exerciseGroups.length - 1}
+                            disabled={!exerciseGroups || groupIndex === exerciseGroups.length - 1}
                             className="h-7 w-7"
                         >
                             <ArrowDown className="h-4 w-4" />
@@ -512,7 +512,7 @@ function WorkoutsPageContent() {
   }, [workouts]);
 
   const isLoading = isLoadingWorkouts || isLoadingExercises;
-
+  
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
