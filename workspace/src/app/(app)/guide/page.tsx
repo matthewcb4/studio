@@ -20,11 +20,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, getDocs, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment, Exercise } from '@/lib/types';
+import type { UserEquipment, Exercise, WorkoutLog } from '@/lib/types';
+import { format, parseISO } from 'date-fns';
 
-const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Legs", "Shoulders", "Triceps"];
+const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Obliques", "Legs", "Shoulders", "Triceps"];
 
 const formSchema = z.object({
   availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -68,13 +69,20 @@ export default function GuidePage() {
 
   const { data: userEquipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
 
+  const workoutLogsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
+  }, [firestore, user]);
+  
+  const { data: workoutLogs } = useCollection<WorkoutLog>(workoutLogsQuery);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       availableEquipment: [],
       fitnessGoals: 'Build Muscle',
       fitnessLevel: 'intermediate',
-      workoutDuration: 45,
+      workoutDuration: 40,
       focusArea: ["Full Body"],
       focusOnSupersets: false,
     },
@@ -82,7 +90,6 @@ export default function GuidePage() {
   
   useEffect(() => {
     if (userEquipment && userEquipment.length > 0) {
-      // Pre-select 'Tonal' if it exists, otherwise select the first item.
       const tonal = userEquipment.find(e => e.name.toLowerCase() === 'tonal');
       if (tonal) {
         form.setValue('availableEquipment', [tonal.name]);
@@ -96,10 +103,18 @@ export default function GuidePage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     setGeneratedWorkout(null);
+
+    const history = workoutLogs?.map(log => ({
+      date: format(parseISO(log.date), 'PPP'),
+      name: log.workoutName,
+      exercises: log.exercises.map(ex => ex.exerciseName).join(', ')
+    }));
+
     try {
       const result = await generateWorkout({
         ...values,
         fitnessGoals: [values.fitnessGoals], 
+        workoutHistory: history,
       });
       setGeneratedWorkout(result);
     } catch (error) {
@@ -121,26 +136,23 @@ export default function GuidePage() {
     try {
       const masterExercisesRef = collection(firestore, 'exercises');
 
-      // Process all exercises from the AI workout
       const processedExercises = await Promise.all(
         generatedWorkout.exercises.map(async (ex) => {
-          // Check if the exercise already exists in the master list
           const q = query(masterExercisesRef, where("name", "==", ex.name));
           const querySnapshot = await getDocs(q);
 
           let masterExerciseId: string;
 
           if (querySnapshot.empty) {
-            // Exercise does not exist, so create it in the master list
             const newExerciseDocRef = doc(masterExercisesRef); // Auto-generate ID
+            // Use the category from the AI, not a generic one.
             const newExercise: Omit<Exercise, 'id' | 'videoId'> = {
               name: ex.name,
-              category: 'AI Generated', // Or derive a category if possible
+              category: ex.category,
             };
             await setDocumentNonBlocking(newExerciseDocRef, newExercise, { merge: false });
             masterExerciseId = newExerciseDocRef.id;
           } else {
-            // Exercise exists, use its ID
             masterExerciseId = querySnapshot.docs[0].id;
           }
           
@@ -148,10 +160,10 @@ export default function GuidePage() {
             id: generateUniqueId(),
             exerciseId: masterExerciseId,
             exerciseName: ex.name,
-            sets: parseInt(ex.sets.split('-')[0]), // Take the lower bound of sets
+            sets: parseInt(ex.sets.split('-')[0]),
             reps: ex.reps,
-            videoId: null, // User can add this later
-            supersetId: ex.supersetId, // Use the supersetId from the AI
+            videoId: null,
+            supersetId: ex.supersetId,
           };
         })
       );
@@ -378,11 +390,14 @@ export default function GuidePage() {
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="15">15</SelectItem>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="20">20</SelectItem>
                                     <SelectItem value="30">30</SelectItem>
-                                    <SelectItem value="45">45</SelectItem>
+                                    <SelectItem value="40">40</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
                                     <SelectItem value="60">60</SelectItem>
-                                    <SelectItem value="75">75</SelectItem>
+                                    <SelectItem value="70">70</SelectItem>
+                                    <SelectItem value="80">80</SelectItem>
                                     <SelectItem value="90">90</SelectItem>
                                 </SelectContent>
                             </Select>
