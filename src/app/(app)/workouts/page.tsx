@@ -21,6 +21,7 @@ import {
   SheetDescription,
   SheetFooter,
   SheetClose,
+  SheetTrigger,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -171,40 +172,6 @@ function WorkoutForm({
     setExercises(newExercises);
   };
 
-  const handleVideoIdChange = (masterExerciseId: string, urlOrId: string) => {
-    if (!masterExerciseId) {
-        toast({
-            variant: "destructive",
-            title: "Select an Exercise First",
-            description: "You must select an exercise from the dropdown before assigning a video."
-        });
-        return;
-    }
-    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
-    const match = urlOrId.match(youtubeRegex);
-    const videoId = match ? match[1] : (urlOrId.length === 11 ? urlOrId : null);
-
-    if (videoId) {
-        const exerciseDocRef = doc(firestore, 'exercises', masterExerciseId);
-        updateDocumentNonBlocking(exerciseDocRef, { videoId: videoId });
-        toast({
-            title: "Video ID Updated",
-            description: `Video linked to master exercise. You may need to refresh to see it everywhere.`
-        });
-    } else if(urlOrId === '') { // Allow clearing the video
-        const exerciseDocRef = doc(firestore, 'exercises', masterExerciseId);
-        updateDocumentNonBlocking(exerciseDocRef, { videoId: null });
-        toast({ title: "Video ID Cleared" });
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Invalid YouTube ID",
-            description: "Please paste a valid 11-character YouTube video ID or a full URL."
-        });
-    }
-  };
-
-
   const removeExercise = (exerciseIdToRemove: string) => {
     const exerciseToRemove = exercises.find(ex => ex.id === exerciseIdToRemove);
     if (!exerciseToRemove) return;
@@ -313,7 +280,6 @@ function WorkoutForm({
                 {group.map((ex, exIndex) => {
                   const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId);
                   const selectValue = matchedExercise ? matchedExercise.id : ex.exerciseId;
-                  const videoIdFromMaster = matchedExercise?.videoId || '';
 
                   return (
                     <div
@@ -384,17 +350,6 @@ function WorkoutForm({
                          >
                            <Trash2 className="h-4 w-4 mr-1" /> Remove
                          </Button>
-                       </div>
-                       <div className="text-xs text-muted-foreground pt-2">
-                         <Label className="text-xs">Linked Video ID</Label>
-                         <Input
-                           className="mt-1 h-8 text-sm"
-                           placeholder="Paste YouTube URL or 11-character ID"
-                           defaultValue={videoIdFromMaster}
-                           onBlur={(e) =>
-                            handleVideoIdChange(ex.exerciseId, e.target.value)
-                           }
-                         />
                        </div>
                     </div>
                   )
