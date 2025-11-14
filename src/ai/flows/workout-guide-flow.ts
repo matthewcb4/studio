@@ -69,7 +69,7 @@ const prompt = ai.definePrompt({
   
   Generate a complete workout routine including a workout name, a short description, and a list of exercises.
   
-  For each exercise, you MUST provide a 'category' from this specific list: Chest, Back, Shoulders, Legs, Arms, Core.
+  For each exercise, you MUST provide a 'category' from this specific list: Chest, Back, Shoulders, Legs, Arms, Core, Biceps, Triceps, Obliques.
   
   IMPORTANT: You MUST group exercises into supersets or individual groups. A superset consists of two exercises performed back-to-back with no rest in between. 
   To create a superset, assign the same 'supersetId' (e.g., "superset_1") to two exercises. 
