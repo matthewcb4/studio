@@ -558,7 +558,7 @@ function WorkoutsPageContent() {
                <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleEdit(workouts.find(w => w.id === workout.id)!)}
+                onClick={() => handleEdit(workout)}
               >
                 <Edit className="h-4 w-4" />
               </Button>
