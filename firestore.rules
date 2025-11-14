@@ -12,7 +12,7 @@
  * - /users/{userId}/profile/{profileId}: Stores user settings & goals. Owner-only access.
  * - /users/{userId}/equipment/{equipmentId}: Stores user's equipment list. Owner-only access.
  * - /users/{userId}/progressLogs/{progressLogId}: Stores user's progress data (e.g. weight). Owner-only access.
- * - /exercises/{exerciseId}: Stores master exercise data. Publicly readable, but authenticated users can update video links or create new exercises.
+ * - /exercises/{exerciseId}: Stores master exercise data. Publicly readable, but authenticated users can create exercises or update them.
  * - /users/{userId}/customWorkouts/{customWorkoutId}: Stores custom workouts. Only the owning user can read/write.
  * - /users/{userId}/workoutLogs/{workoutLogId}: Stores workout logs. Only the owning user can read/write.
  *
