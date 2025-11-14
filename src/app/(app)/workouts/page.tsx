@@ -610,7 +610,7 @@ function WorkoutsPageContent() {
                     <DialogDescription>
                       This action cannot be undone. This will permanently delete
                       the workout "{workout.name}".
-                    </dDialogDescription>
+                    </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
                     <DialogClose asChild>
