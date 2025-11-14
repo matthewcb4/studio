@@ -29,6 +29,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
 
 
 const equipmentFormSchema = z.object({
@@ -614,5 +615,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
