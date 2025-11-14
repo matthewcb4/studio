@@ -157,7 +157,7 @@ export default function ProgressPage() {
         );
         if (!exerciseLog) return null;
 
-        const maxWeight = Math.max(...exerciseLog.sets.map((s) => s.weight), 0);
+        const maxWeight = Math.max(0, ...exerciseLog.sets.map((s) => s.weight ?? 0));
 
         return {
           date: new Date(log.date),

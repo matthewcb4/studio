@@ -164,7 +164,7 @@ export default function SettingsPage() {
     Object.keys(values).forEach(key => {
         const formKey = key as keyof typeof values;
         if (values[formKey] !== undefined && values[formKey] !== '') {
-            dataToSave[formKey] = values[formKey];
+            (dataToSave as any)[formKey] = values[formKey];
         }
     });
 

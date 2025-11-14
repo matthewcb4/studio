@@ -1,5 +1,4 @@
 
-import type { Omit } from 'firebase/firestore';
 import type { Exercise } from './types';
 
 // Omit 'id' because Firestore will generate it automatically
