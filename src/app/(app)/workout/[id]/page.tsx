@@ -30,7 +30,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { CustomWorkout, LoggedSet, WorkoutExercise, Exercise as MasterExercise } from '@/lib/types';
+import type { CustomWorkout, LoggedSet, WorkoutExercise, Exercise as MasterExercise, UserExercisePreference } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -52,7 +52,7 @@ import {
   updateDocumentNonBlocking,
   useCollection,
 } from '@/firebase';
-import { doc, collection, addDoc, DocumentReference, query } from 'firebase/firestore';
+import { doc, collection, addDoc, query } from 'firebase/firestore';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -120,10 +120,11 @@ export default function WorkoutSessionPage() {
   const { data: workout, isLoading: isLoadingWorkout } =
     useDoc<CustomWorkout>(workoutDocRef);
 
-  const masterExercisesQuery = useMemoFirebase(() =>
-      firestore ? query(collection(firestore, 'exercises')) : null
-  , [firestore]);
-  const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
+  const exercisePreferencesQuery = useMemoFirebase(() =>
+    user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
+  , [firestore, user]);
+  const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
+
 
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   // State for all exercises in the current group
@@ -172,7 +173,7 @@ export default function WorkoutSessionPage() {
     return () => clearInterval(timer);
   }, [isFinished]);
 
-  if (isLoadingWorkout || isLoadingExercises) {
+  if (isLoadingWorkout || isLoadingPreferences) {
     return <div>Loading workout...</div>;
   }
 
@@ -410,8 +411,7 @@ export default function WorkoutSessionPage() {
         const isExerciseComplete = state.currentSet > exercise.sets;
         const unit = exercise.unit || 'reps';
         
-        const masterExercise = masterExercises?.find(me => me.id === exercise.exerciseId);
-        const videoId = masterExercise?.videoId;
+        const videoId = exercisePreferences?.find(p => p.id === exercise.exerciseId)?.videoId;
 
         return (
           <Card key={exercise.id} className={isExerciseComplete ? 'opacity-50' : ''}>

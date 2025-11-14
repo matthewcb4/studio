@@ -10,9 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
-import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, writeBatch, query, orderBy } from 'firebase/firestore';
-import type { UserEquipment, UserProfile, Exercise } from '@/lib/types';
+import type { UserEquipment, UserProfile, Exercise, UserExercisePreference } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -69,6 +69,11 @@ export default function SettingsPage() {
     firestore ? query(collection(firestore, 'exercises'), orderBy('name')) : null
   , [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollectionQuery);
+
+  const exercisePreferencesQuery = useMemoFirebase(() =>
+    user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
+  , [firestore, user]);
+  const { data: exercisePreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
   
   const exerciseCategories = useMemo(() => {
     if (!masterExercises) return [];
@@ -223,23 +228,23 @@ export default function SettingsPage() {
   };
 
   const handleVideoIdChange = (masterExerciseId: string, urlOrId: string) => {
-    if (!masterExerciseId || !firestore) return;
+    if (!masterExerciseId || !user) return;
 
     const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
     const match = urlOrId.match(youtubeRegex);
     const videoId = match ? match[1] : (urlOrId.length === 11 ? urlOrId : null);
 
-    const exerciseDocRef = doc(firestore, 'exercises', masterExerciseId);
+    const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
 
     if (videoId) {
-        updateDocumentNonBlocking(exerciseDocRef, { videoId });
+        setDocumentNonBlocking(preferenceDocRef, { videoId, userId: user.uid }, { merge: true });
         toast({
-            title: "Video ID Updated",
-            description: `Video linked to master exercise.`
+            title: "Video Preference Saved",
+            description: `Video linked for this exercise.`
         });
     } else if (urlOrId === '') { // Allow clearing the video
-        updateDocumentNonBlocking(exerciseDocRef, { videoId: null });
-        toast({ title: "Video ID Cleared" });
+        setDocumentNonBlocking(preferenceDocRef, { videoId: null, userId: user.uid }, { merge: true });
+        toast({ title: "Video Preference Cleared" });
     } else {
         toast({
             variant: "destructive",
@@ -553,7 +558,9 @@ export default function SettingsPage() {
                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                         {isLoadingExercises && <p>Loading exercises...</p>}
                         {filteredExercises && filteredExercises.length > 0 ? (
-                        filteredExercises.map((item) => (
+                        filteredExercises.map((item) => {
+                          const preference = exercisePreferences?.find(p => p.id === item.id);
+                          return (
                             <div key={item.id} className="p-3 bg-secondary rounded-md space-y-2">
                                 <div className="flex items-start justify-between">
                                     <div>
@@ -591,12 +598,13 @@ export default function SettingsPage() {
                                         id={`video-id-${item.id}`}
                                         className="mt-1 h-8 text-sm"
                                         placeholder="Paste YouTube URL or ID"
-                                        defaultValue={item.videoId || ''}
+                                        defaultValue={preference?.videoId || ''}
                                         onBlur={(e) => handleVideoIdChange(item.id, e.target.value)}
                                     />
                                 </div>
                             </div>
-                        ))
+                          );
+                        })
                         ) : (
                         !isLoadingExercises && <p className="text-sm text-muted-foreground text-center py-4">No exercises found.</p>
                         )}

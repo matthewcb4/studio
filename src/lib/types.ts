@@ -3,8 +3,13 @@ export type Exercise = {
   id: string;
   name: string;
   category?: string;
-  videoId?: string | null;
 };
+
+export type UserExercisePreference = {
+  id: string; // Corresponds to the master Exercise ID
+  userId: string;
+  videoId?: string | null;
+}
 
 export type WorkoutExercise = {
   id: string; // Unique ID for this specific instance of an exercise in a workout

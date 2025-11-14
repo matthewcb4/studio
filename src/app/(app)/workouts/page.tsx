@@ -47,6 +47,7 @@ import type {
   CustomWorkout,
   WorkoutExercise,
   Exercise as MasterExercise,
+  UserExercisePreference,
 } from '@/lib/types';
 import {
   useCollection,
@@ -56,6 +57,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
   useMemoFirebase,
+  setDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -89,17 +91,19 @@ const groupExercises = (exercises: WorkoutExercise[] = []) => {
 function WorkoutForm({
   workout,
   masterExercises,
+  exercisePreferences,
   onSave,
   onCancel,
 }: {
   workout: CustomWorkout | null;
   masterExercises: MasterExercise[];
+  exercisePreferences: UserExercisePreference[] | null;
   onSave: (workout: Omit<CustomWorkout, 'id' | 'userId'>) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState('');
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
-  const firestore = useFirestore();
+  const { user, firestore } = useFirebase();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -188,23 +192,23 @@ function WorkoutForm({
   };
 
   const handleVideoIdChange = (masterExerciseId: string, urlOrId: string) => {
-    if (!masterExerciseId || !firestore) return;
+    if (!masterExerciseId || !user || !firestore) return;
 
     const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
     const match = urlOrId.match(youtubeRegex);
     const videoId = match ? match[1] : (urlOrId.length === 11 ? urlOrId : null);
 
-    const exerciseDocRef = doc(firestore, 'exercises', masterExerciseId);
+    const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
 
     if (videoId) {
-        updateDocumentNonBlocking(exerciseDocRef, { videoId });
+        setDocumentNonBlocking(preferenceDocRef, { videoId, userId: user.uid }, { merge: true });
         toast({
-            title: "Video ID Updated",
-            description: `Video linked to master exercise.`
+            title: "Video Preference Saved",
+            description: `Video linked for this exercise.`
         });
     } else if (urlOrId === '') { // Allow clearing the video
-        updateDocumentNonBlocking(exerciseDocRef, { videoId: null });
-        toast({ title: "Video ID Cleared" });
+        setDocumentNonBlocking(preferenceDocRef, { videoId: null, userId: user.uid }, { merge: true });
+        toast({ title: "Video Preference Cleared" });
     } else {
         toast({
             variant: "destructive",
@@ -307,7 +311,7 @@ function WorkoutForm({
                 {group.map((ex, exIndex) => {
                   const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId);
                   const selectValue = matchedExercise ? matchedExercise.id : ex.exerciseId;
-                  const currentVideoId = masterExercises.find(me => me.id === ex.exerciseId)?.videoId;
+                  const currentVideoId = exercisePreferences?.find(p => p.id === ex.exerciseId)?.videoId;
 
                   return (
                     <div
@@ -446,6 +450,11 @@ function WorkoutsPageContent() {
       return query(collection(firestore, 'exercises'), orderBy('name', 'asc'));
   }, [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
+  
+  const exercisePreferencesQuery = useMemoFirebase(() =>
+    user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
+  , [firestore, user]);
+  const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
 
   // This effect handles opening the sheet when the ?edit=... param is present
   useEffect(() => {
@@ -511,7 +520,7 @@ function WorkoutsPageContent() {
     return workouts?.map(w => ({ ...w, groupedExercises: groupExercises(w.exercises || [])})) || [];
   }, [workouts]);
 
-  const isLoading = isLoadingWorkouts || isLoadingExercises;
+  const isLoading = isLoadingWorkouts || isLoadingExercises || isLoadingPreferences;
   
   return (
     <div className="flex flex-col gap-8">
@@ -534,6 +543,7 @@ function WorkoutsPageContent() {
               <WorkoutForm
                 workout={editingWorkout}
                 masterExercises={masterExercises || []}
+                exercisePreferences={exercisePreferences || null}
                 onSave={handleSaveWorkout}
                 onCancel={() => handleSheetClose(false)}
               />
