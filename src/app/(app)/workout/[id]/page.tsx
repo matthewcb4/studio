@@ -30,7 +30,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { CustomWorkout, LoggedSet, WorkoutExercise } from '@/lib/types';
+import type { CustomWorkout, LoggedSet, WorkoutExercise, Exercise as MasterExercise } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -50,8 +50,9 @@ import {
   addDocumentNonBlocking,
   useMemoFirebase,
   updateDocumentNonBlocking,
+  useCollection,
 } from '@/firebase';
-import { doc, collection, addDoc, DocumentReference } from 'firebase/firestore';
+import { doc, collection, addDoc, DocumentReference, query } from 'firebase/firestore';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -119,6 +120,11 @@ export default function WorkoutSessionPage() {
   const { data: workout, isLoading: isLoadingWorkout } =
     useDoc<CustomWorkout>(workoutDocRef);
 
+  const masterExercisesQuery = useMemoFirebase(() =>
+      firestore ? query(collection(firestore, 'exercises')) : null
+  , [firestore]);
+  const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
+
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   // State for all exercises in the current group
   const [exerciseStates, setExerciseStates] = useState<
@@ -166,7 +172,7 @@ export default function WorkoutSessionPage() {
     return () => clearInterval(timer);
   }, [isFinished]);
 
-  if (isLoadingWorkout) {
+  if (isLoadingWorkout || isLoadingExercises) {
     return <div>Loading workout...</div>;
   }
 
@@ -403,6 +409,9 @@ export default function WorkoutSessionPage() {
 
         const isExerciseComplete = state.currentSet > exercise.sets;
         const unit = exercise.unit || 'reps';
+        
+        const masterExercise = masterExercises?.find(me => me.id === exercise.exerciseId);
+        const videoId = masterExercise?.videoId;
 
         return (
           <Card key={exercise.id} className={isExerciseComplete ? 'opacity-50' : ''}>
@@ -456,7 +465,7 @@ export default function WorkoutSessionPage() {
                     </ul>
                 </CardContent>
              )}
-            {exercise.videoId && (
+            {videoId && (
               <CardContent>
                 <Collapsible>
                   <CollapsibleTrigger asChild>
@@ -466,7 +475,7 @@ export default function WorkoutSessionPage() {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <YouTubeEmbed videoId={exercise.videoId} />
+                    <YouTubeEmbed videoId={videoId} />
                   </CollapsibleContent>
                 </Collapsible>
               </CardContent>
@@ -482,5 +491,3 @@ export default function WorkoutSessionPage() {
     </div>
   );
 }
-
-    

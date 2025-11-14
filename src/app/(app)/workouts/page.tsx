@@ -21,7 +21,6 @@ import {
   SheetDescription,
   SheetFooter,
   SheetClose,
-  SheetTrigger,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,6 +57,7 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -98,6 +98,8 @@ function WorkoutForm({
 }) {
   const [name, setName] = useState('');
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (workout) {
@@ -120,7 +122,6 @@ function WorkoutForm({
       sets: 3,
       reps: '8-12',
       unit: 'reps',
-      videoId: null,
       supersetId: newSupersetId,
     };
     setExercises([...exercises, newExercise]);
@@ -134,7 +135,6 @@ function WorkoutForm({
       sets: 3,
       reps: '8-12',
       unit: 'reps',
-      videoId: null,
       supersetId: supersetId,
     };
     // To maintain order, find the last index of an exercise with the same supersetId
@@ -171,12 +171,39 @@ function WorkoutForm({
     setExercises(newExercises);
   };
 
-  const handleVideoIdChange = (exerciseId: string, urlOrId: string) => {
+  const handleVideoIdChange = (masterExerciseId: string, urlOrId: string) => {
+    if (!masterExerciseId) {
+        toast({
+            variant: "destructive",
+            title: "Select an Exercise First",
+            description: "You must select an exercise from the dropdown before assigning a video."
+        });
+        return;
+    }
     const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
     const match = urlOrId.match(youtubeRegex);
-    const videoId = match ? match[1] : urlOrId;
-    updateExercise(exerciseId, 'videoId', videoId);
+    const videoId = match ? match[1] : (urlOrId.length === 11 ? urlOrId : null);
+
+    if (videoId) {
+        const exerciseDocRef = doc(firestore, 'exercises', masterExerciseId);
+        updateDocumentNonBlocking(exerciseDocRef, { videoId: videoId });
+        toast({
+            title: "Video ID Updated",
+            description: `Video linked to master exercise. You may need to refresh to see it everywhere.`
+        });
+    } else if(urlOrId === '') { // Allow clearing the video
+        const exerciseDocRef = doc(firestore, 'exercises', masterExerciseId);
+        updateDocumentNonBlocking(exerciseDocRef, { videoId: null });
+        toast({ title: "Video ID Cleared" });
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Invalid YouTube ID",
+            description: "Please paste a valid 11-character YouTube video ID or a full URL."
+        });
+    }
   };
+
 
   const removeExercise = (exerciseIdToRemove: string) => {
     const exerciseToRemove = exercises.find(ex => ex.id === exerciseIdToRemove);
@@ -284,8 +311,9 @@ function WorkoutForm({
                     </div>
                 </div>
                 {group.map((ex, exIndex) => {
-                  const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId || masterEx.name === ex.exerciseName);
+                  const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId);
                   const selectValue = matchedExercise ? matchedExercise.id : ex.exerciseId;
+                  const videoIdFromMaster = matchedExercise?.videoId || '';
 
                   return (
                     <div
@@ -362,9 +390,9 @@ function WorkoutForm({
                          <Input
                            className="mt-1 h-8 text-sm"
                            placeholder="Paste YouTube URL or 11-character ID"
-                           value={ex.videoId || ''}
-                           onChange={(e) =>
-                            handleVideoIdChange(ex.id, e.target.value)
+                           defaultValue={videoIdFromMaster}
+                           onBlur={(e) =>
+                            handleVideoIdChange(ex.exerciseId, e.target.value)
                            }
                          />
                        </div>
@@ -508,12 +536,14 @@ function WorkoutsPageContent() {
             </Button>
           </SheetTrigger>
           <SheetContent className="sm:max-w-2xl w-full flex flex-col">
-            <WorkoutForm
-              workout={editingWorkout}
-              masterExercises={masterExercises || []}
-              onSave={handleSaveWorkout}
-              onCancel={() => handleSheetClose(false)}
-            />
+            <Suspense fallback={<div className="p-6">Loading form...</div>}>
+              <WorkoutForm
+                workout={editingWorkout}
+                masterExercises={masterExercises || []}
+                onSave={handleSaveWorkout}
+                onCancel={() => handleSheetClose(false)}
+              />
+            </Suspense>
           </SheetContent>
         </Sheet>
       </div>

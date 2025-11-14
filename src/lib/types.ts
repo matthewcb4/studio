@@ -13,7 +13,6 @@ export type WorkoutExercise = {
   sets: number;
   reps: string; // e.g., "8-10"
   unit: 'reps' | 'seconds'; // The unit for the 'reps' field value
-  videoId?: string | null;
   supersetId: string; // Used to group exercises into supersets
 };
 
