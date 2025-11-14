@@ -175,18 +175,14 @@ export default function GuidePage() {
       };
 
       const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
-      const newDocRef = await addDocumentNonBlocking(workoutsCollection, workoutData);
+      await addDocumentNonBlocking(workoutsCollection, workoutData);
 
       toast({
         title: "Workout Saved!",
-        description: `"${generatedWorkout.workoutName}" has been added. Now navigating to edit.`,
+        description: `"${generatedWorkout.workoutName}" has been added to your workouts.`,
       });
       
-      if (newDocRef) {
-        router.push(`/workouts?edit=${newDocRef.id}`);
-      } else {
-        router.push('/workouts');
-      }
+      router.push('/workouts');
 
     } catch (error) {
         console.error("Failed to save workout:", error);

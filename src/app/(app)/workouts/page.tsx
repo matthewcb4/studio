@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -402,6 +402,8 @@ function WorkoutForm({
 function WorkoutsPageContent() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -423,7 +425,7 @@ function WorkoutsPageContent() {
   }, [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
 
-
+  // This effect handles opening the sheet when the ?edit=... param is present
   useEffect(() => {
     if (isLoadingWorkouts || isLoadingExercises) return;
 
@@ -437,6 +439,18 @@ function WorkoutsPageContent() {
     }
   }, [searchParams, workouts, isLoadingWorkouts, isLoadingExercises]);
 
+  // This function handles closing the sheet and clearing the URL param
+  const handleSheetClose = (open: boolean) => {
+    if (!open) {
+      setIsSheetOpen(false);
+      setEditingWorkout(null);
+      // Clear the edit parameter from the URL without reloading the page
+      router.replace(pathname, { scroll: false });
+    } else {
+      setIsSheetOpen(true);
+    }
+  };
+
 
   const handleCreateNew = () => {
     setEditingWorkout(null);
@@ -444,8 +458,8 @@ function WorkoutsPageContent() {
   };
 
   const handleEdit = (workout: CustomWorkout) => {
-    setEditingWorkout(workout);
-    setIsSheetOpen(true);
+    // Navigate to URL with edit param, which will trigger the useEffect
+    router.push(`${pathname}?edit=${workout.id}`, { scroll: false });
   };
 
   const handleDelete = (workoutId: string) => {
@@ -467,8 +481,8 @@ function WorkoutsPageContent() {
     } else {
       addDocumentNonBlocking(workoutsCollection, dataToSave);
     }
-    setIsSheetOpen(false);
-    setEditingWorkout(null);
+    // Let the onOpenChange handler do the closing and URL clearing
+    handleSheetClose(false);
   };
   
   const groupedWorkouts = useMemo(() => {
@@ -486,10 +500,7 @@ function WorkoutsPageContent() {
             Create and manage your custom training routines.
           </p>
         </div>
-        <Sheet open={isSheetOpen} onOpenChange={(open) => {
-          setIsSheetOpen(open);
-          if (!open) setEditingWorkout(null);
-        }}>
+        <Sheet open={isSheetOpen} onOpenChange={handleSheetClose}>
           <SheetTrigger asChild>
             <Button onClick={handleCreateNew}>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -501,10 +512,7 @@ function WorkoutsPageContent() {
               workout={editingWorkout}
               masterExercises={masterExercises || []}
               onSave={handleSaveWorkout}
-              onCancel={() => {
-                setIsSheetOpen(false)
-                setEditingWorkout(null)
-              }}
+              onCancel={() => handleSheetClose(false)}
             />
           </SheetContent>
         </Sheet>
