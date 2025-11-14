@@ -105,14 +105,14 @@ service cloud.firestore {
     
     /**
      * @description Manages the master exercise list. This collection is pre-populated and read-only for all users,
-     * but authenticated users can update the videoId or create new exercises.
+     * but authenticated users can create exercises or update them.
      * @path /exercises/{exerciseId}
      */
     match /exercises/{exerciseId} {
       allow get, list: if true;
       allow create: if isSignedIn();
       allow delete: if false;
-      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['videoId']);
+      allow update: if isSignedIn();
     }
   }
 }
