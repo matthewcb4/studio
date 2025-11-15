@@ -48,18 +48,18 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
   Female: {
     // Front - Refined coordinates
-    shoulders: { top: '21%', left: '39%' },
+    shoulders: { top: '20%', left: '39%' },
     chest: { top: '29%', left: '50%' },
     abs: { top: '41%', left: '50%' },
-    biceps: { top: '26%', left: '31%' },
+    biceps: { top: '25%', left: '31%' },
     quads: { top: '60%', left: '43%' },
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '34%', left: '50%' },
-    triceps: { top: '28%', left: '62%' },
+    triceps: { top: '26%', left: '64%' },
     glutes: { top: '51%', left: '50%' },
-    hamstrings: { top: '62%', left: '50%' },
-    calves: { top: '78%', left: '45%' },
+    hamstrings: { top: '60%', left: '50%' },
+    calves: { top: '76%', left: '45%' },
     back_lower: { top: '42%', left: '50%'},
   },
 };
