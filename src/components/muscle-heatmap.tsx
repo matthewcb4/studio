@@ -38,7 +38,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '35%', left: '50%' },
-    triceps: { top: '32%', left: '66%' },
+    triceps: { top: '33%', left: '67%' },
     glutes: { top: '50%', left: '50%' },
     hamstrings: { top: '65%', left: '50%' },
     calves: { top: '80%', left: '50%' },
@@ -46,15 +46,15 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
   Female: {
     // Front - Refined coordinates
-    shoulders: { top: '23%', left: '39%' },
+    shoulders: { top: '22%', left: '39%' },
     chest: { top: '29%', left: '50%' },
     abs: { top: '41%', left: '50%' },
-    biceps: { top: '31%', left: '31%' },
+    biceps: { top: '26%', left: '31%' },
     quads: { top: '60%', left: '43%' },
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '34%', left: '50%' },
-    triceps: { top: '31%', left: '67%' },
+    triceps: { top: '33%', left: '67%' },
     glutes: { top: '51%', left: '50%' },
     hamstrings: { top: '68%', left: '50%' },
     calves: { top: '83%', left: '45%' },
@@ -200,7 +200,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
   };
   const backViewImages = {
     Male: "https://raw.githubusercontent.com/matthewcb4/public_resources/aee947f98314b7824d7d4f92e3b6a9e3b6391acd/Male_Back.png",
-    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female_Back.png"
+    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/b6a8eafeeab740d594645123591f4a1aa2cd2aee/Female_Back.png"
   };
   
   const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
@@ -229,9 +229,6 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
             </div>
 
             <div className="relative w-full max-w-xs mx-auto">
-              {/* This div is a temporary fix for the image background issue */}
-              <div className="absolute inset-0 bg-white z-0"></div>
-
               <div className="absolute inset-0 z-10">
                 {muscleGroupsToShow.map((group) => {
                   const coords = heatmapCoordinates[bodyType]?.[group];
@@ -260,7 +257,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                 alt={`${bodyType} body ${view} view`}
                 width={400}
                 height={711}
-                className="relative object-contain z-20 mix-blend-multiply w-full h-auto"
+                className="relative object-contain z-0 w-full h-auto"
                 unoptimized
               />
             </div>
