@@ -12,6 +12,7 @@ import {
   Video,
   Star,
   Loader2,
+  SkipForward,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -198,24 +199,28 @@ export default function WorkoutSessionPage() {
     return `${mins}:${secs}`;
   };
 
-  const handleLogSet = (exercise: WorkoutExercise) => {
+  const handleLogSet = (exercise: WorkoutExercise, skipped = false) => {
     const state = exerciseStates[exercise.id];
     const unit = exercise.unit || 'reps';
 
     let newLog: LoggedSet;
-
-    if (unit === 'reps') {
-        if (!state.weight || !state.reps) {
-            toast({ title: 'Missing Info', description: 'Please enter weight and reps.', variant: 'destructive' });
-            return;
+    
+    if (skipped) {
+        newLog = unit === 'reps' ? { weight: 0, reps: 0 } : { duration: 0 };
+    } else {
+        if (unit === 'reps') {
+            if (!state.weight || !state.reps) {
+                toast({ title: 'Missing Info', description: 'Please enter weight and reps.', variant: 'destructive' });
+                return;
+            }
+            newLog = { weight: parseFloat(state.weight), reps: parseFloat(state.reps) };
+        } else { // 'seconds'
+            if (!state.duration) {
+                toast({ title: 'Missing Info', description: 'Please enter duration.', variant: 'destructive' });
+                return;
+            }
+            newLog = { duration: parseFloat(state.duration) };
         }
-        newLog = { weight: parseFloat(state.weight), reps: parseFloat(state.reps) };
-    } else { // 'seconds'
-        if (!state.duration) {
-            toast({ title: 'Missing Info', description: 'Please enter duration.', variant: 'destructive' });
-            return;
-        }
-        newLog = { duration: parseFloat(state.duration) };
     }
     
     const fullSessionLog = sessionLog[exercise.id] || [];
@@ -440,9 +445,15 @@ export default function WorkoutSessionPage() {
                             <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, duration: e.target.value}})} className="h-14 text-2xl text-center" />
                         </div>
                     )}
-                     <Button onClick={() => handleLogSet(exercise)} className="w-full h-14 text-lg">
-                         Log Set
-                     </Button>
+                    <div className="flex gap-2">
+                         <Button onClick={() => handleLogSet(exercise)} className="w-full h-14 text-lg">
+                             Log Set
+                         </Button>
+                         <Button onClick={() => handleLogSet(exercise, true)} variant="outline" size="icon" className="h-14 w-14 flex-shrink-0">
+                            <SkipForward />
+                            <span className="sr-only">Skip Set</span>
+                         </Button>
+                    </div>
                  </CardContent>
             )}
              {state.logs.length > 0 && (

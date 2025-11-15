@@ -107,9 +107,7 @@ service cloud.firestore {
       match /workoutLogs/{workoutLogId} {
         allow get, list: if isOwner(userId);
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isOwner(userId) 
-          && request.resource.data.userId == resource.data.userId //Immutable user ID
-          && (request.resource.data.keys().hasOnly(['rating']) || request.resource.data.diff(resource.data).affectedKeys().hasOnly('rating')); // Allow adding/updating only the rating field
+        allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; //Immutable user ID
         allow delete: if isOwner(userId);
       }
     }
