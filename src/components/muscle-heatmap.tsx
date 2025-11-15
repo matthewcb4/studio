@@ -48,10 +48,10 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
   Female: {
     // Front - Refined coordinates
-    shoulders: { top: '23%', left: '39%' },
+    shoulders: { top: '22%', left: '39%' },
     chest: { top: '29%', left: '50%' },
     abs: { top: '41%', left: '50%' },
-    biceps: { top: '34%', left: '31%' },
+    biceps: { top: '26%', left: '31%' },
     quads: { top: '60%', left: '43%' },
     calves: { top: '80%', left: '45%' },
     // Back
@@ -237,18 +237,18 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
 
               <div className="absolute inset-0 z-30">
                 {muscleGroupsToShow.map((group) => {
-                  const coords = heatmapCoordinates[bodyType]?.[group];
-                  if (!coords) return null;
-                  
                   const intensity = muscleGroupIntensities[group] || 0;
                   if (intensity === 0) return null;
+
+                  const coords = heatmapCoordinates[bodyType]?.[group];
+                  if (!coords) return null;
                   
                   const isMirrored = ['shoulders', 'biceps', 'triceps', 'quads', 'calves', 'hamstrings'].includes(group);
 
                   const mainLabel = (
                     <div
                       key={`${group}-label`}
-                      className="absolute text-white text-xs font-bold pointer-events-none"
+                      className="absolute text-white text-xs font-bold pointer-events-none capitalize"
                       style={{
                         top: coords.top,
                         left: coords.left,
@@ -313,5 +313,3 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     </Card>
   );
 }
-
-    
