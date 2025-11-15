@@ -48,18 +48,18 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
   Female: {
     // Front - Refined coordinates
-    shoulders: { top: '24%', left: '39%' },
+    shoulders: { top: '22%', left: '39%' },
     chest: { top: '29%', left: '50%' },
     abs: { top: '41%', left: '50%' },
-    biceps: { top: '28%', left: '31%' },
+    biceps: { top: '26%', left: '31%' },
     quads: { top: '60%', left: '43%' },
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '34%', left: '50%' },
-    triceps: { top: '29%', left: '68%' },
+    triceps: { top: '29%', left: '66%' },
     glutes: { top: '51%', left: '50%' },
-    hamstrings: { top: '63%', left: '50%' },
-    calves: { top: '78%', left: '45%' },
+    hamstrings: { top: '67%', left: '50%' },
+    calves: { top: '82%', left: '45%' },
     back_lower: { top: '42%', left: '50%'},
   },
 };
@@ -235,50 +235,6 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
               {/* This div is a temporary fix for the image background issue */}
               <div className="absolute inset-0 bg-white z-0"></div>
 
-              <div className="absolute inset-0 z-30">
-                {muscleGroupsToShow.map((group) => {
-                  const intensity = muscleGroupIntensities[group] || 0;
-                  if (intensity === 0) return null;
-
-                  const coords = heatmapCoordinates[bodyType]?.[group];
-                  if (!coords) return null;
-                  
-                  const isMirrored = ['shoulders', 'biceps', 'triceps', 'quads', 'calves', 'hamstrings'].includes(group);
-
-                  const mainLabel = (
-                    <div
-                      key={`${group}-label`}
-                      className="absolute text-white text-xs font-bold pointer-events-none capitalize"
-                      style={{
-                        top: coords.top,
-                        left: coords.left,
-                        transform: 'translate(-50%, -50%)',
-                        textShadow: '0 0 3px black',
-                      }}
-                    >
-                      {group.replace('_', ' ')}
-                    </div>
-                  );
-                  
-                  const mirroredLabel = isMirrored ? (
-                    <div
-                      key={`${group}-label-mirrored`}
-                      className="absolute text-white text-xs font-bold pointer-events-none capitalize"
-                      style={{
-                        top: coords.top,
-                        left: `calc(100% - ${coords.left})`,
-                        transform: 'translate(-50%, -50%)',
-                        textShadow: '0 0 3px black',
-                      }}
-                    >
-                      {group.replace('_', ' ')}
-                    </div>
-                  ) : null;
-
-                  return <React.Fragment key={`${group}-labels`}>{mainLabel}{mirroredLabel}</React.Fragment>;
-                })}
-              </div>
-
               <div className="absolute inset-0 z-10">
                 {muscleGroupsToShow.map((group) => {
                   const coords = heatmapCoordinates[bodyType]?.[group];
@@ -293,7 +249,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   } else if (group === 'lats' || group === 'abs') {
                       size = '45%';
                   } else if (group === 'shoulders') {
-                      size = '15%'; // Reduced radius for shoulders
+                      size = '15%'; 
                   }
                   
                   const zIndex = group === 'chest' ? 11 : 10;
