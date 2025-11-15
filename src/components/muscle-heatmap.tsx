@@ -64,9 +64,9 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
 };
 
-const HeatPoint = ({ intensity, size, coords, zIndex = 10 }: { intensity: number; size: string; coords: { top: string, left: string }, zIndex?: number }) => {
+const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType }: { intensity: number; size: string; coords: { top: string, left: string }, zIndex?: number, bodyType: 'Male' | 'Female' }) => {
   // Mirrored for shoulders, arms (biceps/triceps), and legs (quads/calves/hamstrings on front view)
-  const isMirrored = ['shoulders', 'biceps', 'triceps', 'quads', 'calves', 'hamstrings'].includes(Object.keys(heatmapCoordinates.Male).find(key => heatmapCoordinates.Male[key] === coords) || '');
+  const isMirrored = ['shoulders', 'biceps', 'triceps', 'quads', 'calves', 'hamstrings'].includes(Object.keys(heatmapCoordinates[bodyType]).find(key => heatmapCoordinates[bodyType][key] === coords) || '');
 
   // Gradient: Blue (0%, hue 240) -> Green (50%, hue 100) -> Red (100%, hue 0)
   const hue = intensity <= 0.5
@@ -296,7 +296,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   
                   const zIndex = group === 'chest' ? 11 : 10;
 
-                  return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} zIndex={zIndex} />;
+                  return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} zIndex={zIndex} bodyType={bodyType} />;
                 })}
               </div>
               
@@ -313,3 +313,4 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     </Card>
   );
 }
+
