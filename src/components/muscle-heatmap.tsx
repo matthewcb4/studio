@@ -8,6 +8,7 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { differenceInDays } from 'date-fns';
 
 
 // Mapping from exercise category to a simpler muscle group
@@ -141,8 +142,15 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     };
 
     if (!thisWeeksLogs || !masterExercises) return muscleGroupEffort;
+    
+    const now = new Date();
 
     thisWeeksLogs.forEach(log => {
+      const logDate = new Date(log.date);
+      const daysSince = differenceInDays(now, logDate);
+      // Decay factor: fresher workouts have higher impact. 1 for today, 0.5 for yesterday, etc.
+      const decayFactor = 1 / (daysSince + 1);
+
       log.exercises.forEach(loggedEx => {
         const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
         if (masterEx?.category) {
@@ -156,9 +164,11 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
               }
               return sum + (set.reps || 0);
             }, 0);
+            
+            const decayedEffort = totalEffort * decayFactor;
 
             muscleGroups.forEach(group => {
-                muscleGroupEffort[group] = (muscleGroupEffort[group] || 0) + totalEffort;
+                muscleGroupEffort[group] = (muscleGroupEffort[group] || 0) + decayedEffort;
             });
           }
         }
