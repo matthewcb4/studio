@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { differenceInDays } from 'date-fns';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 
 // Mapping from exercise category to a simpler muscle group
@@ -47,19 +48,19 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     back_lower: { top: '42%', left: '50%'},
   },
   Female: {
-    // Front
-    shoulders: { top: '22%', left: '41%' },
-    chest: { top: '28%', left: '50%' },
-    abs: { top: '40%', left: '50%' },
-    biceps: { top: '33%', left: '32%' },
-    quads: { top: '58%', left: '44%' },
+    // Front - Refined coordinates
+    shoulders: { top: '23%', left: '39%' },
+    chest: { top: '29%', left: '50%' },
+    abs: { top: '41%', left: '50%' },
+    biceps: { top: '34%', left: '31%' },
+    quads: { top: '60%', left: '43%' },
+    calves: { top: '80%', left: '45%' },
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '34%', left: '50%' },
     triceps: { top: '31%', left: '62%' },
     glutes: { top: '51%', left: '50%' },
     hamstrings: { top: '65%', left: '50%' },
-    calves: { top: '78%', left: '50%' },
     back_lower: { top: '42%', left: '50%'},
   },
 };
@@ -215,6 +216,10 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
   const backMuscleGroups = ['traps', 'shoulders', 'lats', 'back_lower', 'triceps', 'glutes', 'hamstrings', 'calves'];
 
   const muscleGroupsToShow = view === 'front' ? frontMuscleGroups : backMuscleGroups;
+  
+  const workedMuscleGroups = Object.entries(muscleGroupIntensities)
+      .filter(([, intensity]) => intensity > 0)
+      .map(([group]) => group);
 
   return (
     <Card>
@@ -223,13 +228,24 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
             <CardDescription>Muscles worked in the {dateRangeLabel.toLowerCase()}.</CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="flex justify-center items-center gap-4 mb-4">
-              <Label className="text-sm">View</Label>
-              <div className="flex gap-2">
+            <div className="flex flex-col items-center gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                  <Label className="text-sm">View</Label>
                   <Button variant={view === 'front' ? 'default' : 'outline'} size="sm" onClick={() => setView('front')}>Front</Button>
                   <Button variant={view === 'back' ? 'default' : 'outline'} size="sm" onClick={() => setView('back')}>Back</Button>
               </div>
+
+              {workedMuscleGroups.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 p-2 border rounded-md">
+                    {workedMuscleGroups.map(group => (
+                        <Badge key={group} variant="secondary" className="capitalize text-white">
+                            {group.replace('_', ' ')}
+                        </Badge>
+                    ))}
+                </div>
+              )}
             </div>
+
             <div className="relative w-full max-w-xs mx-auto">
               {/* This div is a temporary fix for the image background issue */}
               <div className="absolute inset-0 bg-white z-0"></div>
@@ -240,6 +256,8 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   if (!coords) return null;
                   
                   const intensity = muscleGroupIntensities[group] || 0;
+                  if (intensity === 0) return null; // Don't render if no intensity
+                  
                   let size = '18%';
                   if (group === 'glutes' || group === 'quads') {
                       size = '25%';
@@ -266,3 +284,5 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     </Card>
   );
 }
+
+    
