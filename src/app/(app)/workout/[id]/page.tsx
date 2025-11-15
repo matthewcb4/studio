@@ -425,34 +425,34 @@ export default function WorkoutSessionPage() {
                  <CardContent className="space-y-4">
                     {unit === 'reps' ? (
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <Label htmlFor={`weight-${exercise.id}`}>Weight (lbs)</Label>
-                                <Input id={`weight-${exercise.id}`} type="number" placeholder="e.g. 135" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} />
+                            <div className="space-y-2">
+                                <Label htmlFor={`weight-${exercise.id}`} className="text-base">Weight (lbs)</Label>
+                                <Input id={`weight-${exercise.id}`} type="number" placeholder="135" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
                             </div>
-                            <div className="space-y-1">
-                                <Label htmlFor={`reps-${exercise.id}`}>Reps</Label>
-                                <Input id={`reps-${exercise.id}`} type="number" placeholder="e.g. 8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} />
+                            <div className="space-y-2">
+                                <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
+                                <Input id={`reps-${exercise.id}`} type="number" placeholder="8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-1">
-                            <Label htmlFor={`duration-${exercise.id}`}>Duration (seconds)</Label>
-                            <Input id={`duration-${exercise.id}`} type="number" placeholder="e.g. 60" value={state.duration} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, duration: e.target.value}})} />
+                        <div className="space-y-2">
+                            <Label htmlFor={`duration-${exercise.id}`} className="text-base">Duration (seconds)</Label>
+                            <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, duration: e.target.value}})} className="h-14 text-2xl text-center" />
                         </div>
                     )}
-                     <Button onClick={() => handleLogSet(exercise)} className="w-full">
+                     <Button onClick={() => handleLogSet(exercise)} className="w-full h-14 text-lg">
                          Log Set
                      </Button>
                  </CardContent>
             )}
              {state.logs.length > 0 && (
                 <CardContent>
-                    <p className="text-sm font-medium mb-2">Logged Sets</p>
+                    <p className="text-base font-medium mb-2">Logged Sets</p>
                     <ul className="space-y-2">
                         {state.logs.map((set, index) => (
-                            <li key={index} className="flex justify-between items-center text-sm p-2 bg-secondary rounded-md">
-                                <div className="flex items-center gap-2">
-                                    <Check className="h-4 w-4 text-green-500" />
+                            <li key={index} className="flex justify-between items-center text-base p-3 bg-secondary rounded-md">
+                                <div className="flex items-center gap-3">
+                                    <Check className="h-5 w-5 text-green-500" />
                                     <span className="font-medium text-secondary-foreground">Set {index + 1}</span>
                                 </div>
                                 {unit === 'reps' ? (
@@ -483,7 +483,7 @@ export default function WorkoutSessionPage() {
           </Card>
         );
       })}
-       <Button onClick={handleNextGroup} className="w-full" disabled={!isGroupFinished || isFinishing}>
+       <Button onClick={handleNextGroup} className="w-full h-14 text-lg" disabled={!isGroupFinished || isFinishing}>
             {isFinishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isLastGroup ? 'Finish Workout' : 'Next Exercise Group'}
             <ChevronRight className="ml-2 h-4 w-4" />
