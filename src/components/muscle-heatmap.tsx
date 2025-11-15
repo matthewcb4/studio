@@ -30,34 +30,34 @@ const categoryToMuscleGroup: Record<string, string[]> = {
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
     // Front
-    shoulders: { top: '25%', left: '40%' },
+    shoulders: { top: '25.5%', left: '40%' },
     chest: { top: '28%', left: '49.5%' },
     abs: { top: '42%', left: '49.5%' },
-    biceps: { top: '28%', left: '30%' },
-    quads: { top: '58%', left: '43%' },
+    biceps: { top: '25%', left: '33%' },
+    quads: { top: '58%', left: '44%' },
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '35%', left: '50%' },
-    triceps: { top: '33%', left: '67%' },
+    triceps: { top: '28%', left: '64%' },
     glutes: { top: '50%', left: '50%' },
-    hamstrings: { top: '65%', left: '50%' },
-    calves: { top: '80%', left: '50%' },
+    hamstrings: { top: '60%', left: '49%' },
+    calves: { top: '76%', left: '48%' },
     back_lower: { top: '42%', left: '50%'},
   },
   Female: {
     // Front - Refined coordinates
-    shoulders: { top: '22%', left: '39%' },
+    shoulders: { top: '25.5%', left: '41%' },
     chest: { top: '29%', left: '50%' },
     abs: { top: '41%', left: '50%' },
-    biceps: { top: '26%', left: '31%' },
-    quads: { top: '60%', left: '43%' },
+    biceps: { top: '27%', left: '31%' },
+    quads: { top: '60%', left: '46%' },
     // Back
-    traps: { top: '24%', left: '50%' },
+    traps: { top: '25%', left: '50%' },
     lats: { top: '34%', left: '50%' },
-    triceps: { top: '33%', left: '67%' },
+    triceps: { top: '28%', left: '64%' },
     glutes: { top: '51%', left: '50%' },
     hamstrings: { top: '68%', left: '50%' },
-    calves: { top: '83%', left: '45%' },
+    calves: { top: '78%', left: '45%' },
     back_lower: { top: '42%', left: '50%'},
   },
 };
@@ -200,10 +200,11 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
   };
   const backViewImages = {
     Male: "https://raw.githubusercontent.com/matthewcb4/public_resources/aee947f98314b7824d7d4f92e3b6a9e3b6391acd/Male_Back.png",
-    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/b6a8eafeeab740d594645123591f4a1aa2cd2aee/Female_Back.png"
+    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female_Back.png"
   };
   
   const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
+  const whiteBodyImageUrl = bodyImageUrl.replace('_black.png', '_white.png').replace('.png', '_white.png');
     
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
@@ -229,6 +230,16 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
             </div>
 
             <div className="relative w-full max-w-xs mx-auto">
+              {/* Layer 1: White silhouette for the glow to sit on */}
+              <Image
+                src={whiteBodyImageUrl}
+                alt={`${bodyType} body silhouette`}
+                width={400}
+                height={711}
+                className="relative object-contain z-0 w-full h-auto opacity-90 blur-sm"
+                unoptimized
+              />
+               {/* Layer 2: Heatmap Glows */}
               <div className="absolute inset-0 z-10">
                 {muscleGroupsToShow.map((group) => {
                   const coords = heatmapCoordinates[bodyType]?.[group];
@@ -243,7 +254,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   } else if (group === 'lats' || group === 'abs') {
                       size = '45%';
                   } else if (group === 'shoulders') {
-                      size = '15%'; 
+                      size = '12%'; 
                   }
                   
                   const zIndex = group === 'chest' ? 11 : 10;
@@ -251,13 +262,13 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} zIndex={zIndex} bodyType={bodyType} />;
                 })}
               </div>
-              
+              {/* Layer 3: Main body outline PNG */}
               <Image
                 src={bodyImageUrl}
                 alt={`${bodyType} body ${view} view`}
                 width={400}
                 height={711}
-                className="relative object-contain z-0 w-full h-auto"
+                className="absolute inset-0 object-contain z-20 w-full h-auto"
                 unoptimized
               />
             </div>
@@ -265,3 +276,5 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     </Card>
   );
 }
+
+    
