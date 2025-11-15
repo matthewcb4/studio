@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { differenceInDays } from 'date-fns';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 
 
 // Mapping from exercise category to a simpler muscle group
@@ -217,10 +216,6 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
 
   const muscleGroupsToShow = view === 'front' ? frontMuscleGroups : backMuscleGroups;
   
-  const workedMuscleGroups = Object.entries(muscleGroupIntensities)
-      .filter(([, intensity]) => intensity > 0)
-      .map(([group]) => group);
-
   return (
     <Card>
         <CardHeader>
@@ -234,21 +229,55 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   <Button variant={view === 'front' ? 'default' : 'outline'} size="sm" onClick={() => setView('front')}>Front</Button>
                   <Button variant={view === 'back' ? 'default' : 'outline'} size="sm" onClick={() => setView('back')}>Back</Button>
               </div>
-
-              {workedMuscleGroups.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 p-2 border rounded-md">
-                    {workedMuscleGroups.map(group => (
-                        <Badge key={group} variant="secondary" className="capitalize text-white">
-                            {group.replace('_', ' ')}
-                        </Badge>
-                    ))}
-                </div>
-              )}
             </div>
 
             <div className="relative w-full max-w-xs mx-auto">
               {/* This div is a temporary fix for the image background issue */}
               <div className="absolute inset-0 bg-white z-0"></div>
+
+              <div className="absolute inset-0 z-30">
+                {muscleGroupsToShow.map((group) => {
+                  const coords = heatmapCoordinates[bodyType]?.[group];
+                  if (!coords) return null;
+                  
+                  const intensity = muscleGroupIntensities[group] || 0;
+                  if (intensity === 0) return null;
+                  
+                  const isMirrored = ['shoulders', 'biceps', 'triceps', 'quads', 'calves', 'hamstrings'].includes(group);
+
+                  const mainLabel = (
+                    <div
+                      key={`${group}-label`}
+                      className="absolute text-white text-xs font-bold pointer-events-none"
+                      style={{
+                        top: coords.top,
+                        left: coords.left,
+                        transform: 'translate(-50%, -50%)',
+                        textShadow: '0 0 3px black',
+                      }}
+                    >
+                      {group.replace('_', ' ')}
+                    </div>
+                  );
+                  
+                  const mirroredLabel = isMirrored ? (
+                    <div
+                      key={`${group}-label-mirrored`}
+                      className="absolute text-white text-xs font-bold pointer-events-none capitalize"
+                      style={{
+                        top: coords.top,
+                        left: `calc(100% - ${coords.left})`,
+                        transform: 'translate(-50%, -50%)',
+                        textShadow: '0 0 3px black',
+                      }}
+                    >
+                      {group.replace('_', ' ')}
+                    </div>
+                  ) : null;
+
+                  return <React.Fragment key={`${group}-labels`}>{mainLabel}{mirroredLabel}</React.Fragment>;
+                })}
+              </div>
 
               <div className="absolute inset-0 z-10">
                 {muscleGroupsToShow.map((group) => {
