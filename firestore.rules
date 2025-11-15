@@ -59,10 +59,12 @@ service cloud.firestore {
       
       /**
        * @description Manages the user's preferences for specific exercises (e.g., linked video).
-       * @path /users/{userId}/exercisePreferences/{exerciseId}
+       * This rule allows the owner to list their own preferences.
+       * @path /users/{userId}/exercisePreferences
        */
       match /exercisePreferences/{exerciseId} {
-        allow get, list, create, update, delete: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow get, create, update, delete: if isOwner(userId);
       }
 
       /**
