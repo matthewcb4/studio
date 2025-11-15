@@ -40,7 +40,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '35%', left: '50%' },
-    triceps: { top: '28%', left: '65%' },
+    triceps: { top: '30%', left: '65%' },
     glutes: { top: '50%', left: '50%' },
     hamstrings: { top: '65%', left: '50%' },
     calves: { top: '80%', left: '50%' },
@@ -48,15 +48,15 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
   Female: {
     // Front - Refined coordinates
-    shoulders: { top: '21%', left: '39%' },
+    shoulders: { top: '24%', left: '39%' },
     chest: { top: '29%', left: '50%' },
     abs: { top: '41%', left: '50%' },
-    biceps: { top: '25%', left: '31%' },
+    biceps: { top: '28%', left: '31%' },
     quads: { top: '60%', left: '43%' },
     // Back
     traps: { top: '24%', left: '50%' },
     lats: { top: '34%', left: '50%' },
-    triceps: { top: '24%', left: '66%' },
+    triceps: { top: '29%', left: '68%' },
     glutes: { top: '51%', left: '50%' },
     hamstrings: { top: '63%', left: '50%' },
     calves: { top: '78%', left: '45%' },
@@ -202,7 +202,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
   };
   const backViewImages = {
     Male: "https://raw.githubusercontent.com/matthewcb4/public_resources/aee947f98314b7824d7d4f92e3b6a9e3b6391acd/Male_Back.png",
-    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/b6a8eafeeab740d594645123591f4a1aa2cd2aee/Female_Back.png"
+    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female_Back.png"
   };
   
   const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
