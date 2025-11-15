@@ -58,6 +58,7 @@ import {
   deleteDocumentNonBlocking,
   useMemoFirebase,
   setDocumentNonBlocking,
+  useFirebase,
 } from '@/firebase';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
