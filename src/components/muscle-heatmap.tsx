@@ -202,7 +202,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
   };
   const backViewImages = {
     Male: "https://raw.githubusercontent.com/matthewcb4/public_resources/aee947f98314b7824d7d4f92e3b6a9e3b6391acd/Male_Back.png",
-    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/e9bc4742a2b0e68196f4e3573c3a06f022416b24/Female_Back.png"
+    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/b6a8eafeeab740d594645123591f4a1aa2cd2aee/Female_Back.png"
   };
   
   const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
