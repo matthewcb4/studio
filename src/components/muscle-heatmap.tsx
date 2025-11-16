@@ -54,7 +54,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     // Back
     traps: { top: '25%', left: '50%' },
     lats: { top: '34%', left: '50%' },
-    triceps: { top: '28%', left: '64%' },
+    triceps: { top: '30%', left: '66%' },
     glutes: { top: '51%', left: '50%' },
     hamstrings: { top: '68%', left: '50%' },
     calves: { top: '78%', left: '45%' },
@@ -204,7 +204,6 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
   };
   
   const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
-  const whiteBodyImageUrl = bodyImageUrl.replace('_black.png', '_white.png').replace('.png', '_white.png');
     
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
@@ -230,15 +229,20 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
             </div>
 
             <div className="relative w-full max-w-xs mx-auto">
-              {/* Layer 1: White silhouette for the glow to sit on */}
+              {/* This image is invisible but sets the container's aspect ratio */}
               <Image
-                src={whiteBodyImageUrl}
-                alt={`${bodyType} body silhouette`}
+                src={bodyImageUrl}
+                alt=""
                 width={400}
                 height={711}
-                className="relative object-contain z-0 w-full h-auto opacity-90 blur-sm"
+                className="relative object-contain w-full h-auto invisible"
                 unoptimized
+                aria-hidden="true"
               />
+
+              {/* Layer 1: White Background */}
+              <div className="absolute inset-0 bg-white z-0"></div>
+
                {/* Layer 2: Heatmap Glows */}
               <div className="absolute inset-0 z-10">
                 {muscleGroupsToShow.map((group) => {
@@ -246,7 +250,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   if (!coords) return null;
                   
                   const intensity = muscleGroupIntensities[group] || 0;
-                  if (intensity === 0) return null; // Don't render if no intensity
+                  if (intensity === 0) return null;
                   
                   let size = '18%';
                   if (group === 'glutes' || group === 'quads') {
@@ -254,7 +258,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
                   } else if (group === 'lats' || group === 'abs') {
                       size = '45%';
                   } else if (group === 'shoulders') {
-                      size = '12%'; 
+                      size = '10%'; 
                   }
                   
                   const zIndex = group === 'chest' ? 11 : 10;
@@ -276,5 +280,3 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     </Card>
   );
 }
-
-    
