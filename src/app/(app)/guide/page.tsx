@@ -17,13 +17,24 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment, Exercise, WorkoutLog } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
+import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
+import { format, parseISO, isToday } from 'date-fns';
 
 const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Obliques", "Legs", "Shoulders", "Triceps"];
 
@@ -76,6 +87,11 @@ export default function GuidePage() {
   
   const { data: workoutLogs } = useCollection<WorkoutLog>(workoutLogsQuery);
 
+  const userProfileRef = useMemoFirebase(() => 
+    user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+  , [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -87,6 +103,11 @@ export default function GuidePage() {
       focusOnSupersets: false,
     },
   });
+
+  const hasUsedAiToday = useMemo(() => {
+    if (!userProfile?.lastAiWorkoutDate) return false;
+    return isToday(new Date(userProfile.lastAiWorkoutDate));
+  }, [userProfile]);
   
   useEffect(() => {
     if (userEquipment && userEquipment.length > 0) {
@@ -117,6 +138,9 @@ export default function GuidePage() {
         workoutHistory: history,
       });
       setGeneratedWorkout(result);
+      if (userProfileRef) {
+        setDocumentNonBlocking(userProfileRef, { lastAiWorkoutDate: new Date().toISOString() }, { merge: true });
+      }
     } catch (error) {
       console.error('Failed to generate workout:', error);
       toast({
@@ -175,14 +199,18 @@ export default function GuidePage() {
       };
 
       const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
-      await addDocumentNonBlocking(workoutsCollection, workoutData);
+      const newDocRef = await addDocumentNonBlocking(workoutsCollection, workoutData);
 
       toast({
         title: "Workout Saved!",
-        description: `"${generatedWorkout.workoutName}" has been added to your workouts.`,
+        description: `"${generatedWorkout.workoutName}" has been added. Now navigating to edit.`,
       });
       
-      router.push('/workouts');
+      if (newDocRef) {
+        router.push(`/workouts?edit=${newDocRef.id}`);
+      } else {
+        router.push('/workouts');
+      }
 
     } catch (error) {
         console.error("Failed to save workout:", error);
@@ -426,19 +454,39 @@ export default function GuidePage() {
                   )}
                 />
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Generating...
-                        </>
-                    ) : (
-                        <>
-                            <Wand2 className="mr-2 h-4 w-4" />
-                            Generate Workout
-                        </>
-                    )}
-                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                         <Button type="button" className="w-full" disabled={isLoading || hasUsedAiToday}>
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Generating...
+                                </>
+                            ) : hasUsedAiToday ? (
+                                'Daily AI workout already generated'
+                            ): (
+                                <>
+                                    <Wand2 className="mr-2 h-4 w-4" />
+                                    Generate Workout
+                                </>
+                            )}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Generate AI Workout?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                You can generate one AI-powered workout per day. This action will use your daily credit.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={form.handleSubmit(onSubmit)}>
+                                Continue
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
                 </form>
             </Form>
             </CardContent>
@@ -505,7 +553,7 @@ export default function GuidePage() {
                           ) : (
                               <>
                                   <PlusCircle className="mr-2 h-4 w-4" />
-                                  Save this workout
+                                  Save and Edit Workout
                               </>
                           )}
                         </Button>
@@ -517,3 +565,5 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    

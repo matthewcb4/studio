@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -27,11 +27,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format, isWithinInterval, subDays } from "date-fns";
-import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
+import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp, Star } from "lucide-react";
 import { MuscleHeatmap } from "@/components/muscle-heatmap";
+import { OnboardingModal } from "@/components/onboarding-modal";
 
 const parseDuration = (duration: string): number => {
     const parts = duration.split(':');
@@ -158,6 +159,7 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('7');
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const customWorkoutsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -176,6 +178,19 @@ export default function DashboardPage() {
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
   , [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+  useEffect(() => {
+    if (userProfile && !userProfile.hasCompletedOnboarding) {
+        setShowOnboarding(true);
+    }
+  }, [userProfile]);
+
+  const handleOnboardingComplete = () => {
+    if (userProfileRef) {
+        setDocumentNonBlocking(userProfileRef, { hasCompletedOnboarding: true }, { merge: true });
+    }
+    setShowOnboarding(false);
+  };
 
   const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
 
@@ -215,6 +230,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4 md:gap-8">
+        <OnboardingModal isOpen={showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
         <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <div className="w-[180px]">
@@ -347,3 +363,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

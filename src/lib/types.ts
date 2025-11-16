@@ -1,4 +1,5 @@
 
+
 export type Exercise = {
   id: string;
   name: string;
@@ -63,6 +64,8 @@ export type UserProfile = {
     muscleGoal?: string;
     fatLossGoal?: string;
     biologicalSex?: 'Male' | 'Female';
+    lastAiWorkoutDate?: string; // ISO string
+    hasCompletedOnboarding?: boolean;
 }
 
 export type ProgressLog = {
@@ -71,3 +74,5 @@ export type ProgressLog = {
   date: string; // ISO string
   weight: number;
 };
+
+    
