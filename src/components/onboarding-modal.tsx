@@ -70,7 +70,7 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
                 {onboardingSteps.map((step, index) => (
                 <CarouselItem key={index}>
                     <div className="p-1">
-                        <div className="flex h-[300px] items-center justify-center p-6 flex-col gap-4 text-center">
+                        <div className="flex items-center justify-center p-6 flex-col gap-4 text-center">
                             <step.icon className="w-16 h-16 text-primary" />
                             <h3 className="text-xl font-semibold">{step.title}</h3>
                             <p className="text-muted-foreground">{step.description}</p>
