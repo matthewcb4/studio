@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -157,6 +158,7 @@ function ProgressSummaryCard() {
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('7');
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -190,6 +192,7 @@ export default function DashboardPage() {
         setDocumentNonBlocking(userProfileRef, { hasCompletedOnboarding: true }, { merge: true });
     }
     setShowOnboarding(false);
+    router.push('/settings');
   };
 
   const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
@@ -229,138 +232,140 @@ export default function DashboardPage() {
   }, [dateRange]);
 
   return (
-    <div className="flex flex-col gap-4 md:gap-8">
+    <>
         <OnboardingModal isOpen={showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
-        <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <div className="w-[180px]">
-                <Select value={dateRange} onValueChange={setDateRange}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Time range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="1">Last 24 hours</SelectItem>
-                        <SelectItem value="3">Last 3 days</SelectItem>
-                        <SelectItem value="7">Last 7 days</SelectItem>
-                        <SelectItem value="14">Last 14 days</SelectItem>
-                        <SelectItem value="30">Last 30 days</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Card className="lg:col-span-2">
-            <CardHeader>
-                <CardTitle>Start Workout</CardTitle>
-                <CardDescription>
-                Select one of your custom workouts to begin a session.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex flex-col gap-4">
-                <Select onValueChange={setSelectedWorkoutId} disabled={isLoadingWorkouts}>
-                    <SelectTrigger>
-                    <SelectValue placeholder={isLoadingWorkouts ? "Loading..." : "Select a workout"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                    {customWorkouts?.map((workout) => (
-                        <SelectItem key={workout.id} value={workout.id}>
-                        {workout.name}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <Button asChild disabled={!selectedWorkoutId}>
-                    <Link href={selectedWorkoutId ? `/workout/${selectedWorkoutId}` : '#'}>Start Session</Link>
-                </Button>
+        <div className="flex flex-col gap-4 md:gap-8">
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold">Dashboard</h1>
+                <div className="w-[180px]">
+                    <Select value={dateRange} onValueChange={setDateRange}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Time range" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="1">Last 24 hours</SelectItem>
+                            <SelectItem value="3">Last 3 days</SelectItem>
+                            <SelectItem value="7">Last 7 days</SelectItem>
+                            <SelectItem value="14">Last 14 days</SelectItem>
+                            <SelectItem value="30">Last 30 days</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-            </CardContent>
-            </Card>
+            </div>
 
-            {hasData ? (
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle>Workouts</CardTitle>
-                        <CardDescription>{dateRangeLabel}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold">{dashboardStats.workouts}</div>
-                    </CardContent>
-                </Card>
-            ) : (
-                <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
-                    <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <CardTitle className="mt-4">No Workout Data</CardTitle>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Card className="lg:col-span-2">
+                <CardHeader>
+                    <CardTitle>Start Workout</CardTitle>
                     <CardDescription>
-                        Complete a workout to see your stats.
+                    Select one of your custom workouts to begin a session.
                     </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col gap-4">
+                    <Select onValueChange={setSelectedWorkoutId} disabled={isLoadingWorkouts}>
+                        <SelectTrigger>
+                        <SelectValue placeholder={isLoadingWorkouts ? "Loading..." : "Select a workout"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {customWorkouts?.map((workout) => (
+                            <SelectItem key={workout.id} value={workout.id}>
+                            {workout.name}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <Button asChild disabled={!selectedWorkoutId}>
+                        <Link href={selectedWorkoutId ? `/workout/${selectedWorkoutId}` : '#'}>Start Session</Link>
+                    </Button>
+                    </div>
+                </CardContent>
                 </Card>
-            )}
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-            <ProgressSummaryCard />
+                {hasData ? (
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle>Workouts</CardTitle>
+                            <CardDescription>{dateRangeLabel}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-4xl font-bold">{dashboardStats.workouts}</div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
+                        <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <CardTitle className="mt-4">No Workout Data</CardTitle>
+                        <CardDescription>
+                            Complete a workout to see your stats.
+                        </CardDescription>
+                    </Card>
+                )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+                <ProgressSummaryCard />
+                
+                {hasData && (
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle>Total Volume</CardTitle>
+                            <CardDescription>{dateRangeLabel}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
             
-            {hasData && (
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle>Total Volume</CardTitle>
-                        <CardDescription>{dateRangeLabel}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
-                    </CardContent>
-                </Card>
-            )}
-        </div>
-        
-       <MuscleHeatmap 
-          userProfile={userProfile} 
-          thisWeeksLogs={filteredLogs} 
-          isLoading={isLoadingLogs}
-          dateRangeLabel={dateRangeLabel}
-        />
+           <MuscleHeatmap 
+              userProfile={userProfile} 
+              thisWeeksLogs={filteredLogs} 
+              isLoading={isLoadingLogs}
+              dateRangeLabel={dateRangeLabel}
+            />
 
-        <Card>
-            <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-                A log of your most recent workouts.
-            </CardDescription>
-            </CardHeader>
-            <CardContent>
-            <Table>
-                <TableHeader>
-                <TableRow>
-                    <TableHead>Workout</TableHead>
-                    <TableHead className="hidden sm:table-cell">Date</TableHead>
-                    <TableHead className="hidden sm:table-cell">Rating</TableHead>
-                    <TableHead className="text-right">Total Volume</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {isLoadingLogs && <TableRow><TableCell colSpan={4} className="text-center">Loading recent activity...</TableCell></TableRow>}
-                {!isLoadingLogs && recentLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No recent workouts found.</TableCell></TableRow>}
-                {recentLogs.map((log) => (
-                    <TableRow key={log.id}>
-                    <TableCell>
-                        <div className="font-medium">{log.workoutName}</div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                        {format(new Date(log.date), "PPP")}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                        {log.rating ? <StarRating rating={log.rating} /> : <span className="text-xs text-muted-foreground">N/A</span>}
-                    </TableCell>
-                    <TableCell className="text-right">{log.volume.toLocaleString()} lbs</TableCell>
+            <Card>
+                <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>
+                    A log of your most recent workouts.
+                </CardDescription>
+                </CardHeader>
+                <CardContent>
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Workout</TableHead>
+                        <TableHead className="hidden sm:table-cell">Date</TableHead>
+                        <TableHead className="hidden sm:table-cell">Rating</TableHead>
+                        <TableHead className="text-right">Total Volume</TableHead>
                     </TableRow>
-                ))}
-                </TableBody>
-            </Table>
-            </CardContent>
-        </Card>
-    </div>
+                    </TableHeader>
+                    <TableBody>
+                    {isLoadingLogs && <TableRow><TableCell colSpan={4} className="text-center">Loading recent activity...</TableCell></TableRow>}
+                    {!isLoadingLogs && recentLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No recent workouts found.</TableCell></TableRow>}
+                    {recentLogs.map((log) => (
+                        <TableRow key={log.id}>
+                        <TableCell>
+                            <div className="font-medium">{log.workoutName}</div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                            {format(new Date(log.date), "PPP")}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                            {log.rating ? <StarRating rating={log.rating} /> : <span className="text-xs text-muted-foreground">N/A</span>}
+                        </TableCell>
+                        <TableCell className="text-right">{log.volume.toLocaleString()} lbs</TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+                </CardContent>
+            </Card>
+        </div>
+    </>
   );
 }
 
