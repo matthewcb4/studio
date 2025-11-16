@@ -11,9 +11,14 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#000',
     icons: [
       {
-        src: '/favicon.ico',
-        sizes: 'any',
-        type: 'image/x-icon',
+        src: 'https://raw.githubusercontent.com/matthewcb4/public_resources/481c0c57077c43a2a965c8531eb3fc1d60863e07/icon.png',
+        sizes: '192x192',
+        type: 'image/png',
+      },
+      {
+        src: 'https://raw.githubusercontent.com/matthewcb4/public_resources/481c0c57077c43a2a965c8531eb3fc1d60863e07/icon.png',
+        sizes: '512x512',
+        type: 'image/png',
       },
     ],
   }
