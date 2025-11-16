@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react';
 
 const Logo = (props: SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 700 700" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+  <svg viewBox="250 250 450 450" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
     <defs>
       <linearGradient id="heatmapLinesGradient" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#00C0FF"/>
