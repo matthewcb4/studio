@@ -11,11 +11,13 @@ const Logo = (props: SVGProps<SVGSVGElement>) => (
     strokeLinejoin="round"
     {...props}
   >
-    <path d="M4 6h16" />
-    <path d="M12 6v12" />
-    <path d="M8 18h8" />
-    <path d="M4 6v0a2 2 0 01-2-2V4a2 2 0 012-2h0a2 2 0 012 2v0" />
-    <path d="M20 6v0a2 2 0 002-2V4a2 2 0 00-2-2h0a2 2 0 00-2 2v0" />
+    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z" />
+    <path d="M12 12H8" />
+    <path d="M16 12h-4" />
+    <path d="M12 8v8" />
+    <path d="M16 16h-4" />
+    <path d="M10 8h-1.5" />
+    <path d="m9 10-1-2" />
   </svg>
 );
 
