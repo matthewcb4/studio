@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -154,7 +155,7 @@ function MobileNav() {
                     <SheetDescription className="sr-only">Main navigation links for the application.</SheetDescription>
                     <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2">
                         <Logo className="h-6 w-6" />
-                        <span>fOrganized</span>
+                        <span>Tonal Tracker</span>
                     </Link>
                 </SheetHeader>
                 <SidebarContent className="p-2">
@@ -193,7 +194,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarHeader>
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2">
                 <Logo className="h-6 w-6" />
-                <span className="group-data-[collapsible=icon]:hidden">fOrganized</span>
+                <span className="group-data-[collapsible=icon]:hidden">Tonal Tracker</span>
             </Link>
           </SidebarHeader>
           <SidebarContent>

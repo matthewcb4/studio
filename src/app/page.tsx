@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -71,7 +72,7 @@ export default function LoginPage() {
           <div className="grid gap-2 text-center">
             <div className="flex justify-center items-center gap-2 mb-4">
               <Logo className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold">fOrganized</h1>
+              <h1 className="text-3xl font-bold">Tonal Tracker</h1>
             </div>
             <p className="text-balance text-muted-foreground">
               Enter your email below to login to your account

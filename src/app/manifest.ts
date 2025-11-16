@@ -1,9 +1,10 @@
+
 import { MetadataRoute } from 'next'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'fOrganized',
-    short_name: 'fOrganized',
+    name: 'Tonal Tracker',
+    short_name: 'Tonal Tracker',
     description: 'Track your workouts with ease.',
     start_url: '/',
     display: 'standalone',

@@ -60,7 +60,7 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="text-center text-2xl">Welcome to fOrganized!</DialogTitle>
+          <DialogTitle className="text-center text-2xl">Welcome to Tonal Tracker!</DialogTitle>
           <DialogDescription className="text-center">
             Here’s a quick tour to get you started.
           </DialogDescription>
@@ -70,7 +70,7 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
                 {onboardingSteps.map((step, index) => (
                 <CarouselItem key={index}>
                     <div className="p-1">
-                        <div className="flex aspect-square items-center justify-center p-6 flex-col gap-4 text-center">
+                        <div className="flex h-[300px] items-center justify-center p-6 flex-col gap-4 text-center">
                             <step.icon className="w-16 h-16 text-primary" />
                             <h3 className="text-xl font-semibold">{step.title}</h3>
                             <p className="text-muted-foreground">{step.description}</p>
@@ -89,5 +89,3 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
     </Dialog>
   );
 }
-
-    

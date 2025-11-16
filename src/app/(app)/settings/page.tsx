@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-
+import { findExerciseVideo } from '@/ai/flows/find-exercise-video-flow';
+import Image from 'next/image';
 
 const equipmentFormSchema = z.object({
   name: z.string().min(2, { message: 'Equipment name must be at least 2 characters.' }),
@@ -59,6 +60,9 @@ export default function SettingsPage() {
   const [isSubmittingGoals, setIsSubmittingGoals] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [exerciseFilter, setExerciseFilter] = useState('');
+  const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: any[] }>({ exerciseId: '', videos: [] });
+  const [isFindingVideo, setIsFindingVideo] = useState(false);
+
 
   const equipmentCollection = useMemoFirebase(() => 
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -227,39 +231,36 @@ export default function SettingsPage() {
     toast({ title: 'Exercise Removed' });
   };
 
-  const handleVideoIdChange = (masterExerciseId: string, urlOrId: string) => {
-    if (!masterExerciseId || !user) return;
-
-    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
-    const match = urlOrId.match(youtubeRegex);
-    const videoId = match ? match[1] : (urlOrId.length === 11 ? urlOrId : null);
-
+ const handleSelectVideo = (masterExerciseId: string, videoId: string) => {
+    if (!user) return;
     const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
+    setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
+    toast({
+        title: "Video Preference Saved",
+        description: `Video linked for this exercise.`
+    });
+    setVideoResults({ exerciseId: '', videos: [] }); // Close dialog
+  };
 
-    if (videoId) {
-        setDocumentNonBlocking(preferenceDocRef, { videoId, userId: user.uid }, { merge: true });
-        toast({
-            title: "Video Preference Saved",
-            description: `Video linked for this exercise.`
-        });
-    } else if (urlOrId === '') { // Allow clearing the video
-        setDocumentNonBlocking(preferenceDocRef, { videoId: null, userId: user.uid }, { merge: true });
-        toast({ title: "Video Preference Cleared" });
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Invalid YouTube ID",
-            description: "Please paste a valid 11-character YouTube video ID or a full URL."
-        });
+  const handleFindVideo = async (exerciseId: string, exerciseName: string) => {
+    if (!exerciseName) return;
+    setIsFindingVideo(true);
+    setVideoResults({ exerciseId, videos: [] });
+    try {
+        const result = await findExerciseVideo({ exerciseName });
+        if (result.videos && result.videos.length > 0) {
+            setVideoResults({ exerciseId, videos: result.videos });
+        } else {
+            toast({ variant: "destructive", title: "No Videos Found", description: "The AI couldn't find any suitable videos for this exercise." });
+        }
+    } catch (error) {
+        console.error("Error finding video:", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Could not find videos at this time." });
+    } finally {
+        setIsFindingVideo(false);
     }
   };
 
-  const handleFindVideo = (exerciseName: string) => {
-    if (!exerciseName) return;
-    const query = encodeURIComponent(`how to do ${exerciseName} #shorts`);
-    const url = `https://www.youtube.com/results?search_query=${query}`;
-    window.open(url, '_blank');
-  };
 
   return (
     <div className="flex flex-col gap-8 max-w-2xl mx-auto">
@@ -547,6 +548,29 @@ export default function SettingsPage() {
 
                 <Separator />
 
+                 <AlertDialog open={videoResults.videos.length > 0} onOpenChange={() => setVideoResults({ exerciseId: '', videos: [] })}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Select a Video</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Choose a video to link to this exercise.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
+                            {videoResults.videos.map(video => (
+                                <button key={video.videoId} onClick={() => handleSelectVideo(videoResults.exerciseId, video.videoId)} className="text-left space-y-2 hover:bg-secondary p-2 rounded-lg">
+                                    <Image src={video.thumbnailUrl} alt={video.title} width={170} height={94} className="rounded-md w-full" />
+                                    <p className="text-xs font-medium line-clamp-2">{video.title}</p>
+                                </button>
+                            ))}
+                        </div>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+
                 <div className="space-y-4">
                     <h4 className="font-medium mb-2">Exercise List</h4>
                     <Input 
@@ -568,8 +592,14 @@ export default function SettingsPage() {
                                         <p className="text-xs text-muted-foreground">{item.category}</p>
                                     </div>
                                     <div className="flex items-center">
-                                        <Button variant="outline" size="sm" className="mr-2" onClick={() => handleFindVideo(item.name)}>
-                                            <Youtube className="h-4 w-4" />
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="mr-2"
+                                          onClick={() => handleFindVideo(item.id, item.name)}
+                                          disabled={isFindingVideo && videoResults.exerciseId === item.id}
+                                        >
+                                          {isFindingVideo && videoResults.exerciseId === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
                                         </Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
@@ -599,7 +629,7 @@ export default function SettingsPage() {
                                         className="mt-1 h-8 text-sm"
                                         placeholder="Paste YouTube URL or ID"
                                         defaultValue={preference?.videoId || ''}
-                                        onBlur={(e) => handleVideoIdChange(item.id, e.target.value)}
+                                        onBlur={(e) => handleSelectVideo(item.id, e.target.value)}
                                     />
                                 </div>
                             </div>

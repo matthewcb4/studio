@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -94,7 +95,7 @@ export default function SignupPage() {
           <div className="grid gap-2 text-center">
              <div className="flex justify-center items-center gap-2 mb-4">
               <Logo className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold">fOrganized</h1>
+              <h1 className="text-3xl font-bold">Tonal Tracker</h1>
             </div>
             <h2 className="text-2xl font-bold">Create an account</h2>
             <p className="text-balance text-muted-foreground">

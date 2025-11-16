@@ -1,11 +1,12 @@
+
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 
-const APP_NAME = "fOrganized";
-const APP_DEFAULT_TITLE = "fOrganized";
-const APP_TITLE_TEMPLATE = "%s - fOrganized";
+const APP_NAME = "Tonal Tracker";
+const APP_DEFAULT_TITLE = "Tonal Tracker";
+const APP_TITLE_TEMPLATE = "%s - Tonal Tracker";
 const APP_DESCRIPTION = "Track your workouts with ease.";
 
 
