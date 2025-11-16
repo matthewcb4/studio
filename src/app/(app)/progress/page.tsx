@@ -81,12 +81,6 @@ export default function ProgressPage() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | undefined>(undefined);
   const [isSubmittingWeight, setIsSubmittingWeight] = useState(false);
 
-  useEffect(() => {
-    if (!selectedExerciseId && masterExercises && masterExercises.length > 0) {
-        setSelectedExerciseId(masterExercises[0].id);
-    }
-  }, [masterExercises, selectedExerciseId])
-
   const workoutLogsQuery = useMemoFirebase(
     () => {
       if (!user) return null;
@@ -112,6 +106,26 @@ export default function ProgressPage() {
   );
   const { data: progressLogs, isLoading: isLoadingProgressLogs } =
     useCollection<ProgressLog>(progressLogsQuery);
+    
+  const loggedExercises = useMemo(() => {
+    if (!workoutLogs || !masterExercises) return [];
+    
+    const loggedExerciseIds = new Set<string>();
+    workoutLogs.forEach(log => {
+      log.exercises.forEach(ex => {
+        loggedExerciseIds.add(ex.exerciseId);
+      });
+    });
+
+    return masterExercises.filter(ex => loggedExerciseIds.has(ex.id));
+  }, [workoutLogs, masterExercises]);
+
+
+  useEffect(() => {
+    if (!selectedExerciseId && loggedExercises && loggedExercises.length > 0) {
+        setSelectedExerciseId(loggedExercises[0].id);
+    }
+  }, [loggedExercises, selectedExerciseId])
 
   const weightForm = useForm<z.infer<typeof weightLogSchema>>({
     resolver: zodResolver(weightLogSchema),
@@ -335,13 +349,13 @@ export default function ProgressPage() {
                   <Select
                     value={selectedExerciseId}
                     onValueChange={setSelectedExerciseId}
-                    disabled={isLoadingExercises || !masterExercises}
+                    disabled={isLoadingExercises || !loggedExercises}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select an exercise" />
                     </SelectTrigger>
                     <SelectContent>
-                      {masterExercises?.map((exercise) => (
+                      {loggedExercises?.map((exercise) => (
                         <SelectItem key={exercise.id} value={exercise.id}>
                           {exercise.name}
                         </SelectItem>
@@ -401,9 +415,10 @@ export default function ProgressPage() {
                       <CardHeader className="text-center">
                         <CardTitle>No Data Available</CardTitle>
                         <CardDescription>
-                          No workout logs found for {selectedExerciseName}.
-                          Complete a workout with this exercise to see your
-                          progress.
+                          {loggedExercises.length > 0 ?
+                            `No workout logs found for ${selectedExerciseName}. Complete a workout with this exercise to see your progress.` :
+                            "Log a workout to see your exercise performance here."
+                          }
                         </CardDescription>
                       </CardHeader>
                     </div>
