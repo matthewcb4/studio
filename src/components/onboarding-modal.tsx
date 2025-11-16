@@ -58,18 +58,18 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-center text-xl">Welcome to fOrganized!</DialogTitle>
           <DialogDescription className="text-center">
             Here’s a quick tour to get you started.
           </DialogDescription>
         </DialogHeader>
-        <Carousel className="w-full">
+        <Carousel className="w-full max-w-xs mx-auto">
             <CarouselContent>
                 {onboardingSteps.map((step, index) => (
-                <CarouselItem key={index} className="p-6 text-center">
-                    <div className="flex flex-col items-center justify-center gap-4">
+                <CarouselItem key={index}>
+                    <div className="flex flex-col items-center justify-center text-center p-6 gap-4">
                         <step.icon className="w-16 h-16 text-primary" />
                         <h3 className="text-lg font-semibold">{step.title}</h3>
                         <p className="text-sm text-muted-foreground">{step.description}</p>
