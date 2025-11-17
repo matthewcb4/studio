@@ -4,6 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell, Youtube, FileText } from 'lucide-react';
@@ -11,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
-import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
+import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteUser } from '@/firebase';
 import { collection, doc, writeBatch, query, orderBy } from 'firebase/firestore';
 import type { UserEquipment, UserProfile, Exercise, UserExercisePreference } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -56,10 +57,12 @@ export default function SettingsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const [isSubmittingEquipment, setIsSubmittingEquipment] = useState(false);
   const [isSubmittingExercise, setIsSubmittingExercise] = useState(false);
   const [isSubmittingGoals, setIsSubmittingGoals] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [exerciseFilter, setExerciseFilter] = useState('');
   const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: any[] }>({ exerciseId: '', videos: [] });
   const [isFindingVideo, setIsFindingVideo] = useState(false);
@@ -232,7 +235,7 @@ export default function SettingsPage() {
     toast({ title: 'Exercise Removed' });
   };
 
- const handleSelectVideo = (masterExerciseId: string, videoId: string) => {
+  const handleSelectVideo = (masterExerciseId: string, videoId: string) => {
     if (!user) return;
     const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
     setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
@@ -259,6 +262,28 @@ export default function SettingsPage() {
         toast({ variant: "destructive", title: "AI Error", description: "Could not find videos at this time." });
     } finally {
         setIsFindingVideo(false);
+    }
+  };
+
+  const handleAccountDelete = async () => {
+    if (!user) return;
+    setIsDeletingAccount(true);
+    try {
+        await deleteUser(user);
+        toast({
+            title: "Account Deleted",
+            description: "Your account and all associated data have been deleted."
+        });
+        router.push('/');
+    } catch (error: any) {
+        console.error("Error deleting account:", error);
+        toast({
+            variant: "destructive",
+            title: "Deletion Failed",
+            description: error.message || "An error occurred. You may need to sign in again to delete your account.",
+        });
+    } finally {
+        setIsDeletingAccount(false);
     }
   };
 
@@ -660,6 +685,46 @@ export default function SettingsPage() {
 
                 </CardContent>
             </AccordionContent>
+            </Card>
+        </AccordionItem>
+        <AccordionItem value="account" className="border-none">
+            <Card>
+                <AccordionTrigger className="p-6 text-left">
+                    <div className="flex items-center gap-3">
+                        <UserIcon className="w-6 h-6 text-destructive" />
+                        <div>
+                            <CardTitle className="text-destructive">Account</CardTitle>
+                            <CardDescription className="mt-1.5 text-left">
+                                Permanently delete your account and all associated data.
+                            </CardDescription>
+                        </div>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <CardContent>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive">Delete Account</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete your
+                                        account and remove all of your data from our servers.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleAccountDelete} disabled={isDeletingAccount}>
+                                        {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                        Continue
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </CardContent>
+                </AccordionContent>
             </Card>
         </AccordionItem>
          <AccordionItem value="legal" className="border-none">
