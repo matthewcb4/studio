@@ -2,7 +2,7 @@
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { FirebaseClientProvider } from '@/firebase';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 const APP_NAME = "fRepo";
 const APP_DEFAULT_TITLE = "fRepo";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     template: APP_TITLE_TEMPLATE,
   },
   description: APP_DESCRIPTION,
-  manifest: "/manifest.ts",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -54,3 +54,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

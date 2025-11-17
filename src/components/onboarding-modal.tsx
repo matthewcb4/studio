@@ -69,7 +69,7 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
             <CarouselContent>
                 {onboardingSteps.map((step, index) => (
                 <CarouselItem key={index}>
-                    <div className="flex flex-col items-center justify-center text-center p-6 gap-4">
+                    <div className="flex flex-col items-center justify-center text-center p-1 gap-4 h-64">
                         <step.icon className="w-16 h-16 text-primary" />
                         <h3 className="text-lg font-semibold">{step.title}</h3>
                         <p className="text-sm text-muted-foreground">{step.description}</p>
@@ -87,3 +87,5 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
     </Dialog>
   );
 }
+
+    

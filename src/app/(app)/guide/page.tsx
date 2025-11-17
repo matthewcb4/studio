@@ -170,7 +170,7 @@ export default function GuidePage() {
           if (querySnapshot.empty) {
             const newExerciseDocRef = doc(masterExercisesRef); // Auto-generate ID
             // Use the category from the AI, not a generic one.
-            const newExercise: Omit<Exercise, 'id' | 'videoId'> = {
+            const newExercise: Omit<Exercise, 'id' > = {
               name: ex.name,
               category: ex.category,
             };
@@ -186,7 +186,6 @@ export default function GuidePage() {
             exerciseName: ex.name,
             sets: parseInt(ex.sets.split('-')[0]),
             reps: ex.reps,
-            videoId: null,
             supersetId: ex.supersetId,
           };
         })
