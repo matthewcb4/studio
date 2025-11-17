@@ -172,6 +172,15 @@ export default function SignupPage() {
               Sign in
             </Link>
           </div>
+           <div className="mt-6 text-center text-xs">
+            <Link href="/terms" className="underline text-muted-foreground">
+              Terms of Service
+            </Link>
+            {' '} | {' '}
+            <Link href="/privacy" className="underline text-muted-foreground">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </div>

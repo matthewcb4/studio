@@ -3,9 +3,10 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
+import Link from 'next/link';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell, Youtube } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell, Youtube, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -657,6 +658,35 @@ export default function SettingsPage() {
                     </Button>
                 </div>
 
+                </CardContent>
+            </AccordionContent>
+            </Card>
+        </AccordionItem>
+         <AccordionItem value="legal" className="border-none">
+            <Card>
+            <AccordionTrigger className="p-6 text-left">
+                <div className="flex items-center gap-3">
+                    <FileText className="w-6 h-6 text-primary" />
+                    <div>
+                        <CardTitle>Legal</CardTitle>
+                        <CardDescription className="mt-1.5 text-left">
+                            View the Terms of Service and Privacy Policy.
+                        </CardDescription>
+                    </div>
+                </div>
+            </AccordionTrigger>
+            <AccordionContent>
+                <CardContent className="space-y-4">
+                   <Link href="/terms" passHref>
+                        <Button variant="outline" className="w-full justify-start">
+                            Terms of Service
+                        </Button>
+                   </Link>
+                   <Link href="/privacy" passHref>
+                        <Button variant="outline" className="w-full justify-start">
+                            Privacy Policy
+                        </Button>
+                   </Link>
                 </CardContent>
             </AccordionContent>
             </Card>

@@ -143,6 +143,15 @@ export default function LoginPage() {
               Sign up
             </Link>
           </div>
+          <div className="mt-6 text-center text-xs">
+            <Link href="/terms" className="underline text-muted-foreground">
+              Terms of Service
+            </Link>
+            {' '} | {' '}
+            <Link href="/privacy" className="underline text-muted-foreground">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
       <div className="hidden bg-muted lg:block">
