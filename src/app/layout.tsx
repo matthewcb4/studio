@@ -4,10 +4,10 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 
-const APP_NAME = "fOrganized";
-const APP_DEFAULT_TITLE = "fOrganized";
-const APP_TITLE_TEMPLATE = "%s - fOrganized";
-const APP_DESCRIPTION = "Track your workouts with ease.";
+const APP_NAME = "fRepo";
+const APP_DEFAULT_TITLE = "fRepo";
+const APP_TITLE_TEMPLATE = "%s - fRepo";
+const APP_DESCRIPTION = "The Fitness Repository. Track your workouts with ease.";
 
 
 export const metadata: Metadata = {

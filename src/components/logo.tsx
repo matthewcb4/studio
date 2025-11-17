@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 const Logo = (props: ComponentProps<'div'>) => (
   <div {...props}>
     <Image
-      src="https://raw.githubusercontent.com/matthewcb4/public_resources/481c0c57077c43a2a965c8531eb3fc1d60863e07/icon.png"
-      alt="fOrganized Logo"
+      src="https://raw.githubusercontent.com/matthewcb4/public_resources/a7992f6720a20666e8ce3c757fa0671f45af779b/fRepo_L.png"
+      alt="fRepo Logo"
       width={400}
       height={400}
       className={cn('object-contain', props.className)}

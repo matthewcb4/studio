@@ -3,9 +3,9 @@ import { MetadataRoute } from 'next'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'fOrganized',
-    short_name: 'fOrganized',
-    description: 'Track your workouts with ease.',
+    name: 'fRepo',
+    short_name: 'fRepo',
+    description: 'The Fitness Repository. Track your workouts with ease.',
     start_url: '/',
     display: 'standalone',
     background_color: '#000',
