@@ -228,6 +228,24 @@ export default function GuidePage() {
     return groupAiExercises(generatedWorkout.exercises);
   }, [generatedWorkout]);
 
+  const GenerateWorkoutButton = () => (
+     <Button type="button" className="w-full" disabled={isLoading || hasUsedAiToday}>
+        {isLoading ? (
+            <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+            </>
+        ) : hasUsedAiToday ? (
+            'Daily AI workout already generated'
+        ): (
+            <>
+                <Wand2 className="mr-2 h-4 w-4" />
+                Generate Workout
+            </>
+        )}
+    </Button>
+  );
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center gap-4">
@@ -453,39 +471,29 @@ export default function GuidePage() {
                   )}
                 />
                 
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                         <Button type="button" className="w-full" disabled={isLoading || hasUsedAiToday}>
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generating...
-                                </>
-                            ) : hasUsedAiToday ? (
-                                'Daily AI workout already generated'
-                            ): (
-                                <>
-                                    <Wand2 className="mr-2 h-4 w-4" />
-                                    Generate Workout
-                                </>
-                            )}
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Generate AI Workout?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                You can generate one AI-powered workout per day. This action will use your daily credit.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={form.handleSubmit(onSubmit)}>
-                                Continue
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                {hasUsedAiToday ? (
+                     <GenerateWorkoutButton />
+                ) : (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <GenerateWorkoutButton />
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Generate AI Workout?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    You can generate one AI-powered workout per day. This action will use your daily credit.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => form.handleSubmit(onSubmit)()}>
+                                    Continue
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
                 </form>
             </Form>
             </CardContent>
@@ -564,5 +572,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
