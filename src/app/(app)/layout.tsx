@@ -196,6 +196,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       wb.addEventListener('waiting', promptToUpdate);
       
+      // Check if there's already a waiting service worker on page load.
+      // This handles the case where the user navigates to the page
+      // after an update has already been downloaded.
+      wb.getSW().then((sw: any) => {
+        if (sw && sw.waiting) {
+          promptToUpdate();
+        }
+      });
+      
       wb.register();
 
       return () => {
@@ -245,5 +254,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
-
-    
