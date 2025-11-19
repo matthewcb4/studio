@@ -26,3 +26,5 @@ export function UpdateNotification({ wb }: UpdateNotificationProps) {
     </ToastAction>
   );
 }
+
+    
