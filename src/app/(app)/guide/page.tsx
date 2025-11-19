@@ -18,13 +18,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
-import { format, parseISO, isToday } from 'date-fns';
+import type { UserEquipment, Exercise, WorkoutLog } from '@/lib/types';
+import { format, parseISO } from 'date-fns';
 
 const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Obliques", "Legs", "Shoulders", "Triceps"];
 
@@ -77,11 +76,6 @@ export default function GuidePage() {
   
   const { data: workoutLogs } = useCollection<WorkoutLog>(workoutLogsQuery);
 
-  const userProfileRef = useMemoFirebase(() => 
-    user ? doc(firestore, `users/${user.uid}/profile/main`) : null
-  , [firestore, user]);
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -93,11 +87,6 @@ export default function GuidePage() {
       focusOnSupersets: false,
     },
   });
-
-  const hasUsedAiToday = useMemo(() => {
-    if (!userProfile?.lastAiWorkoutDate) return false;
-    return isToday(new Date(userProfile.lastAiWorkoutDate));
-  }, [userProfile]);
   
   useEffect(() => {
     if (userEquipment && userEquipment.length > 0) {
@@ -112,15 +101,6 @@ export default function GuidePage() {
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (hasUsedAiToday) {
-        toast({
-            variant: "destructive",
-            title: "Daily Limit Reached",
-            description: "You can only generate one AI workout per day.",
-        });
-        return;
-    }
-
     setIsLoading(true);
     setGeneratedWorkout(null);
 
@@ -137,9 +117,6 @@ export default function GuidePage() {
         workoutHistory: history,
       });
       setGeneratedWorkout(result);
-      if (userProfileRef) {
-        setDocumentNonBlocking(userProfileRef, { lastAiWorkoutDate: new Date().toISOString() }, { merge: true });
-      }
     } catch (error) {
       console.error('Failed to generate workout:', error);
       toast({
@@ -452,32 +429,19 @@ export default function GuidePage() {
                   )}
                 />
                 
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="w-full">
-                                <Button type="submit" className="w-full" disabled={isLoading || hasUsedAiToday}>
-                                    {isLoading ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Generating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Wand2 className="mr-2 h-4 w-4" />
-                                            Generate Workout
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </TooltipTrigger>
-                        {hasUsedAiToday && (
-                            <TooltipContent>
-                                <p>You can generate one AI workout per day.</p>
-                            </TooltipContent>
-                        )}
-                    </Tooltip>
-                </TooltipProvider>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating...
+                        </>
+                    ) : (
+                        <>
+                            <Wand2 className="mr-2 h-4 w-4" />
+                            Generate Workout
+                        </>
+                    )}
+                </Button>
 
                 </form>
             </Form>
@@ -556,4 +520,5 @@ export default function GuidePage() {
       </div>
     </div>
   );
-}
+
+    
