@@ -17,18 +17,8 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
@@ -122,6 +112,15 @@ export default function GuidePage() {
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (hasUsedAiToday) {
+        toast({
+            variant: "destructive",
+            title: "Daily Limit Reached",
+            description: "You can only generate one AI workout per day.",
+        });
+        return;
+    }
+
     setIsLoading(true);
     setGeneratedWorkout(null);
 
@@ -248,7 +247,7 @@ export default function GuidePage() {
             </CardHeader>
             <CardContent>
             <Form {...form}>
-                <form className="space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 
                 <FormField
                   control={form.control}
@@ -453,44 +452,33 @@ export default function GuidePage() {
                   )}
                 />
                 
-                {hasUsedAiToday ? (
-                    <Button type="button" className="w-full" disabled>
-                        <Wand2 className="mr-2 h-4 w-4" />
-                        Daily AI workout already generated
-                    </Button>
-                ) : (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button type="button" className="w-full" disabled={isLoading}>
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <Wand2 className="mr-2 h-4 w-4" />
-                              Generate Workout
-                            </>
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Generate AI Workout?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            You can generate one AI-powered workout per day. This action will use your daily credit.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={form.handleSubmit(onSubmit)}>
-                            Continue
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                )}
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="w-full">
+                                <Button type="submit" className="w-full" disabled={isLoading || hasUsedAiToday}>
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Wand2 className="mr-2 h-4 w-4" />
+                                            Generate Workout
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </TooltipTrigger>
+                        {hasUsedAiToday && (
+                            <TooltipContent>
+                                <p>You can generate one AI workout per day.</p>
+                            </TooltipContent>
+                        )}
+                    </Tooltip>
+                </TooltipProvider>
+
                 </form>
             </Form>
             </CardContent>
@@ -569,3 +557,5 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    
