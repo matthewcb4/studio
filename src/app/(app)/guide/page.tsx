@@ -19,11 +19,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment, Exercise, WorkoutLog } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
+import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
+import { format, parseISO, isToday } from 'date-fns';
 
 const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Obliques", "Legs", "Shoulders", "Triceps"];
 
@@ -76,6 +76,17 @@ export default function GuidePage() {
   
   const { data: workoutLogs } = useCollection<WorkoutLog>(workoutLogsQuery);
 
+  const userProfileRef = useMemoFirebase(() =>
+    user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+  , [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+  const hasUsedAiToday = useMemo(() => {
+      if (!userProfile?.lastAiWorkoutDate) return false;
+      return isToday(parseISO(userProfile.lastAiWorkoutDate));
+  }, [userProfile]);
+
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -101,6 +112,14 @@ export default function GuidePage() {
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (hasUsedAiToday) {
+        toast({
+            variant: "destructive",
+            title: "Daily Limit Reached",
+            description: "You can generate one AI workout per day. Try again tomorrow!",
+        });
+        return;
+    }
     setIsLoading(true);
     setGeneratedWorkout(null);
 
@@ -117,6 +136,9 @@ export default function GuidePage() {
         workoutHistory: history,
       });
       setGeneratedWorkout(result);
+      if (userProfileRef) {
+          setDocumentNonBlocking(userProfileRef, { lastAiWorkoutDate: new Date().toISOString() }, { merge: true });
+      }
     } catch (error) {
       console.error('Failed to generate workout:', error);
       toast({
@@ -429,12 +451,14 @@ export default function GuidePage() {
                   )}
                 />
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || hasUsedAiToday}>
                     {isLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Generating...
                         </>
+                    ) : hasUsedAiToday ? (
+                        'Daily Limit Reached'
                     ) : (
                         <>
                             <Wand2 className="mr-2 h-4 w-4" />
@@ -520,5 +544,6 @@ export default function GuidePage() {
       </div>
     </div>
   );
+}
 
     
