@@ -39,8 +39,6 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { UpdateNotification } from "@/components/update-notification";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -173,46 +171,12 @@ function MobileNav() {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const { toast } = useToast();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.replace('/');
     }
   }, [user, isUserLoading, router]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && window.workbox !== undefined) {
-      const wb = window.workbox;
-
-      const promptToUpdate = () => {
-        toast({
-          title: 'Update Available',
-          description: 'A new version of the app is available.',
-          action: <UpdateNotification wb={wb} />,
-          duration: Infinity,
-        });
-      };
-
-      wb.addEventListener('waiting', promptToUpdate);
-      
-      // Check if there's already a waiting service worker on page load.
-      // This handles the case where the user navigates to the page
-      // after an update has already been downloaded.
-      wb.getSW().then((sw: any) => {
-        if (sw && sw.waiting) {
-          promptToUpdate();
-        }
-      });
-      
-      wb.register();
-
-      return () => {
-        wb.removeEventListener('waiting', promptToUpdate);
-      };
-    }
-  }, [toast]);
-
 
   if (isUserLoading || !user) {
     return (
