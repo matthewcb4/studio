@@ -525,7 +525,7 @@ export default function GuidePage() {
                  <Card>
                     <CardHeader>
                         <CardTitle className="text-2xl">{generatedWorkout.workoutName}</CardTitle>
-                        <CardDescription>{generatedWorkout.description}</CardHeader>
+                        <CardDescription>{generatedWorkout.description}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {groupedAiExercises.map((group, index) => (
