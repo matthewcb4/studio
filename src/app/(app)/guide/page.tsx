@@ -72,7 +72,7 @@ export default function GuidePage() {
   const { toast } = useToast();
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(isSaving);
 
   const equipmentCollection = useMemoFirebase(() => 
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -577,5 +577,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
