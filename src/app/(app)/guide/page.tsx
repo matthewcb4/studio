@@ -227,6 +227,51 @@ export default function GuidePage() {
     if (!generatedWorkout) return [];
     return groupAiExercises(generatedWorkout.exercises);
   }, [generatedWorkout]);
+  
+  const renderGenerateButton = () => {
+    if (hasUsedAiToday) {
+      return (
+        <Button type="button" className="w-full" disabled>
+          <Wand2 className="mr-2 h-4 w-4" />
+          Daily AI workout already generated
+        </Button>
+      );
+    } else {
+      return (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button type="button" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  Generate Workout
+                </>
+              )}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Generate AI Workout?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You can generate one AI-powered workout per day. This action will use your daily credit.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={form.handleSubmit(onSubmit)}>
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      );
+    }
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -248,7 +293,7 @@ export default function GuidePage() {
             </CardHeader>
             <CardContent>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form className="space-y-6">
                 
                 <FormField
                   control={form.control}
@@ -453,44 +498,7 @@ export default function GuidePage() {
                   )}
                 />
                 
-                {hasUsedAiToday ? (
-                     <Button type="button" className="w-full" disabled>
-                        <Wand2 className="mr-2 h-4 w-4" />
-                        Daily AI workout already generated
-                    </Button>
-                ) : (
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button type="button" className="w-full" disabled={isLoading}>
-                              {isLoading ? (
-                                  <>
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      Generating...
-                                  </>
-                              ) : (
-                                  <>
-                                      <Wand2 className="mr-2 h-4 w-4" />
-                                      Generate Workout
-                                  </>
-                              )}
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Generate AI Workout?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    You can generate one AI-powered workout per day. This action will use your daily credit.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={form.handleSubmit(onSubmit)}>
-                                    Continue
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                )}
+                {renderGenerateButton()}
                 </form>
             </Form>
             </CardContent>
