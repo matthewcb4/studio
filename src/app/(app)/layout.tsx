@@ -196,8 +196,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       wb.addEventListener('waiting', promptToUpdate);
       
-      // For developers: you can trigger a service worker update check here
-      // wb.update();
+      wb.register();
 
       return () => {
         wb.removeEventListener('waiting', promptToUpdate);
