@@ -33,6 +33,12 @@ export const viewport: Viewport = {
 };
 
 
+declare global {
+  interface Window {
+    workbox: any;
+  }
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -54,5 +60,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    

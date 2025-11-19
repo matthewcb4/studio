@@ -39,7 +39,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useEffect } from "react";
-
+import { useToast } from "@/hooks/use-toast";
+import { UpdateNotification } from "@/components/update-notification";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -172,12 +173,38 @@ function MobileNav() {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.replace('/');
     }
   }, [user, isUserLoading, router]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && window.workbox !== undefined) {
+      const wb = window.workbox;
+
+      const promptToUpdate = () => {
+        toast({
+          title: 'Update Available',
+          description: 'A new version of the app is available.',
+          action: <UpdateNotification wb={wb} />,
+          duration: Infinity,
+        });
+      };
+
+      wb.addEventListener('waiting', promptToUpdate);
+      
+      // For developers: you can trigger a service worker update check here
+      // wb.update();
+
+      return () => {
+        wb.removeEventListener('waiting', promptToUpdate);
+      };
+    }
+  }, [toast]);
+
 
   if (isUserLoading || !user) {
     return (
