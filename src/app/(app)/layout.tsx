@@ -202,7 +202,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarFooter>
             <SecondaryNav />
             <div className="text-xs text-center text-muted-foreground p-2 group-data-[collapsible=icon]:hidden">
-              v1.1.1
+              v1.1.2
             </div>
           </SidebarFooter>
         </Sidebar>

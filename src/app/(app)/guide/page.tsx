@@ -227,6 +227,8 @@ export default function GuidePage() {
     return groupAiExercises(generatedWorkout.exercises);
   }, [generatedWorkout]);
 
+  const displayWorkout = hasUsedAiToday && generatedWorkout;
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center gap-4">
@@ -240,238 +242,240 @@ export default function GuidePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-1 h-fit">
-            <CardHeader>
-                <CardTitle>Workout Preferences</CardTitle>
-                <CardDescription>Tell us what you're working with.</CardDescription>
-            </CardHeader>
-            <CardContent>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                
-                <FormField
-                  control={form.control}
-                  name="availableEquipment"
-                  render={() => (
-                      <FormItem>
-                      <div className="mb-4">
-                          <FormLabel className="text-base">Available Equipment</FormLabel>
-                          <FormDescription>
-                          Select the equipment you have access to.
-                          </FormDescription>
-                      </div>
-                      <div className="space-y-2">
-                      {isLoadingEquipment ? <p>Loading equipment...</p> : userEquipment?.map((item) => (
-                          <FormField
-                          key={item.id}
-                          control={form.control}
-                          name="availableEquipment"
-                          render={({ field }) => {
-                              return (
-                              <FormItem
-                                  key={item.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                              >
-                                  <FormControl>
-                                  <Checkbox
-                                      checked={field.value?.includes(item.name)}
-                                      onCheckedChange={(checked) => {
-                                      return checked
-                                          ? field.onChange([...(field.value || []), item.name])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                              (value) => value !== item.name
-                                              )
-                                          )
-                                      }}
-                                  />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
-                                      {item.name}
-                                  </FormLabel>
-                              </FormItem>
-                              )
-                          }}
-                          />
-                      ))}
-                      </div>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-
-                <FormField
-                  control={form.control}
-                  name="focusArea"
-                  render={() => (
-                      <FormItem>
-                      <div className="mb-4">
-                          <FormLabel className="text-base">Muscle Group Focus</FormLabel>
-                          <FormDescription>
-                           Select one or more muscle groups to target.
-                          </FormDescription>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                      {focusAreas.map((item) => (
-                          <FormField
-                          key={item}
-                          control={form.control}
-                          name="focusArea"
-                          render={({ field }) => {
-                              return (
-                              <FormItem
-                                  key={item}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                              >
-                                  <FormControl>
-                                  <Checkbox
-                                      checked={field.value?.includes(item)}
-                                      onCheckedChange={(checked) => {
-                                      return checked
-                                          ? field.onChange([...(field.value || []), item])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                              (value) => value !== item
-                                              )
-                                          )
-                                      }}
-                                  />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
-                                      {item}
-                                  </FormLabel>
-                              </FormItem>
-                              )
-                          }}
-                          />
-                      ))}
-                      </div>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-
-                <FormField
+        {!displayWorkout && (
+            <Card className="lg:col-span-1 h-fit">
+                <CardHeader>
+                    <CardTitle>Workout Preferences</CardTitle>
+                    <CardDescription>Tell us what you're working with.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    
+                    <FormField
                       control={form.control}
-                      name="fitnessGoals"
-                      render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>Primary Fitness Goal</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select your main goal" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="Build Muscle">Build Muscle</SelectItem>
-                                <SelectItem value="Lose Fat">Lose Fat</SelectItem>
-                                <SelectItem value="Improve Endurance">Improve Endurance</SelectItem>
-                                <SelectItem value="Increase Strength">Increase Strength</SelectItem>
-                                <SelectItem value="General Fitness">General Fitness</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      name="availableEquipment"
+                      render={() => (
+                          <FormItem>
+                          <div className="mb-4">
+                              <FormLabel className="text-base">Available Equipment</FormLabel>
+                              <FormDescription>
+                              Select the equipment you have access to.
+                              </FormDescription>
+                          </div>
+                          <div className="space-y-2">
+                          {isLoadingEquipment ? <p>Loading equipment...</p> : userEquipment?.map((item) => (
+                              <FormField
+                              key={item.id}
+                              control={form.control}
+                              name="availableEquipment"
+                              render={({ field }) => {
+                                  return (
+                                  <FormItem
+                                      key={item.id}
+                                      className="flex flex-row items-start space-x-3 space-y-0"
+                                  >
+                                      <FormControl>
+                                      <Checkbox
+                                          checked={field.value?.includes(item.name)}
+                                          onCheckedChange={(checked) => {
+                                          return checked
+                                              ? field.onChange([...(field.value || []), item.name])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                  (value) => value !== item.name
+                                                  )
+                                              )
+                                          }}
+                                      />
+                                      </FormControl>
+                                      <FormLabel className="font-normal">
+                                          {item.name}
+                                      </FormLabel>
+                                  </FormItem>
+                                  )
+                              }}
+                              />
+                          ))}
+                          </div>
                           <FormMessage />
-                      </FormItem>
+                          </FormItem>
                       )}
-                  />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      />
+
                     <FormField
-                        control={form.control}
-                        name="fitnessLevel"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Fitness Level</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Select level" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="beginner">Beginner</SelectItem>
-                                <SelectItem value="intermediate">Intermediate</SelectItem>
-                                <SelectItem value="advanced">Advanced</SelectItem>
-                            </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+                      control={form.control}
+                      name="focusArea"
+                      render={() => (
+                          <FormItem>
+                          <div className="mb-4">
+                              <FormLabel className="text-base">Muscle Group Focus</FormLabel>
+                              <FormDescription>
+                               Select one or more muscle groups to target.
+                              </FormDescription>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                          {focusAreas.map((item) => (
+                              <FormField
+                              key={item}
+                              control={form.control}
+                              name="focusArea"
+                              render={({ field }) => {
+                                  return (
+                                  <FormItem
+                                      key={item}
+                                      className="flex flex-row items-start space-x-3 space-y-0"
+                                  >
+                                      <FormControl>
+                                      <Checkbox
+                                          checked={field.value?.includes(item)}
+                                          onCheckedChange={(checked) => {
+                                          return checked
+                                              ? field.onChange([...(field.value || []), item])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                  (value) => value !== item
+                                                  )
+                                              )
+                                          }}
+                                      />
+                                      </FormControl>
+                                      <FormLabel className="font-normal">
+                                          {item}
+                                      </FormLabel>
+                                  </FormItem>
+                                  )
+                              }}
+                              />
+                          ))}
+                          </div>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                      />
+
                     <FormField
-                        control={form.control}
-                        name="workoutDuration"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Duration (min)</FormLabel>
-                            <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={String(field.value)}>
+                          control={form.control}
+                          name="fitnessGoals"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Primary Fitness Goal</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select duration" />
-                                </SelectTrigger>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select your main goal" />
+                                    </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="10">10</SelectItem>
-                                    <SelectItem value="20">20</SelectItem>
-                                    <SelectItem value="30">30</SelectItem>
-                                    <SelectItem value="40">40</SelectItem>
-                                    <SelectItem value="50">50</SelectItem>
-                                    <SelectItem value="60">60</SelectItem>
-                                    <SelectItem value="70">70</SelectItem>
-                                    <SelectItem value="80">80</SelectItem>
-                                    <SelectItem value="90">90</SelectItem>
+                                    <SelectItem value="Build Muscle">Build Muscle</SelectItem>
+                                    <SelectItem value="Lose Fat">Lose Fat</SelectItem>
+                                    <SelectItem value="Improve Endurance">Improve Endurance</SelectItem>
+                                    <SelectItem value="Increase Strength">Increase Strength</SelectItem>
+                                    <SelectItem value="General Fitness">General Fitness</SelectItem>
                                 </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="focusOnSupersets"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="fitnessLevel"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Fitness Level</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="Select level" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="beginner">Beginner</SelectItem>
+                                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                                    <SelectItem value="advanced">Advanced</SelectItem>
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
                         />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          Create supersets for focus area
-                        </FormLabel>
-                        <FormDescription>
-                           Group exercises for the selected muscle group into supersets.
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                
-                <Button type="submit" className="w-full" disabled={isLoading || hasUsedAiToday}>
-                    {isLoading ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Generating...
-                        </>
-                    ) : hasUsedAiToday ? (
-                        'Daily Limit Reached'
-                    ) : (
-                        <>
-                            <Wand2 className="mr-2 h-4 w-4" />
-                            Generate Workout
-                        </>
-                    )}
-                </Button>
+                        <FormField
+                            control={form.control}
+                            name="workoutDuration"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Duration (min)</FormLabel>
+                                <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={String(field.value)}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select duration" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="10">10</SelectItem>
+                                        <SelectItem value="20">20</SelectItem>
+                                        <SelectItem value="30">30</SelectItem>
+                                        <SelectItem value="40">40</SelectItem>
+                                        <SelectItem value="50">50</SelectItem>
+                                        <SelectItem value="60">60</SelectItem>
+                                        <SelectItem value="70">70</SelectItem>
+                                        <SelectItem value="80">80</SelectItem>
+                                        <SelectItem value="90">90</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
 
-                </form>
-            </Form>
-            </CardContent>
-        </Card>
+                    <FormField
+                      control={form.control}
+                      name="focusOnSupersets"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Create supersets for focus area
+                            </FormLabel>
+                            <FormDescription>
+                               Group exercises for the selected muscle group into supersets.
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button type="submit" className="w-full" disabled={isLoading || hasUsedAiToday}>
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating...
+                            </>
+                        ) : hasUsedAiToday ? (
+                            'Daily Limit Reached'
+                        ) : (
+                            <>
+                                <Wand2 className="mr-2 h-4 w-4" />
+                                Generate Workout
+                            </>
+                        )}
+                    </Button>
+
+                    </form>
+                </Form>
+                </CardContent>
+            </Card>
+        )}
 
         <div className="lg:col-span-2">
             {isLoading && (
@@ -482,7 +486,7 @@ export default function GuidePage() {
                 </div>
             )}
 
-            {!isLoading && !generatedWorkout && (
+            {!isLoading && !displayWorkout && (
                 <div className="flex flex-col items-center justify-center h-full gap-4 p-8 border-2 border-dashed rounded-lg">
                     <Dumbbell className="w-12 h-12 text-muted-foreground" />
                     <h2 className="text-xl font-semibold">Your Workout Plan Awaits</h2>
@@ -490,7 +494,7 @@ export default function GuidePage() {
                 </div>
             )}
 
-            {generatedWorkout && (
+            {displayWorkout && (
                  <Card>
                     <CardHeader>
                         <CardTitle className="text-2xl">{generatedWorkout.workoutName}</CardTitle>
