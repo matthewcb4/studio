@@ -242,7 +242,7 @@ export default function GuidePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {!displayWorkout && (
+        {!displayWorkout && !hasUsedAiToday && (
             <Card className="lg:col-span-1 h-fit">
                 <CardHeader>
                     <CardTitle>Workout Preferences</CardTitle>
@@ -455,20 +455,18 @@ export default function GuidePage() {
                       )}
                     />
                     
-                    <Button type="submit" className="w-full" disabled={isLoading || hasUsedAiToday}>
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Generating...
-                            </>
-                        ) : hasUsedAiToday ? (
-                            'Daily Limit Reached'
-                        ) : (
-                            <>
-                                <Wand2 className="mr-2 h-4 w-4" />
-                                Generate Workout
-                            </>
-                        )}
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                          <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Generating...
+                          </>
+                      ) : (
+                          <>
+                              <Wand2 className="mr-2 h-4 w-4" />
+                              Generate Workout
+                          </>
+                      )}
                     </Button>
 
                     </form>
@@ -476,8 +474,16 @@ export default function GuidePage() {
                 </CardContent>
             </Card>
         )}
+        
+        {(hasUsedAiToday && !displayWorkout) && (
+          <div className="lg:col-span-3 flex flex-col items-center justify-center h-full gap-4 p-8 border-2 border-dashed rounded-lg">
+            <Bot className="w-12 h-12 text-primary" />
+            <h2 className="text-xl font-semibold">Daily Limit Reached</h2>
+            <p className="text-muted-foreground text-center">You have already generated your AI workout for today. Come back tomorrow for a new one!</p>
+          </div>
+        )}
 
-        <div className="lg:col-span-2">
+        <div className={displayWorkout ? "lg:col-span-3" : "lg:col-span-2"}>
             {isLoading && (
                 <div className="flex flex-col items-center justify-center h-full gap-4 p-8 border-2 border-dashed rounded-lg">
                     <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -486,7 +492,7 @@ export default function GuidePage() {
                 </div>
             )}
 
-            {!isLoading && !displayWorkout && (
+            {!isLoading && !displayWorkout && !hasUsedAiToday && (
                 <div className="flex flex-col items-center justify-center h-full gap-4 p-8 border-2 border-dashed rounded-lg">
                     <Dumbbell className="w-12 h-12 text-muted-foreground" />
                     <h2 className="text-xl font-semibold">Your Workout Plan Awaits</h2>
