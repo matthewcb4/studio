@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Bot, Wand2, Loader2, Dumbbell, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { isToday, parseISO } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,11 +20,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment, Exercise, WorkoutLog } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
+import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
+import { format } from 'date-fns';
 
 const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Obliques", "Legs", "Shoulders", "Triceps"];
 
@@ -62,6 +63,7 @@ export default function GuidePage() {
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasUsedAiToday, setHasUsedAiToday] = useState(false);
 
   const equipmentCollection = useMemoFirebase(() => 
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -69,12 +71,26 @@ export default function GuidePage() {
 
   const { data: userEquipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
 
+  const userProfileRef = useMemoFirebase(() => 
+    user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+  , [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
   const workoutLogsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
   }, [firestore, user]);
   
   const { data: workoutLogs } = useCollection<WorkoutLog>(workoutLogsQuery);
+
+  useEffect(() => {
+    if (userProfile?.lastAiWorkoutDate) {
+      const lastUsedDate = parseISO(userProfile.lastAiWorkoutDate);
+      if (isToday(lastUsedDate)) {
+        setHasUsedAiToday(true);
+      }
+    }
+  }, [userProfile]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -117,6 +133,10 @@ export default function GuidePage() {
         workoutHistory: history,
       });
       setGeneratedWorkout(result);
+      if (userProfileRef) {
+        setDocumentNonBlocking(userProfileRef, { lastAiWorkoutDate: new Date().toISOString() }, { merge: true });
+        setHasUsedAiToday(true);
+      }
     } catch (error) {
       console.error('Failed to generate workout:', error);
       toast({
@@ -211,7 +231,7 @@ export default function GuidePage() {
         <div>
           <h1 className="text-3xl font-bold">AI Fitness Guide</h1>
           <p className="text-muted-foreground">
-            Let our AI craft the perfect workout for you.
+            Let our AI craft the perfect workout for you. One per day.
           </p>
         </div>
       </div>
@@ -429,12 +449,14 @@ export default function GuidePage() {
                   )}
                 />
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || hasUsedAiToday}>
                     {isLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Generating...
                         </>
+                    ) : hasUsedAiToday ? (
+                        'Daily Limit Reached'
                     ) : (
                         <>
                             <Wand2 className="mr-2 h-4 w-4" />

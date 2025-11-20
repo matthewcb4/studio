@@ -201,6 +201,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarContent>
           <SidebarFooter>
             <SecondaryNav />
+            <div className="text-xs text-center text-muted-foreground p-2 group-data-[collapsible=icon]:hidden">
+              v1.1.0
+            </div>
           </SidebarFooter>
         </Sidebar>
 
