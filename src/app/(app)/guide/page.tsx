@@ -84,11 +84,14 @@ export default function GuidePage() {
   const { data: workoutLogs } = useCollection<WorkoutLog>(workoutLogsQuery);
 
   useEffect(() => {
-    if (userProfile?.lastAiWorkoutDate) {
-      const lastUsedDate = parseISO(userProfile.lastAiWorkoutDate);
-      if (isToday(lastUsedDate)) {
+    if (userProfile) {
+      if (userProfile.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate))) {
         setHasUsedAiToday(true);
+      } else {
+        setHasUsedAiToday(false);
       }
+    } else {
+      setHasUsedAiToday(false);
     }
   }, [userProfile]);
 
