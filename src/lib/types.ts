@@ -1,5 +1,6 @@
 
 
+
 export type Exercise = {
   id: string;
   name: string;
@@ -66,6 +67,7 @@ export type UserProfile = {
     biologicalSex?: 'Male' | 'Female';
     lastAiWorkoutDate?: string; // ISO string
     hasCompletedOnboarding?: boolean;
+    todaysAiWorkout?: object;
 }
 
 export type ProgressLog = {

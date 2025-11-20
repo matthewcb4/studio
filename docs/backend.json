@@ -26,7 +26,8 @@
             "fatLossGoal": { "type": "string", "description": "User's primary fat loss goal." },
             "biologicalSex": { "type": "string", "enum": ["Male", "Female"], "description": "User's biological sex to determine body outline for heatmap." },
             "lastAiWorkoutDate": { "type": "string", "format": "date-time", "description": "The date the user last generated an AI workout." },
-            "hasCompletedOnboarding": { "type": "boolean", "description": "Flag to check if the user has completed the initial app walkthrough." }
+            "hasCompletedOnboarding": { "type": "boolean", "description": "Flag to check if the user has completed the initial app walkthrough." },
+            "todaysAiWorkout": { "type": "object", "description": "Stores the full JSON object of the AI-generated workout for the current day." }
         },
         "required": ["id"]
     },

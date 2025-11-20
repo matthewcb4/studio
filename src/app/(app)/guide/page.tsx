@@ -85,10 +85,15 @@ export default function GuidePage() {
 
   useEffect(() => {
     if (userProfile) {
-      if (userProfile.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate))) {
+      const lastUsedDate = userProfile.lastAiWorkoutDate ? parseISO(userProfile.lastAiWorkoutDate) : null;
+      if (lastUsedDate && isToday(lastUsedDate)) {
         setHasUsedAiToday(true);
+        if (userProfile.todaysAiWorkout) {
+          setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
+        }
       } else {
         setHasUsedAiToday(false);
+        setGeneratedWorkout(null);
       }
     } else {
       setHasUsedAiToday(false);
@@ -137,7 +142,10 @@ export default function GuidePage() {
       });
       setGeneratedWorkout(result);
       if (userProfileRef) {
-        setDocumentNonBlocking(userProfileRef, { lastAiWorkoutDate: new Date().toISOString() }, { merge: true });
+        setDocumentNonBlocking(userProfileRef, { 
+            lastAiWorkoutDate: new Date().toISOString(),
+            todaysAiWorkout: result 
+        }, { merge: true });
         setHasUsedAiToday(true);
       }
     } catch (error) {
@@ -242,7 +250,7 @@ export default function GuidePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {!displayWorkout && !hasUsedAiToday && (
+        {!displayWorkout && (
             <Card className="lg:col-span-1 h-fit">
                 <CardHeader>
                     <CardTitle>Workout Preferences</CardTitle>
@@ -455,12 +463,14 @@ export default function GuidePage() {
                       )}
                     />
                     
-                    <Button type="submit" className="w-full" disabled={isLoading}>
+                    <Button type="submit" className="w-full" disabled={isLoading || hasUsedAiToday}>
                       {isLoading ? (
                           <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Generating...
                           </>
+                      ) : hasUsedAiToday ? (
+                          'Daily Limit Reached'
                       ) : (
                           <>
                               <Wand2 className="mr-2 h-4 w-4" />
@@ -475,7 +485,7 @@ export default function GuidePage() {
             </Card>
         )}
         
-        {(hasUsedAiToday && !displayWorkout) && (
+        {hasUsedAiToday && !displayWorkout && !isLoading && (
           <div className="lg:col-span-3 flex flex-col items-center justify-center h-full gap-4 p-8 border-2 border-dashed rounded-lg">
             <Bot className="w-12 h-12 text-primary" />
             <h2 className="text-xl font-semibold">Daily Limit Reached</h2>
@@ -492,7 +502,7 @@ export default function GuidePage() {
                 </div>
             )}
 
-            {!isLoading && !displayWorkout && !hasUsedAiToday && (
+            {!isLoading && !displayWorkout && (
                 <div className="flex flex-col items-center justify-center h-full gap-4 p-8 border-2 border-dashed rounded-lg">
                     <Dumbbell className="w-12 h-12 text-muted-foreground" />
                     <h2 className="text-xl font-semibold">Your Workout Plan Awaits</h2>
@@ -503,8 +513,15 @@ export default function GuidePage() {
             {displayWorkout && (
                  <Card>
                     <CardHeader>
-                        <CardTitle className="text-2xl">{generatedWorkout.workoutName}</CardTitle>
-                        <CardDescription>{generatedWorkout.description}</CardDescription>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle className="text-2xl">{generatedWorkout.workoutName}</CardTitle>
+                                <CardDescription>{generatedWorkout.description}</CardDescription>
+                            </div>
+                            <div className="text-xs font-bold uppercase text-primary bg-primary/10 px-2 py-1 rounded-md">
+                                Today's AI Workout
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {groupedAiExercises.map((group, index) => (
@@ -556,3 +573,5 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    
