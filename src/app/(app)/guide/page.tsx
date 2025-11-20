@@ -242,9 +242,9 @@ export default function GuidePage() {
       <div className="flex items-center gap-4">
         <Bot className="w-8 h-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">AI Fitness Guide</h1>
+          <h1 className="text-3xl font-bold">AI Workout Generator</h1>
           <p className="text-muted-foreground">
-            {displayWorkout ? "Here is the workout the AI generated for you today." : "Let our AI craft the perfect workout for you. One per day."}
+            Your daily workout, crafted by AI.
           </p>
         </div>
       </div>
@@ -564,3 +564,5 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    
