@@ -96,7 +96,8 @@ export default function GuidePage() {
         setGeneratedWorkout(null);
       }
     } else {
-      setHasUsedAiToday(false);
+        setHasUsedAiToday(false);
+        setGeneratedWorkout(null);
     }
   }, [userProfile]);
 
@@ -146,8 +147,8 @@ export default function GuidePage() {
             lastAiWorkoutDate: new Date().toISOString(),
             todaysAiWorkout: result 
         }, { merge: true });
-        setHasUsedAiToday(true);
       }
+      setHasUsedAiToday(true);
     } catch (error) {
       console.error('Failed to generate workout:', error);
       toast({
@@ -176,7 +177,6 @@ export default function GuidePage() {
 
           if (querySnapshot.empty) {
             const newExerciseDocRef = doc(masterExercisesRef); // Auto-generate ID
-            // Use the category from the AI, not a generic one.
             const newExercise: Omit<Exercise, 'id' > = {
               name: ex.name,
               category: ex.category,
@@ -244,7 +244,7 @@ export default function GuidePage() {
         <div>
           <h1 className="text-3xl font-bold">AI Fitness Guide</h1>
           <p className="text-muted-foreground">
-            Let our AI craft the perfect workout for you. One per day.
+            {displayWorkout ? "Here is the workout the AI generated for you today." : "Let our AI craft the perfect workout for you. One per day."}
           </p>
         </div>
       </div>
@@ -478,7 +478,6 @@ export default function GuidePage() {
                           </>
                       )}
                     </Button>
-
                     </form>
                 </Form>
                 </CardContent>
@@ -565,5 +564,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
