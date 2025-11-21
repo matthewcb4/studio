@@ -557,7 +557,7 @@ function WorkoutsPageContent() {
   
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold">My Workouts</h1>
           <p className="text-muted-foreground">
