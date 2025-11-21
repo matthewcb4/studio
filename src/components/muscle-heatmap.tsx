@@ -195,12 +195,12 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
 
   const bodyType = userProfile?.biologicalSex || 'Male';
   const frontViewImages = {
-    Male: "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Male_black.png",
-    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/e31c3cf4a26809aa1c026e3ed500ee7241a91bde/Female.png"
+    Male: "/Male_Front.png",
+    Female: "/Female_Front.png"
   };
   const backViewImages = {
-    Male: "https://raw.githubusercontent.com/matthewcb4/public_resources/aee947f98314b7824d7d4f92e3b6a9e3b6391acd/Male_Back.png",
-    Female: "https://raw.githubusercontent.com/matthewcb4/public_resources/main/Female_Back.png"
+    Male: "/Male_Back.png",
+    Female: "/Female_Back.png"
   };
   
   const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
@@ -280,3 +280,5 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     </Card>
   );
 }
+
+    
