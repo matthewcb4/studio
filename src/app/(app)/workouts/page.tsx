@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
@@ -459,6 +458,7 @@ function WorkoutsPageContent() {
   const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(
     null
   );
+  const [sortOrder, setSortOrder] = useState('alphabetical');
 
   const workoutsCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -539,9 +539,19 @@ function WorkoutsPageContent() {
     handleSheetClose(false);
   };
   
+  const sortedWorkouts = useMemo(() => {
+    if (!workouts) return [];
+    const sorted = [...workouts];
+    if (sortOrder === 'alphabetical') {
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    // Add logic for 'date' when available
+    return sorted;
+  }, [workouts, sortOrder]);
+  
   const groupedWorkouts = useMemo(() => {
-    return workouts?.map(w => ({ ...w, groupedExercises: groupExercises(w.exercises || [])})) || [];
-  }, [workouts]);
+    return sortedWorkouts?.map(w => ({ ...w, groupedExercises: groupExercises(w.exercises || [])})) || [];
+  }, [sortedWorkouts]);
 
   const isLoading = isLoadingWorkouts || isLoadingExercises || isLoadingPreferences;
   
@@ -554,25 +564,36 @@ function WorkoutsPageContent() {
             Create and manage your custom training routines.
           </p>
         </div>
-        <Sheet open={isSheetOpen} onOpenChange={handleSheetClose}>
-          <SheetTrigger asChild>
-            <Button onClick={handleCreateNew}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create New Workout
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl w-full flex flex-col">
-            <Suspense fallback={<div className="p-6">Loading form...</div>}>
-              <WorkoutForm
-                workout={editingWorkout}
-                masterExercises={masterExercises || []}
-                exercisePreferences={exercisePreferences || null}
-                onSave={handleSaveWorkout}
-                onCancel={() => handleSheetClose(false)}
-              />
-            </Suspense>
-          </SheetContent>
-        </Sheet>
+        <div className="flex items-center gap-2">
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
+                    <SelectItem value="date_desc" disabled>Date Created (Newest)</SelectItem>
+                </SelectContent>
+            </Select>
+            <Sheet open={isSheetOpen} onOpenChange={handleSheetClose}>
+            <SheetTrigger asChild>
+                <Button onClick={handleCreateNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create New Workout
+                </Button>
+            </SheetTrigger>
+            <SheetContent className="sm:max-w-2xl w-full flex flex-col">
+                <Suspense fallback={<div className="p-6">Loading form...</div>}>
+                <WorkoutForm
+                    workout={editingWorkout}
+                    masterExercises={masterExercises || []}
+                    exercisePreferences={exercisePreferences || null}
+                    onSave={handleSaveWorkout}
+                    onCancel={() => handleSheetClose(false)}
+                />
+                </Suspense>
+            </SheetContent>
+            </Sheet>
+        </div>
       </div>
       {isLoading && <div className="text-center">Loading workouts...</div>}
       {!isLoading && workouts?.length === 0 && (
@@ -682,5 +703,3 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
-
-    
