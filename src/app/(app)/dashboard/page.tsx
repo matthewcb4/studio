@@ -30,10 +30,11 @@ import {
 import { format, isWithinInterval, subDays } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
-import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog } from "@/lib/types";
+import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp, Star } from "lucide-react";
 import { MuscleHeatmap } from "@/components/muscle-heatmap";
 import { OnboardingModal } from "@/components/onboarding-modal";
+import { MuscleGroupVolumeChart } from "@/components/muscle-group-chart";
 
 const parseDuration = (duration: string): number => {
     const parts = duration.split(':');
@@ -176,6 +177,12 @@ export default function DashboardPage() {
 
   const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
 
+  const exercisesQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, 'exercises')) : null,
+    [firestore]
+  );
+  const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
+
   const userProfileRef = useMemoFirebase(() => 
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
   , [firestore, user]);
@@ -230,6 +237,8 @@ export default function DashboardPage() {
       }[dateRange];
       return option || `Last ${dateRange} days`;
   }, [dateRange]);
+  
+  const isLoading = isLoadingLogs || isLoadingExercises;
 
   return (
     <>
@@ -322,8 +331,14 @@ export default function DashboardPage() {
            <MuscleHeatmap 
               userProfile={userProfile} 
               thisWeeksLogs={filteredLogs} 
-              isLoading={isLoadingLogs}
+              isLoading={isLoading}
               dateRangeLabel={dateRangeLabel}
+            />
+
+            <MuscleGroupVolumeChart
+                filteredLogs={filteredLogs}
+                masterExercises={masterExercises}
+                isLoading={isLoading}
             />
 
             <Card>
@@ -368,5 +383,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
