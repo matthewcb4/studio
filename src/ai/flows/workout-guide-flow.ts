@@ -69,6 +69,8 @@ const prompt = ai.definePrompt({
   
   Generate a complete workout routine including a workout name, a short description, and a list of exercises.
   
+  IMPORTANT: Do NOT generate duplicate exercises. For example, do not include both "Pull-up" and "Pull ups" in the same workout. Ensure every exercise name is unique.
+
   For each exercise, you MUST provide a 'category' from this specific list: Chest, Back, Shoulders, Legs, Arms, Core, Biceps, Triceps, Obliques.
   
   IMPORTANT: You MUST group exercises into supersets or individual groups. A superset consists of two exercises performed back-to-back with no rest in between. 
@@ -102,5 +104,3 @@ const workoutGuideFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

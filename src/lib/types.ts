@@ -1,6 +1,4 @@
 
-
-
 export type Exercise = {
   id: string;
   name: string;
@@ -18,8 +16,8 @@ export type WorkoutExercise = {
   exerciseId: string; // Refers to the master Exercise ID
   exerciseName: string;
   sets: number;
-  reps: string; // e.g., "8-10"
-  unit: 'reps' | 'seconds'; // The unit for the 'reps' field value
+  reps: string; // e.g., "8-12"
+  unit: 'reps' | 'seconds' | 'bodyweight'; // The unit for the 'reps' field value
   supersetId: string; // Used to group exercises into supersets
 };
 
@@ -76,5 +74,3 @@ export type ProgressLog = {
   date: string; // ISO string
   weight: number;
 };
-
-    

@@ -31,7 +31,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { CustomWorkout, LoggedSet, WorkoutExercise, Exercise as MasterExercise, UserExercisePreference } from '@/lib/types';
+import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -53,7 +53,7 @@ import {
   updateDocumentNonBlocking,
   useCollection,
 } from '@/firebase';
-import { doc, collection, addDoc, query } from 'firebase/firestore';
+import { doc, collection, addDoc, query, orderBy, limit } from 'firebase/firestore';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -125,6 +125,12 @@ export default function WorkoutSessionPage() {
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
   , [firestore, user]);
   const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
+  
+  const progressLogsQuery = useMemoFirebase(() =>
+    user ? query(collection(firestore, `users/${user.uid}/progressLogs`), orderBy("date", "desc"), limit(1)) : null
+  , [firestore, user]);
+  const { data: latestProgress } = useCollection<ProgressLog>(progressLogsQuery);
+  const latestWeight = latestProgress?.[0]?.weight || 150;
 
 
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
@@ -206,9 +212,15 @@ export default function WorkoutSessionPage() {
     let newLog: LoggedSet;
     
     if (skipped) {
-        newLog = unit === 'reps' ? { weight: 0, reps: 0 } : { duration: 0 };
+        newLog = { weight: 0, reps: 0 };
     } else {
-        if (unit === 'reps') {
+        if (unit === 'bodyweight') {
+            if (!state.reps) {
+                toast({ title: 'Missing Info', description: 'Please enter reps.', variant: 'destructive' });
+                return;
+            }
+            newLog = { weight: latestWeight, reps: parseFloat(state.reps) };
+        } else if (unit === 'reps') {
             if (!state.weight || !state.reps) {
                 toast({ title: 'Missing Info', description: 'Please enter weight and reps.', variant: 'destructive' });
                 return;
@@ -423,12 +435,12 @@ export default function WorkoutSessionPage() {
             <CardHeader>
               <CardTitle className="text-2xl">{exercise.exerciseName}</CardTitle>
               <CardDescription>
-                Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} {unit}
+                Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
               </CardDescription>
             </CardHeader>
             {!isExerciseComplete && (
                  <CardContent className="space-y-4">
-                    {unit === 'reps' ? (
+                    {unit === 'reps' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor={`weight-${exercise.id}`} className="text-base">Weight (lbs)</Label>
@@ -439,7 +451,14 @@ export default function WorkoutSessionPage() {
                                 <Input id={`reps-${exercise.id}`} type="number" placeholder="8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
                             </div>
                         </div>
-                    ) : (
+                    )}
+                    {unit === 'bodyweight' && (
+                        <div className="space-y-2">
+                            <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps (Bodyweight: {latestWeight} lbs)</Label>
+                            <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
+                        </div>
+                    )}
+                    {unit === 'seconds' && (
                         <div className="space-y-2">
                             <Label htmlFor={`duration-${exercise.id}`} className="text-base">Duration (seconds)</Label>
                             <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, duration: e.target.value}})} className="h-14 text-2xl text-center" />
@@ -466,10 +485,10 @@ export default function WorkoutSessionPage() {
                                     <Check className="h-5 w-5 text-green-500" />
                                     <span className="font-medium text-secondary-foreground">Set {index + 1}</span>
                                 </div>
-                                {unit === 'reps' ? (
-                                    <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
-                                ) : (
+                                {unit === 'seconds' ? (
                                     <span className="text-muted-foreground">{set.duration} seconds</span>
+                                ) : (
+                                    <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
                                 )}
                             </li>
                         ))}

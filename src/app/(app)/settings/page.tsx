@@ -139,6 +139,16 @@ export default function SettingsPage() {
         });
     }
   }, [userProfile, goalsForm]);
+  
+   useEffect(() => {
+    if (!isLoadingEquipment && equipment?.every(e => e.name !== "Bodyweight")) {
+        const bodyweightEquipment = { name: "Bodyweight", userId: user?.uid };
+         if (equipmentCollection) {
+            addDocumentNonBlocking(equipmentCollection, bodyweightEquipment);
+        }
+    }
+  }, [equipment, isLoadingEquipment, equipmentCollection, user?.uid]);
+
 
   const onEquipmentSubmit = async (values: z.infer<typeof equipmentFormSchema>) => {
     if (!equipmentCollection) return;
@@ -496,9 +506,11 @@ export default function SettingsPage() {
                     equipment.map((item) => (
                         <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
                         <p className="font-medium">{item.name}</p>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteEquipment(item.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {item.name !== 'Bodyweight' && 
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteEquipment(item.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        }
                         </div>
                     ))
                     ) : (

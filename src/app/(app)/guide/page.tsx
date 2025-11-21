@@ -32,7 +32,6 @@ const formSchema = z.object({
   availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "You have to select at least one piece of equipment.",
   }),
-  fitnessGoals: z.string().min(1, { message: 'Goal cannot be empty.' }),
   fitnessLevel: z.string().min(1, { message: 'Please select a fitness level.' }),
   workoutDuration: z.coerce.number().min(10, { message: 'Duration must be at least 10 minutes.' }),
   focusArea: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -85,8 +84,7 @@ export default function GuidePage() {
 
   useEffect(() => {
     if (userProfile) {
-      const lastUsedDate = userProfile.lastAiWorkoutDate ? parseISO(userProfile.lastAiWorkoutDate) : null;
-      if (lastUsedDate && isToday(lastUsedDate)) {
+      if (userProfile.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate))) {
         setHasUsedAiToday(true);
         if (userProfile.todaysAiWorkout) {
           setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
@@ -95,9 +93,6 @@ export default function GuidePage() {
         setHasUsedAiToday(false);
         setGeneratedWorkout(null);
       }
-    } else {
-        setHasUsedAiToday(false);
-        setGeneratedWorkout(null);
     }
   }, [userProfile]);
 
@@ -105,7 +100,6 @@ export default function GuidePage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       availableEquipment: [],
-      fitnessGoals: 'Build Muscle',
       fitnessLevel: 'intermediate',
       workoutDuration: 40,
       focusArea: ["Full Body"],
@@ -134,11 +128,13 @@ export default function GuidePage() {
       name: log.workoutName,
       exercises: log.exercises.map(ex => ex.exerciseName).join(', ')
     }));
+    
+    const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
 
     try {
       const result = await generateWorkout({
         ...values,
-        fitnessGoals: [values.fitnessGoals], 
+        fitnessGoals: goals.length > 0 ? goals : ["General Fitness"], 
         workoutHistory: history,
       });
       setGeneratedWorkout(result);
@@ -187,12 +183,15 @@ export default function GuidePage() {
             masterExerciseId = querySnapshot.docs[0].id;
           }
           
+          const isBodyweight = form.getValues('availableEquipment').includes('Bodyweight');
+          
           return {
             id: generateUniqueId(),
             exerciseId: masterExerciseId,
             exerciseName: ex.name,
             sets: parseInt(ex.sets.split('-')[0]),
             reps: ex.reps,
+            unit: isBodyweight ? 'bodyweight' : 'reps',
             supersetId: ex.supersetId,
           };
         })
@@ -242,7 +241,7 @@ export default function GuidePage() {
       <div className="flex items-center gap-4">
         <Bot className="w-8 h-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">AI Workout Generator</h1>
+           <h1 className="text-3xl font-bold">AI Workout Generator</h1>
           <p className="text-muted-foreground">
             Your daily workout, crafted by AI.
           </p>
@@ -360,31 +359,6 @@ export default function GuidePage() {
                           <FormMessage />
                           </FormItem>
                       )}
-                      />
-
-                    <FormField
-                          control={form.control}
-                          name="fitnessGoals"
-                          render={({ field }) => (
-                          <FormItem>
-                              <FormLabel>Primary Fitness Goal</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select your main goal" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="Build Muscle">Build Muscle</SelectItem>
-                                    <SelectItem value="Lose Fat">Lose Fat</SelectItem>
-                                    <SelectItem value="Improve Endurance">Improve Endurance</SelectItem>
-                                    <SelectItem value="Increase Strength">Increase Strength</SelectItem>
-                                    <SelectItem value="General Fitness">General Fitness</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                          </FormItem>
-                          )}
                       />
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -564,5 +538,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
