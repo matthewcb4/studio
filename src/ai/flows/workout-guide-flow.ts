@@ -22,8 +22,8 @@ const GenerateWorkoutInputSchema = z.object({
   fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals (e.g., increase_max_lift, gain_overall_mass, reduce_body_fat)."),
   fitnessLevel: z.string().describe("The user's current fitness level (e.g., beginner, intermediate, advanced)."),
   workoutDuration: z.number().describe("The desired workout duration in minutes."),
-  focusArea: z.array(z.string()).describe("The primary muscle group or area to focus on (e.g., Full Body, Upper Body, Lower Body, Core, Arms, Legs, Chest, Back, Shoulders)."),
-  focusOnSupersets: z.boolean().describe("Whether to create supersets focusing on the chosen muscle group."),
+  focusArea: z.array(z.string()).describe("A list of primary muscle groups or areas to focus on (e.g., Full Body, Upper Body, Lower Body, Core, Arms, Legs, Chest, Back, Shoulders)."),
+  supersetStrategy: z.string().describe("The user's preferred superset strategy. 'focused' means supersets should contain exercises for the SAME muscle group. 'mixed' means supersets can combine exercises for DIFFERENT muscle groups (e.g., antagonist or non-competing groups)."),
   workoutHistory: z.array(WorkoutHistoryItemSchema).optional().describe("A list of the user's recent workouts to avoid repetition."),
 });
 export type GenerateWorkoutInput = z.infer<typeof GenerateWorkoutInputSchema>;
@@ -58,7 +58,8 @@ const prompt = ai.definePrompt({
   User's fitness goals: {{#each fitnessGoals}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
   User's fitness level: {{{fitnessLevel}}}
   Desired workout duration: {{{workoutDuration}}} minutes
-  Focus area: {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  Focus area(s): {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  Superset Strategy: {{{supersetStrategy}}}
 
   {{#if workoutHistory}}
   Here is the user's recent workout history. Take this into account to create a new workout that is varied and avoids repeating the same exercises or workout styles too frequently.
@@ -73,14 +74,14 @@ const prompt = ai.definePrompt({
 
   For each exercise, you MUST provide a 'category' from this specific list: Chest, Back, Shoulders, Legs, Arms, Core, Biceps, Triceps, Obliques.
   
-  IMPORTANT: You MUST group exercises into supersets or individual groups. A superset consists of two exercises performed back-to-back with no rest in between. 
+  You MUST group exercises into supersets or individual groups. A superset consists of two exercises performed back-to-back with no rest in between. 
   To create a superset, assign the same 'supersetId' (e.g., "superset_1") to two exercises. 
   For exercises that are not in a superset, assign a unique 'supersetId' that is not shared with any other exercise (e.g., "group_1", "group_2"). 
   Ensure EVERY exercise has a 'supersetId' field.
 
-  {{#if focusOnSupersets}}
-  The user wants to focus on supersets for the chosen muscle group. Create at least one superset that targets the specified focus area: {{{focusArea}}}. For example, if the focus is "Chest", you could superset a Bench Press with a Chest Fly.
-  {{/if}}
+  SUPERSET STRATEGY GUIDELINES:
+  - If Superset Strategy is 'focused': Create supersets where both exercises target the SAME muscle group from the user's focus areas. For example, if focus is "Chest", superset Bench Press with Chest Fly.
+  - If Superset Strategy is 'mixed': Create supersets by pairing exercises from DIFFERENT muscle groups from the user's focus areas. For example, if focus is "Chest" and "Back", superset Bench Press (Chest) with Bent-over Row (Back). This is great for antagonist muscle pairing.
   
   If "Bodyweight" is listed as available equipment, you can include exercises like Push-ups, Pull-ups, Dips, and Squats.
 

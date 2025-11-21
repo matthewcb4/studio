@@ -34,8 +34,10 @@ const formSchema = z.object({
   }),
   fitnessLevel: z.string().min(1, { message: 'Please select a fitness level.' }),
   workoutDuration: z.coerce.number().min(10, { message: 'Duration must be at least 10 minutes.' }),
-  focusArea: z.string().min(1, { message: "You have to select at least one muscle group." }),
-  focusOnSupersets: z.boolean().default(false),
+  focusArea: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "You have to select at least one muscle group.",
+  }),
+  supersetStrategy: z.string().min(1, { message: "Please select a superset strategy." }),
 });
 
 const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
@@ -100,8 +102,8 @@ export default function GuidePage() {
       availableEquipment: [],
       fitnessLevel: 'intermediate',
       workoutDuration: 40,
-      focusArea: "Full Body",
-      focusOnSupersets: false,
+      focusArea: ["Full Body"],
+      supersetStrategy: "focused",
     },
   });
   
@@ -132,7 +134,6 @@ export default function GuidePage() {
     try {
       const result = await generateWorkout({
         ...values,
-        focusArea: [values.focusArea], // AI flow expects an array
         fitnessGoals: goals.length > 0 ? goals : ["General Fitness"], 
         workoutHistory: history,
       });
@@ -312,29 +313,79 @@ export default function GuidePage() {
                     <FormField
                       control={form.control}
                       name="focusArea"
-                      render={({ field }) => (
+                      render={() => (
                         <FormItem>
-                          <FormLabel>Muscle Group Focus</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a muscle group" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {focusAreas.map(area => (
-                                <SelectItem key={area} value={area}>{area}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Select the primary muscle group to target.
-                          </FormDescription>
+                          <div className="mb-4">
+                            <FormLabel className="text-base">Muscle Group Focus</FormLabel>
+                            <FormDescription>
+                              Select one or more muscle groups to target.
+                            </FormDescription>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {focusAreas.map((item) => (
+                              <FormField
+                                key={item}
+                                control={form.control}
+                                name="focusArea"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={item}
+                                      className="flex flex-row items-start space-x-3 space-y-0"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(item)}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([...field.value, item])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value) => value !== item
+                                                  )
+                                                )
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="font-normal">
+                                        {item}
+                                      </FormLabel>
+                                    </FormItem>
+                                  )
+                                }}
+                              />
+                            ))}
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     
+                    <FormField
+                      control={form.control}
+                      name="supersetStrategy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Superset Strategy</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a strategy" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="focused">Focused (Same Muscle Group)</SelectItem>
+                              <SelectItem value="mixed">Mixed (Across Muscle Groups)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Choose how to pair exercises in supersets.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
@@ -387,29 +438,6 @@ export default function GuidePage() {
                             )}
                         />
                     </div>
-
-                    <FormField
-                      control={form.control}
-                      name="focusOnSupersets"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>
-                              Create supersets for focus area
-                            </FormLabel>
-                            <FormDescription>
-                               Group exercises for the selected muscle group into supersets.
-                            </FormDescription>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
                     
                     <Button type="submit" className="w-full" disabled={isLoading || hasUsedAiToday}>
                       {isLoading ? (
@@ -512,5 +540,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
