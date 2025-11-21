@@ -62,6 +62,12 @@ import {
 } from '@/firebase';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -579,85 +585,91 @@ function WorkoutsPageContent() {
           </div>
         </Card>
       )}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <Accordion type="single" collapsible className="w-full space-y-4">
         {groupedWorkouts?.map((workout) => (
-          <Card key={workout.id} className="flex flex-col">
-            <CardHeader>
-              <CardTitle>{workout.name}</CardTitle>
-               <CardDescription>
-                {workout.description || `${(workout.exercises?.length || 0)} exercises in ${(workout.groupedExercises || []).length} groups`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <div className="space-y-4">
-                {workout.groupedExercises?.map((group, groupIndex) => (
-                  <div key={group[0]?.supersetId || groupIndex} className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {group.length > 1 ? `Superset ${groupIndex + 1}` : `Group ${groupIndex + 1}`}
-                    </p>
-                    {group.map((ex) => (
-                      <div
-                        key={ex.id}
-                        className="flex justify-between items-center text-sm pl-2"
-                      >
-                        <span className="font-medium">{ex.exerciseName}</span>
-                        <span className="text-muted-foreground">
-                          {ex.sets} sets of {ex.reps} {ex.unit || 'reps'}
-                        </span>
+          <AccordionItem value={workout.id} key={workout.id} className="border-none">
+            <Card>
+              <AccordionTrigger className="p-0 border-none hover:no-underline">
+                <CardHeader className="flex-1 text-left">
+                  <CardTitle>{workout.name}</CardTitle>
+                  <CardDescription>
+                    {workout.description || `${(workout.exercises?.length || 0)} exercises in ${(workout.groupedExercises || []).length} groups`}
+                  </CardDescription>
+                </CardHeader>
+              </AccordionTrigger>
+              <AccordionContent>
+                <CardContent className="pt-0">
+                  <div className="space-y-4">
+                    {workout.groupedExercises?.map((group, groupIndex) => (
+                      <div key={group[0]?.supersetId || groupIndex} className="space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">
+                          {group.length > 1 ? `Superset ${groupIndex + 1}` : `Group ${groupIndex + 1}`}
+                        </p>
+                        {group.map((ex) => (
+                          <div
+                            key={ex.id}
+                            className="flex justify-between items-center text-sm pl-2"
+                          >
+                            <span className="font-medium">{ex.exerciseName}</span>
+                            <span className="text-muted-foreground">
+                              {ex.sets} sets of {ex.reps} {ex.unit || 'reps'}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2 mt-auto">
-               <Button asChild>
-                <Link href={`/workout/${workout.id}`}>Start Workout</Link>
-               </Button>
-               <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleEdit(workout)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Dialog>
-                <DialogTrigger asChild>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2">
+                  <Button asChild>
+                    <Link href={`/workout/${workout.id}`}>Start Workout</Link>
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-destructive hover:text-destructive"
+                    onClick={() => handleEdit(workout)}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Edit className="h-4 w-4" />
                   </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Are you sure?</DialogTitle>
-                    <DialogDescription>
-                      This action cannot be undone. This will permanently delete
-                      the workout "{workout.name}".
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <DialogClose asChild>
+                  <Dialog>
+                    <DialogTrigger asChild>
                       <Button
-                        variant="destructive"
-                        onClick={() => handleDelete(workout.id)}
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
                       >
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </CardFooter>
-          </Card>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Are you sure?</DialogTitle>
+                        <DialogDescription>
+                          This action cannot be undone. This will permanently delete
+                          the workout "{workout.name}".
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <DialogClose asChild>
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleDelete(workout.id)}
+                          >
+                            Delete
+                          </Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardFooter>
+              </AccordionContent>
+            </Card>
+          </AccordionItem>
         ))}
-      </div>
+      </Accordion>
     </div>
   );
 }
@@ -670,3 +682,5 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
+
+    
