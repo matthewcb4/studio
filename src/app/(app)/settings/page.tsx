@@ -2,12 +2,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell, Youtube, FileText } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell, Youtube, FileText, Palette } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { findExerciseVideo } from '@/ai/flows/find-exercise-video-flow';
 import Image from 'next/image';
+import { ThemeSelector } from '@/components/theme-selector';
 
 const equipmentFormSchema = z.object({
   name: z.string().min(2, { message: 'Equipment name must be at least 2 characters.' }),
@@ -310,6 +310,24 @@ export default function SettingsPage() {
       </div>
       
       <Accordion type="multiple" defaultValue={[]} className="w-full space-y-4">
+        <AccordionItem value="appearance" className="border-none">
+            <Card>
+                <AccordionTrigger className="p-6 text-left">
+                    <div className="flex items-center gap-3">
+                        <Palette className="w-6 h-6 text-primary" />
+                        <div>
+                            <CardTitle>Appearance</CardTitle>
+                            <CardDescription className="mt-1.5 text-left">Customize the look and feel of the app.</CardDescription>
+                        </div>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <CardContent>
+                        <ThemeSelector />
+                    </CardContent>
+                </AccordionContent>
+            </Card>
+        </AccordionItem>
         <AccordionItem value="fitness-goals" className="border-none">
             <Card>
             <AccordionTrigger className="p-6 text-left">
