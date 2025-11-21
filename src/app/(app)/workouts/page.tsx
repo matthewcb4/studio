@@ -103,6 +103,7 @@ function WorkoutForm({
   onCancel: () => void;
 }) {
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
@@ -110,11 +111,13 @@ function WorkoutForm({
   useEffect(() => {
     if (workout) {
       setName(workout.name);
+      setDescription(workout.description || '');
       // Deep copy exercises to avoid direct mutation of props
       const initializedExercises = workout.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || [];
       setExercises(JSON.parse(JSON.stringify(initializedExercises)));
     } else {
       setName('');
+      setDescription('');
       setExercises([]);
     }
   }, [workout]);
@@ -231,6 +234,7 @@ function WorkoutForm({
 
     const newWorkout: Omit<CustomWorkout, 'id' | 'userId'> = {
       name,
+      description,
       exercises: finalizedExercises,
     };
     onSave(newWorkout);
@@ -275,6 +279,17 @@ function WorkoutForm({
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description" className="text-right">
+              Description
+            </Label>
+            <Input
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               className="col-span-3"
             />
           </div>
@@ -566,14 +581,14 @@ function WorkoutsPageContent() {
       )}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {groupedWorkouts?.map((workout) => (
-          <Card key={workout.id}>
+          <Card key={workout.id} className="flex flex-col">
             <CardHeader>
               <CardTitle>{workout.name}</CardTitle>
                <CardDescription>
-                {(workout.exercises?.length || 0)} exercises in {(workout.groupedExercises || []).length} groups
+                {workout.description || `${(workout.exercises?.length || 0)} exercises in ${(workout.groupedExercises || []).length} groups`}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
               <div className="space-y-4">
                 {workout.groupedExercises?.map((group, groupIndex) => (
                   <div key={group[0]?.supersetId || groupIndex} className="space-y-2">
@@ -595,7 +610,7 @@ function WorkoutsPageContent() {
                 ))}
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-2">
+            <CardFooter className="flex justify-end gap-2 mt-auto">
                <Button asChild>
                 <Link href={`/workout/${workout.id}`}>Start Workout</Link>
                </Button>

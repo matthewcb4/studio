@@ -240,6 +240,7 @@ export default function GuidePage() {
       const workoutData = {
         userId: user.uid,
         name: generatedWorkout.workoutName,
+        description: generatedWorkout.description,
         exercises: processedExercises,
       };
 
@@ -576,5 +577,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
