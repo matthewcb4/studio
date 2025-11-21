@@ -558,13 +558,13 @@ function WorkoutsPageContent() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
+        <div className="flex-shrink-0">
           <h1 className="text-3xl font-bold">My Workouts</h1>
           <p className="text-muted-foreground">
             Create and manage your custom training routines.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex-grow flex items-center justify-end gap-2">
             <Select value={sortOrder} onValueChange={setSortOrder}>
                 <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Sort by" />
