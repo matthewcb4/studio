@@ -141,9 +141,10 @@ export default function SettingsPage() {
   }, [userProfile, goalsForm]);
   
    useEffect(() => {
-    if (!isLoadingEquipment && equipment?.every(e => e.name !== "Bodyweight")) {
-        const bodyweightEquipment = { name: "Bodyweight", userId: user?.uid };
-         if (equipmentCollection) {
+    if (!isLoadingEquipment && equipment && user?.uid && equipmentCollection) {
+        const hasBodyweight = equipment.some(e => e.name === 'Bodyweight');
+        if (!hasBodyweight) {
+            const bodyweightEquipment = { name: "Bodyweight", userId: user.uid };
             addDocumentNonBlocking(equipmentCollection, bodyweightEquipment);
         }
     }
@@ -151,10 +152,10 @@ export default function SettingsPage() {
 
 
   const onEquipmentSubmit = async (values: z.infer<typeof equipmentFormSchema>) => {
-    if (!equipmentCollection) return;
+    if (!equipmentCollection || !user?.uid) return;
     setIsSubmittingEquipment(true);
     try {
-      await addDocumentNonBlocking(equipmentCollection, { name: values.name, userId: user?.uid });
+      await addDocumentNonBlocking(equipmentCollection, { name: values.name, userId: user.uid });
       toast({ title: 'Success', description: `${values.name} added to your equipment.` });
       equipmentForm.reset();
     } catch (error) {
@@ -181,10 +182,10 @@ export default function SettingsPage() {
   };
 
   const onGoalsSubmit = async (values: z.infer<typeof goalsFormSchema>) => {
-    if (!userProfileRef) return;
+    if (!userProfileRef || !user?.uid) return;
     setIsSubmittingGoals(true);
 
-    const dataToSave: Partial<z.infer<typeof goalsFormSchema>> = {};
+    const dataToSave: Partial<UserProfile> = { id: user.uid };
     Object.keys(values).forEach(key => {
         const formKey = key as keyof typeof values;
         if (values[formKey] !== undefined && values[formKey] !== '') {
@@ -193,7 +194,7 @@ export default function SettingsPage() {
     });
 
     try {
-      await setDocumentNonBlocking(userProfileRef, { ...dataToSave, id: user?.uid }, { merge: true });
+      await setDocumentNonBlocking(userProfileRef, dataToSave, { merge: true });
       toast({ title: 'Success', description: 'Your profile has been updated.' });
     } catch (error) {
         console.error("Error updating goals:", error);

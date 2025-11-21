@@ -108,11 +108,11 @@ export default function GuidePage() {
   });
   
   useEffect(() => {
-    if (userEquipment && userEquipment.length > 0) {
+    if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
       const tonal = userEquipment.find(e => e.name.toLowerCase() === 'tonal');
       if (tonal) {
         form.setValue('availableEquipment', [tonal.name]);
-      } else if (form.getValues('availableEquipment').length === 0) {
+      } else if (userEquipment.length > 0) {
          form.setValue('availableEquipment', [userEquipment[0].name]);
       }
     }

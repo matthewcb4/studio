@@ -376,6 +376,7 @@ function WorkoutForm({
                             <SelectContent>
                                 <SelectItem value="reps">Reps</SelectItem>
                                 <SelectItem value="seconds">Seconds</SelectItem>
+                                <SelectItem value="bodyweight">Bodyweight</SelectItem>
                             </SelectContent>
                          </Select>
                        </div>

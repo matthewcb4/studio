@@ -19,7 +19,7 @@ const WorkoutHistoryItemSchema = z.object({
 
 const GenerateWorkoutInputSchema = z.object({
   availableEquipment: z.array(z.string()).describe("A list of available fitness equipment."),
-  fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals."),
+  fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals (e.g., increase_max_lift, gain_overall_mass, reduce_body_fat)."),
   fitnessLevel: z.string().describe("The user's current fitness level (e.g., beginner, intermediate, advanced)."),
   workoutDuration: z.number().describe("The desired workout duration in minutes."),
   focusArea: z.array(z.string()).describe("The primary muscle group or area to focus on (e.g., Full Body, Upper Body, Lower Body, Core, Arms, Legs, Chest, Back, Shoulders)."),
@@ -81,6 +81,8 @@ const prompt = ai.definePrompt({
   {{#if focusOnSupersets}}
   The user wants to focus on supersets for the chosen muscle group. Create at least one superset that targets the specified focus area: {{{focusArea}}}. For example, if the focus is "Chest", you could superset a Bench Press with a Chest Fly.
   {{/if}}
+  
+  If "Bodyweight" is listed as available equipment, you can include exercises like Push-ups, Pull-ups, Dips, and Squats.
 
   The workout should be effective and safe. Only use the equipment specified by the user. The total workout time should be close to the desired duration.
   Provide a creative name for the workout.

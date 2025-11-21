@@ -53,6 +53,7 @@ export type WorkoutLog = {
 
 export type UserEquipment = {
   id: string;
+  userId: string;
   name: string;
 };
 

@@ -219,7 +219,9 @@ export default function WorkoutSessionPage() {
                 toast({ title: 'Missing Info', description: 'Please enter reps.', variant: 'destructive' });
                 return;
             }
-            newLog = { weight: latestWeight, reps: parseFloat(state.reps) };
+            // For bodyweight, weight is user's bodyweight + any additional weight
+            const additionalWeight = state.weight ? parseFloat(state.weight) : 0;
+            newLog = { weight: latestWeight + additionalWeight, reps: parseFloat(state.reps) };
         } else if (unit === 'reps') {
             if (!state.weight || !state.reps) {
                 toast({ title: 'Missing Info', description: 'Please enter weight and reps.', variant: 'destructive' });
@@ -453,9 +455,15 @@ export default function WorkoutSessionPage() {
                         </div>
                     )}
                     {unit === 'bodyweight' && (
-                        <div className="space-y-2">
-                            <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps (Bodyweight: {latestWeight} lbs)</Label>
-                            <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
+                       <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor={`weight-${exercise.id}`} className="text-base">Additional Weight (lbs)</Label>
+                                <Input id={`weight-${exercise.id}`} type="number" placeholder="0" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
+                                <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
+                            </div>
                         </div>
                     )}
                     {unit === 'seconds' && (
