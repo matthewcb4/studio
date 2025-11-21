@@ -59,13 +59,13 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-          >
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
           <FirebaseClientProvider>
-              {children}
+            {children}
           </FirebaseClientProvider>
           <Toaster />
         </ThemeProvider>
