@@ -1,9 +1,8 @@
-
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeProvider } from "next-themes"
 
 const APP_NAME = "fRepo";
 const APP_DEFAULT_TITLE = "fRepo";
@@ -61,7 +60,7 @@ export default function RootLayout({
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
-          disableTransitionOnChange
+          disableTransitionOnChange={false}
         >
           <FirebaseClientProvider>
             {children}
