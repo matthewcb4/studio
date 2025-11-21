@@ -301,7 +301,7 @@ export default function SettingsPage() {
 
 
   return (
-    <div className="flex flex-col gap-8 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-8 max-w-4xl mx-auto">
       <div className="flex items-center gap-4">
         <Settings className="w-8 h-8 text-primary" />
         <div>

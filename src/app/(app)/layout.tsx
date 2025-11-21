@@ -35,10 +35,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -96,7 +96,7 @@ function UserNav() {
   );
 }
 
-function Nav() {
+function Nav({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
   return (
     <SidebarMenu>
@@ -106,6 +106,7 @@ function Nav() {
             asChild
             isActive={pathname.startsWith(item.href)}
             tooltip={item.label}
+            onClick={onLinkClick}
           >
             <Link href={item.href}>
               <item.icon />
@@ -117,7 +118,7 @@ function Nav() {
     </SidebarMenu>
   );
 }
-function SecondaryNav() {
+function SecondaryNav({ onLinkClick }: { onLinkClick?: () => void }) {
     const pathname = usePathname();
     return (
       <SidebarMenu>
@@ -127,6 +128,7 @@ function SecondaryNav() {
               asChild
               isActive={pathname.startsWith(item.href)}
               tooltip={item.label}
+              onClick={onLinkClick}
             >
               <Link href={item.href}>
                 <item.icon />
@@ -140,8 +142,9 @@ function SecondaryNav() {
   }
 
 function MobileNav() {
+    const [isOpen, setIsOpen] = useState(false);
     return (
-        <Sheet>
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="shrink-0 md:hidden">
                     <Menu className="h-5 w-5" />
@@ -152,16 +155,16 @@ function MobileNav() {
                 <SheetHeader className="p-2 border-b">
                     <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                     <SheetDescription className="sr-only">Main navigation links for the application.</SheetDescription>
-                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2">
+                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2" onClick={() => setIsOpen(false)}>
                         <Logo className="h-6 w-6" />
                         <span>fRepo</span>
                     </Link>
                 </SheetHeader>
                 <SidebarContent className="p-2">
-                    <Nav />
+                    <Nav onLinkClick={() => setIsOpen(false)} />
                 </SidebarContent>
                  <SidebarFooter className="p-2 mt-auto border-t">
-                    <SecondaryNav />
+                    <SecondaryNav onLinkClick={() => setIsOpen(false)} />
                 </SidebarFooter>
             </SheetContent>
         </Sheet>
@@ -221,5 +224,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
-
-    
