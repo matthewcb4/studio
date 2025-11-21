@@ -20,8 +20,6 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
 } from '@/components/ui/chart';
 import {
   Line,
@@ -162,6 +160,7 @@ export function MuscleGroupVolumeChart({
                 </Select>
             </div>
             <div className="h-[300px]">
+              <ChartContainer config={chartConfig} className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
                         <CartesianGrid vertical={false} />
@@ -199,10 +198,10 @@ export function MuscleGroupVolumeChart({
                         />
                     </LineChart>
                 </ResponsiveContainer>
+              </ChartContainer>
             </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-
