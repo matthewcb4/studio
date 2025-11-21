@@ -26,7 +26,25 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
 import { format } from 'date-fns';
 
-const focusAreas = ["Full Body", "Upper Body", "Lower Body", "Arms", "Back", "Biceps", "Chest", "Core", "Obliques", "Legs", "Shoulders", "Triceps"];
+const muscleGroupHierarchy = {
+  "Full Body": ["Upper Body", "Lower Body", "Core"],
+  "Upper Body": ["Chest", "Back", "Shoulders", "Arms"],
+  "Lower Body": ["Legs"],
+  "Core": ["Abs", "Obliques"],
+  "Arms": ["Biceps", "Triceps"],
+  "Legs": ["Quads", "Hamstrings", "Glutes", "Calves"],
+};
+
+const allMuscleGroups = [...new Set(Object.values(muscleGroupHierarchy).flat())];
+const topLevelGroups = ["Full Body", "Upper Body", "Lower Body", "Core"];
+const subGroups = {
+    "Upper Body": ["Chest", "Back", "Shoulders", "Arms"],
+    "Lower Body": ["Legs"],
+    "Core": ["Abs", "Obliques"],
+    "Arms": ["Biceps", "Triceps"],
+    "Legs": ["Quads", "Hamstrings", "Glutes", "Calves"],
+};
+
 
 const formSchema = z.object({
   availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -107,17 +125,39 @@ export default function GuidePage() {
     },
   });
   
-  useEffect(() => {
+    useEffect(() => {
     if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
-      const tonal = userEquipment.find(e => e.name.toLowerCase() === 'tonal');
-      if (tonal) {
-        form.setValue('availableEquipment', [tonal.name]);
-      } else if (userEquipment.length > 0) {
-         form.setValue('availableEquipment', [userEquipment[0].name]);
-      }
+      const defaultEquipment = userEquipment.map(e => e.name);
+      form.setValue('availableEquipment', defaultEquipment);
     }
   }, [userEquipment, form]);
 
+  const handleFocusAreaChange = (group: string, checked: boolean) => {
+    const currentValues = form.getValues('focusArea');
+    let newValues = [...currentValues];
+
+    const getChildren = (parent: string): string[] => {
+        let children: string[] = [];
+        const directChildren = (muscleGroupHierarchy as any)[parent];
+        if (directChildren) {
+            children.push(...directChildren);
+            directChildren.forEach((child: string) => {
+                children.push(...getChildren(child));
+            });
+        }
+        return children;
+    };
+    
+    const allChildren = getChildren(group);
+
+    if (checked) {
+        newValues.push(group, ...allChildren);
+    } else {
+        newValues = newValues.filter(val => val !== group && !allChildren.includes(val));
+    }
+    
+    form.setValue('focusArea', [...new Set(newValues)]);
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -236,6 +276,36 @@ export default function GuidePage() {
 
   const displayWorkout = hasUsedAiToday && generatedWorkout;
 
+  const renderCheckboxes = (groupNames: string[], isSubGroup = false) => (
+    <div className={isSubGroup ? "grid grid-cols-2 gap-2 pl-6" : "space-y-3"}>
+      {groupNames.map(group => {
+        const subGroupItems = (subGroups as any)[group];
+        return (
+          <div key={group} className="space-y-2">
+            <FormField
+              control={form.control}
+              name="focusArea"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value?.includes(group)}
+                      onCheckedChange={(checked) => {
+                        handleFocusAreaChange(group, !!checked);
+                      }}
+                    />
+                  </FormControl>
+                  <FormLabel className="font-normal">{group}</FormLabel>
+                </FormItem>
+              )}
+            />
+            {subGroupItems && form.getValues('focusArea').includes(group) && renderCheckboxes(subGroupItems, true)}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center gap-4">
@@ -309,7 +379,7 @@ export default function GuidePage() {
                           </FormItem>
                       )}
                       />
-
+                    
                     <FormField
                       control={form.control}
                       name="focusArea"
@@ -318,44 +388,10 @@ export default function GuidePage() {
                           <div className="mb-4">
                             <FormLabel className="text-base">Muscle Group Focus</FormLabel>
                             <FormDescription>
-                              Select one or more muscle groups to target.
+                              Select the main muscle groups to target.
                             </FormDescription>
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {focusAreas.map((item) => (
-                              <FormField
-                                key={item}
-                                control={form.control}
-                                name="focusArea"
-                                render={({ field }) => {
-                                  return (
-                                    <FormItem
-                                      key={item}
-                                      className="flex flex-row items-start space-x-3 space-y-0"
-                                    >
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={field.value?.includes(item)}
-                                          onCheckedChange={(checked) => {
-                                            return checked
-                                              ? field.onChange([...field.value, item])
-                                              : field.onChange(
-                                                  field.value?.filter(
-                                                    (value) => value !== item
-                                                  )
-                                                )
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormLabel className="font-normal">
-                                        {item}
-                                      </FormLabel>
-                                    </FormItem>
-                                  )
-                                }}
-                              />
-                            ))}
-                          </div>
+                          {renderCheckboxes(topLevelGroups)}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -540,3 +576,5 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    
