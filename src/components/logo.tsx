@@ -10,7 +10,6 @@ const Logo = (props: ComponentProps<'div'>) => (
       width={400}
       height={400}
       className={cn('object-contain', props.className)}
-      unoptimized
     />
   </div>
 );
