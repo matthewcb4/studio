@@ -63,15 +63,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   auth,
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: null,
-    isUserLoading: true, // Start loading until first auth event
+    user: auth.currentUser,
+    isUserLoading: !auth.currentUser, // If user is already available, not loading.
     userError: null,
   });
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
     if (!auth) {
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
       return;
     }
 
