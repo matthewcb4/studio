@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
@@ -153,6 +153,7 @@ function MobileNav() {
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col bg-sidebar text-sidebar-foreground p-0">
                 <SheetHeader className="p-2 border-b">
+                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                     <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2" onClick={() => setIsOpen(false)}>
                         <Logo className="h-6 w-6" />
                         <span>fRepo</span>
