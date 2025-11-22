@@ -53,9 +53,9 @@ const chartColors: Record<string, string> = {
     Chest: 'hsl(var(--chart-1))',
     Back: 'hsl(var(--chart-2))',
     Legs: 'hsl(var(--primary))',
-    Shoulders: 'hsl(var(--accent))',
+    Shoulders: 'hsl(var(--chart-4))',
     Arms: 'hsl(var(--chart-5))',
-    Core: 'hsl(var(--secondary))',
+    Core: 'hsl(var(--chart-3))',
 };
 
 interface MuscleGroupVolumeChartProps {
