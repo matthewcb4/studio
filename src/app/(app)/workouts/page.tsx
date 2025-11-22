@@ -581,7 +581,7 @@ function WorkoutsPageContent() {
                 Create New Workout
                 </Button>
             </SheetTrigger>
-            <SheetContent className="sm:max-w-2xl w-full flex flex-col">
+            <SheetContent className="w-full max-w-[95vw] sm:max-w-2xl flex flex-col">
                 <Suspense fallback={<div className="p-6">Loading form...</div>}>
                 <WorkoutForm
                     workout={editingWorkout}
