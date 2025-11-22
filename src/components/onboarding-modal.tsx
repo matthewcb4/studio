@@ -17,7 +17,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel"
-import { Bot, Dumbbell, BarChart3, History, Settings } from "lucide-react";
+import { Bot, Dumbbell, BarChart3, History, Settings, Palette } from "lucide-react";
 
 const onboardingSteps = [
   {
@@ -41,9 +41,14 @@ const onboardingSteps = [
     description: "All completed workouts are saved in 'History', where you can review the details of every session.",
   },
   {
+    icon: Palette,
+    title: "Personalize Appearance",
+    description: "Go to Settings to choose your theme. Select from Light, Dark, or Vaporwave to customize the look and feel of the app.",
+  },
+  {
     icon: Settings,
     title: "Customize Your Setup",
-    description: "Head to 'Settings' to add your equipment, manage exercises, and set your personal fitness goals.",
+    description: "In Settings, add your equipment, set fitness goals, manage exercises, and even link YouTube videos to your lifts.",
   },
 ];
 
