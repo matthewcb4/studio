@@ -54,6 +54,7 @@ import {
   useCollection,
 } from '@/firebase';
 import { doc, collection, addDoc, query, orderBy, limit } from 'firebase/firestore';
+import { Checkbox } from '@/components/ui/checkbox';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -77,6 +78,7 @@ type ExerciseState = {
   weight: string;
   reps: string;
   duration: string;
+  includeBodyweight: boolean;
 };
 
 // Group exercises by supersetId for display
@@ -163,6 +165,7 @@ export default function WorkoutSessionPage() {
           weight: '',
           reps: '',
           duration: '',
+          includeBodyweight: true, // Default to including bodyweight for bodyweight exercises
         };
       });
       setExerciseStates(newStates);
@@ -219,9 +222,10 @@ export default function WorkoutSessionPage() {
                 toast({ title: 'Missing Info', description: 'Please enter reps.', variant: 'destructive' });
                 return;
             }
-            // For bodyweight, weight is user's bodyweight + any additional weight
+            // For bodyweight, weight is user's bodyweight + any additional weight, if checked
             const additionalWeight = state.weight ? parseFloat(state.weight) : 0;
-            newLog = { weight: latestWeight + additionalWeight, reps: parseFloat(state.reps) };
+            const bodyweightComponent = state.includeBodyweight ? latestWeight : 0;
+            newLog = { weight: bodyweightComponent + additionalWeight, reps: parseFloat(state.reps) };
         } else if (unit === 'reps') {
             if (!state.weight || !state.reps) {
                 toast({ title: 'Missing Info', description: 'Please enter weight and reps.', variant: 'destructive' });
@@ -455,16 +459,28 @@ export default function WorkoutSessionPage() {
                         </div>
                     )}
                     {unit === 'bodyweight' && (
-                       <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor={`weight-${exercise.id}`} className="text-base">Additional Weight (lbs)</Label>
-                                <Input id={`weight-${exercise.id}`} type="number" placeholder="0" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
+                       <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor={`weight-${exercise.id}`} className="text-base">Additional Weight</Label>
+                                    <Input id={`weight-${exercise.id}`} type="number" placeholder="0" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
+                                    <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                                <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`include-bodyweight-${exercise.id}`}
+                                    checked={state.includeBodyweight}
+                                    onCheckedChange={(checked) => setExerciseStates({...exerciseStates, [exercise.id]: {...state, includeBodyweight: !!checked}})}
+                                />
+                                <Label htmlFor={`include-bodyweight-${exercise.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Include Bodyweight ({latestWeight} lbs)
+                                </Label>
                             </div>
-                        </div>
+                       </div>
                     )}
                     {unit === 'seconds' && (
                         <div className="space-y-2">
@@ -529,3 +545,5 @@ export default function WorkoutSessionPage() {
     </div>
   );
 }
+
+    
