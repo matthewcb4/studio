@@ -35,17 +35,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/guide", icon: Bot, label: "AI Guide" },
   { href: "/workouts", icon: Dumbbell, label: "Workouts" },
   { href: "/history", icon: History, label: "History" },
   { href: "/progress", icon: BarChart3, label: "Progress" },
-  { href: "/guide", icon: Bot, label: "AI Guide" },
 ];
 
 const secondaryNavItems = [
