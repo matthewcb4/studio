@@ -17,6 +17,7 @@ export const metadata: Metadata = {
     template: APP_TITLE_TEMPLATE,
   },
   description: APP_DESCRIPTION,
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -26,7 +27,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: 'https://raw.githubusercontent.com/matthewcb4/public_resources/a7992f6720a20666e8ce3c757fa0671f45af779b/icon.png',
+    icon: '/favicon.ico',
+    apple: '/icons/apple-touch-icon.png',
   }
 };
 

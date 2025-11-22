@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 const Logo = (props: ComponentProps<'div'>) => (
   <div {...props}>
     <Image
-      src="https://raw.githubusercontent.com/matthewcb4/public_resources/a7992f6720a20666e8ce3c757fa0671f45af779b/fRepo_L.png"
+      src="/logo.png"
       alt="fRepo Logo"
       width={400}
       height={400}
