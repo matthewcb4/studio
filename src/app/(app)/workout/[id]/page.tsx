@@ -165,7 +165,7 @@ export default function WorkoutSessionPage() {
           weight: '',
           reps: '',
           duration: '',
-          includeBodyweight: true, // Default to including bodyweight for bodyweight exercises
+          includeBodyweight: false, // Default to NOT including bodyweight
         };
       });
       setExerciseStates(newStates);
@@ -545,5 +545,3 @@ export default function WorkoutSessionPage() {
     </div>
   );
 }
-
-    
