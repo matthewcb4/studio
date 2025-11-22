@@ -29,11 +29,11 @@ export default function TermsPage() {
             <h3 className="text-xl font-semibold">4. Prohibited Uses</h3>
             <p>You may use the Service only for lawful purposes and in accordance with the Terms. You agree not to use the Service:</p>
             <ul className="list-disc list-inside space-y-2">
-                <li>In any way that violates any applicable national or international law or regulation.</li>
-                <li>For the purpose of exploiting, harming, or attempting to exploit or harm minors in any way.</li>
-                <li>To transmit, or procure the sending of, any advertising or promotional material, including any "junk mail," "chain letter," "spam," or any other similar solicitation.</li>
-                <li>To infringe upon the rights of others, or in any way that is illegal, threatening, fraudulent, or harmful.</li>
-                <li>To engage in any conduct that restricts or inhibits anyone's use or enjoyment of the Service, or which, as determined by Us, may harm fRepo or users of the Service.</li>
+                <li key="prohibited-1">In any way that violates any applicable national or international law or regulation.</li>
+                <li key="prohibited-2">For the purpose of exploiting, harming, or attempting to exploit or harm minors in any way.</li>
+                <li key="prohibited-3">To transmit, or procure the sending of, any advertising or promotional material, including any "junk mail," "chain letter," "spam," or any other similar solicitation.</li>
+                <li key="prohibited-4">To infringe upon the rights of others, or in any way that is illegal, threatening, fraudulent, or harmful.</li>
+                <li key="prohibited-5">To engage in any conduct that restricts or inhibits anyone's use or enjoyment of the Service, or which, as determined by Us, may harm fRepo or users of the Service.</li>
             </ul>
 
             <h3 className="text-xl font-semibold">5. Intellectual Property</h3>
@@ -42,8 +42,8 @@ export default function TermsPage() {
             <h3 className="text-xl font-semibold">6. Medical and Results Disclaimer</h3>
             <p>fRepo provides fitness and health information for informational purposes only. You expressly acknowledge and agree that:</p>
             <ul className="list-disc list-inside space-y-2">
-                <li>**The Service is not a substitute for professional medical advice, diagnosis, or treatment.** Always consult with a qualified health professional before starting any new diet or fitness program.</li>
-                <li>**fRepo does not guarantee specific results.** Results may vary due to individual differences, adherence to the program, and existing health conditions.</li>
+                <li key="disclaimer-1">**The Service is not a substitute for professional medical advice, diagnosis, or treatment.** Always consult with a qualified health professional before starting any new diet or fitness program.</li>
+                <li key="disclaimer-2">**fRepo does not guarantee specific results.** Results may vary due to individual differences, adherence to the program, and existing health conditions.</li>
             </ul>
 
             <h3 className="text-xl font-semibold">7. App Store Terms (Google Play)</h3>
@@ -63,7 +63,7 @@ export default function TermsPage() {
             <h3 className="text-xl font-semibold">11. Contact Us</h3>
             <p>If You have any questions about these Terms of Service, please contact us:</p>
             <ul className="list-disc list-inside space-y-2">
-                <li>**By email:** **matthewcb4+frepo@gmail.com**</li>
+                <li key="contact-1">**By email:** **matthewcb4+frepo@gmail.com**</li>
             </ul>
         </div>
         <div className="mt-8 text-center">

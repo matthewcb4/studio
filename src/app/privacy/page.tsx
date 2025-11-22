@@ -21,42 +21,42 @@ export default function PrivacyPage() {
 
             <h4 className="text-lg font-semibold mt-4">1.1. Personal Identifiable Information (PII)</h4>
             <ul className="list-disc list-inside space-y-2">
-                <li>**Account Data:** Your name, email address, and password (encrypted) when You create an account.</li>
-                <li>**Contact Information:** Information you provide when contacting us for support, feedback, or inquiries.</li>
+                <li key="pii-1">**Account Data:** Your name, email address, and password (encrypted) when You create an account.</li>
+                <li key="pii-2">**Contact Information:** Information you provide when contacting us for support, feedback, or inquiries.</li>
             </ul>
 
             <h4 className="text-lg font-semibold mt-4">1.2. Sensitive Health and Fitness Data (Explicit Consent Required)</h4>
             <p>As fRepo is a fitness tracking application, we collect the following data, which is essential to the Service's core functionality. **By entering this data, You explicitly consent to its collection and processing for the purposes listed in Section 2.**</p>
             <ul className="list-disc list-inside space-y-2">
-                <li>**Body Metrics:** Weight, height, age, gender, and fitness goals.</li>
-                <li>**Workout Data:** Progress tracking, workout history, exercises performed, sets, reps, load/weight lifted, time of workout, and training results.</li>
-                <li>**Health App Integration Data:** If You grant permission, We may read and/or write data from Your device's native health application (e.g., Google Fit), which may include Active Calories, Steps, or Exercise Minutes.</li>
+                <li key="sensitive-1">**Body Metrics:** Weight, height, age, gender, and fitness goals.</li>
+                <li key="sensitive-2">**Workout Data:** Progress tracking, workout history, exercises performed, sets, reps, load/weight lifted, time of workout, and training results.</li>
+                <li key="sensitive-3">**Health App Integration Data:** If You grant permission, We may read and/or write data from Your device's native health application (e.g., Google Fit), which may include Active Calories, Steps, or Exercise Minutes.</li>
             </ul>
 
             <h4 className="text-lg font-semibold mt-4">1.3. Usage and Technical Data</h4>
             <ul className="list-disc list-inside space-y-2">
-                <li>**Usage Data:** Information on how the Service is accessed and used, such as Your device's Internet Protocol address (IP address), operating system, app version, mobile network information, and pages/features visited.</li>
-                <li>**Device Information:** Unique device identifiers, device model, and operating system.</li>
-                <li>**Diagnostic Data:** Crash logs and performance data to maintain and improve the Service.</li>
+                <li key="usage-1">**Usage Data:** Information on how the Service is accessed and used, such as Your device's Internet Protocol address (IP address), operating system, app version, mobile network information, and pages/features visited.</li>
+                <li key="usage-2">**Device Information:** Unique device identifiers, device model, and operating system.</li>
+                <li key="usage-3">**Diagnostic Data:** Crash logs and performance data to maintain and improve the Service.</li>
             </ul>
 
             <h3 className="text-xl font-semibold">2. Use of Your Personal Data</h3>
             <p>fRepo may use Personal Data for the following purposes:</p>
             <ul className="list-disc list-inside space-y-2">
-                <li>**To Provide and Maintain Our Service:** Including monitoring the usage and providing core fitness tracking features.</li>
-                <li>**To Manage Your Account:** To manage your registration as a user of the Service.</li>
-                <li>**To Contact You:** To provide You with necessary updates or informational communications related to the Service.</li>
-                <li>**For Improvement and Analytics:** To analyze data, identify trends, and evaluate the performance of Our products to improve the user experience.</li>
-                <li>**To Enforce Terms:** To enforce Our Terms of Service and prevent fraud or malicious activity.</li>
+                <li key="use-1">**To Provide and Maintain Our Service:** Including monitoring the usage and providing core fitness tracking features.</li>
+                <li key="use-2">**To Manage Your Account:** To manage your registration as a user of the Service.</li>
+                <li key="use-3">**To Contact You:** To provide You with necessary updates or informational communications related to the Service.</li>
+                <li key="use-4">**For Improvement and Analytics:** To analyze data, identify trends, and evaluate the performance of Our products to improve the user experience.</li>
+                <li key="use-5">**To Enforce Terms:** To enforce Our Terms of Service and prevent fraud or malicious activity.</li>
             </ul>
 
             <h3 className="text-xl font-semibold">3. Disclosure of Your Personal Data</h3>
             <p>We may share Your personal information in the following situations:</p>
             <ul className="list-disc list-inside space-y-2">
-                <li>**With Service Providers:** We may share Your data with trusted third-party vendors (e.g., Firebase, analytics providers) to monitor and analyze the use of our Service, to process payments, or for data hosting.</li>
-                <li>**For Business Transfers:** In connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of Our business.</li>
-                <li>**With Your Consent:** We may disclose Your personal information for any other purpose with Your explicit consent.</li>
-                <li>**For Legal Compliance:** When we believe in good faith that disclosure is necessary to comply with a legal obligation, protect and defend the rights or property of fRepo, or prevent fraud.</li>
+                <li key="disclosure-1">**With Service Providers:** We may share Your data with trusted third-party vendors (e.g., Firebase, analytics providers) to monitor and analyze the use of our Service, to process payments, or for data hosting.</li>
+                <li key="disclosure-2">**For Business Transfers:** In connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of Our business.</li>
+                <li key="disclosure-3">**With Your Consent:** We may disclose Your personal information for any other purpose with Your explicit consent.</li>
+                <li key="disclosure-4">**For Legal Compliance:** When we believe in good faith that disclosure is necessary to comply with a legal obligation, protect and defend the rights or property of fRepo, or prevent fraud.</li>
             </ul>
             
             <h3 className="text-xl font-semibold">4. Data Security and Retention</h3>
@@ -66,17 +66,17 @@ export default function PrivacyPage() {
             <h3 className="text-xl font-semibold">5. Your Data Protection Rights</h3>
             <p>Depending on Your location (e.g., EU, California), You may have the following rights regarding Your Personal Data:</p>
             <ul className="list-disc list-inside space-y-2">
-                <li>**Right to Access/Know:** The right to obtain confirmation regarding whether We are processing Your Personal Data and to receive a copy of that data.</li>
-                <li>**Right to Correction/Rectification:** The right to have inaccurate Personal Data corrected.</li>
-                <li>**Right to Deletion ("Right to be Forgotten"):** The right to request that We delete Your Personal Data, subject to certain exceptions.</li>
-                <li>**Right to Opt-Out:** The right to opt out of the “sale” or “sharing” of Your Personal Data, or the processing of Your Personal Data for targeted advertising.</li>
+                <li key="rights-1">**Right to Access/Know:** The right to obtain confirmation regarding whether We are processing Your Personal Data and to receive a copy of that data.</li>
+                <li key="rights-2">**Right to Correction/Rectification:** The right to have inaccurate Personal Data corrected.</li>
+                <li key="rights-3">**Right to Deletion ("Right to be Forgotten"):** The right to request that We delete Your Personal Data, subject to certain exceptions.</li>
+                <li key="rights-4">**Right to Opt-Out:** The right to opt out of the “sale” or “sharing” of Your Personal Data, or the processing of Your Personal Data for targeted advertising.</li>
             </ul>
 
             <h4 className="text-lg font-semibold mt-4">5.1. Account and Data Deletion (Google Play Requirement)</h4>
             <p>If You wish to delete Your fRepo account and all associated data, you may do so through:</p>
             <ul className="list-disc list-inside space-y-2">
-                <li>**In-App:** Navigate to the "Settings" menu within the fRepo app and follow the steps for "Account Deletion."</li>
-                <li>**Web Request:** Submit an account deletion request by emailing us at **matthewcb4+frepo@gmail.com**.</li>
+                <li key="deletion-1">**In-App:** Navigate to the "Settings" menu within the fRepo app and follow the steps for "Account Deletion."</li>
+                <li key="deletion-2">**Web Request:** Submit an account deletion request by emailing us at **matthewcb4+frepo@gmail.com**.</li>
             </ul>
             <p>We will process Your request and delete Your personal data in accordance with applicable laws.</p>
             
@@ -86,8 +86,8 @@ export default function PrivacyPage() {
             <h3 className="text-xl font-semibold">7. Contact Us</h3>
             <p>If You have any questions about this Privacy Policy, You can contact us:</p>
             <ul className="list-disc list-inside space-y-2">
-                <li>**By email:** **matthewcb4+frepo@gmail.com**</li>
-                <li>**By mail:** **9060 Canyon St. West Des Moines, IA 50266**</li>
+                <li key="contact-1">**By email:** **matthewcb4+frepo@gmail.com**</li>
+                <li key="contact-2">**By mail:** **9060 Canyon St. West Des Moines, IA 50266**</li>
             </ul>
         </div>
         <div className="mt-8 text-center">
