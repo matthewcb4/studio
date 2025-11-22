@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
@@ -153,8 +153,6 @@ function MobileNav() {
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col bg-sidebar text-sidebar-foreground p-0">
                 <SheetHeader className="p-2 border-b">
-                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                    <SheetDescription className="sr-only">Main navigation links for the application.</SheetDescription>
                     <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2" onClick={() => setIsOpen(false)}>
                         <Logo className="h-6 w-6" />
                         <span>fRepo</span>
@@ -205,7 +203,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarFooter>
             <SecondaryNav />
             <div className="text-xs text-center text-muted-foreground p-2 group-data-[collapsible=icon]:hidden">
-              v1.1.9
+              v2.0.0
             </div>
           </SidebarFooter>
         </Sidebar>
