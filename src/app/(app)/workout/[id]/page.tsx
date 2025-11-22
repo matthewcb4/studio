@@ -31,7 +31,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog } from '@/lib/types';
+import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog, LoggedExercise } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -141,7 +141,6 @@ export default function WorkoutSessionPage() {
     Record<string, ExerciseState>
   >({});
   const [sessionLog, setSessionLog] = useState<Record<string, LoggedSet[]>>({});
-  const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isFinishing, setIsFinishing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -174,7 +173,6 @@ export default function WorkoutSessionPage() {
 
 
   useEffect(() => {
-    setStartTime(new Date());
     const timer = setInterval(() => {
       if (!isFinished) {
         setElapsedTime((prev) => prev + 1);
@@ -272,7 +270,7 @@ export default function WorkoutSessionPage() {
     
     const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
     
-    const loggedExercises = Object.entries(sessionLog).map(([exerciseInstanceId, sets]) => ({
+    const loggedExercises: LoggedExercise[] = Object.entries(sessionLog).map(([exerciseInstanceId, sets]) => ({
       exerciseId: workout.exercises.find(e => e.id === exerciseInstanceId)?.exerciseId || 'Unknown',
       exerciseName: workout.exercises.find(e => e.id === exerciseInstanceId)?.exerciseName || 'Unknown',
       sets,
@@ -284,7 +282,7 @@ export default function WorkoutSessionPage() {
       0
     );
 
-    const workoutLog = {
+    const workoutLog: Omit<WorkoutLog, 'id'> = {
       userId: user.uid,
       workoutName: workout.name,
       date: new Date().toISOString(),
@@ -545,3 +543,5 @@ export default function WorkoutSessionPage() {
     </div>
   );
 }
+
+    

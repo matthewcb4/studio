@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { findExerciseVideo } from '@/ai/flows/find-exercise-video-flow';
+import { findExerciseVideo, FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import Image from 'next/image';
 import { ThemeSelector } from '@/components/theme-selector';
 
@@ -65,7 +65,7 @@ export default function SettingsPage() {
   const [isSeeding, setIsSeeding] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [exerciseFilter, setExerciseFilter] = useState('');
-  const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: any[] }>({ exerciseId: '', videos: [] });
+  const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
   const [isFindingVideo, setIsFindingVideo] = useState(false);
 
 
@@ -187,10 +187,11 @@ export default function SettingsPage() {
     setIsSubmittingGoals(true);
 
     const dataToSave: Partial<UserProfile> = { id: user.uid };
-    Object.keys(values).forEach(key => {
-        const formKey = key as keyof typeof values;
-        if (values[formKey] !== undefined && values[formKey] !== '') {
-            (dataToSave as any)[formKey] = values[formKey];
+    const formKeys = Object.keys(values) as (keyof typeof values)[];
+
+    formKeys.forEach(key => {
+        if (values[key] !== undefined && values[key] !== '') {
+            (dataToSave as any)[key] = values[key];
         }
     });
 
@@ -792,3 +793,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

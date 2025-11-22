@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
 import { format } from 'date-fns';
 
-const muscleGroupHierarchy = {
+const muscleGroupHierarchy: Record<string, string[]> = {
   "Full Body": ["Upper Body", "Lower Body", "Core"],
   "Upper Body": ["Chest", "Back", "Shoulders", "Arms"],
   "Lower Body": ["Legs"],
@@ -35,9 +35,8 @@ const muscleGroupHierarchy = {
   "Legs": ["Quads", "Hamstrings", "Glutes", "Calves"],
 };
 
-const allMuscleGroups = [...new Set(Object.values(muscleGroupHierarchy).flat())];
 const topLevelGroups = ["Full Body", "Upper Body", "Lower Body", "Core"];
-const subGroups = {
+const subGroups: Record<string, string[]> = {
     "Upper Body": ["Chest", "Back", "Shoulders", "Arms"],
     "Lower Body": ["Legs"],
     "Core": ["Abs", "Obliques"],
@@ -138,7 +137,7 @@ export default function GuidePage() {
 
     const getChildren = (parent: string): string[] => {
         let children: string[] = [];
-        const directChildren = (muscleGroupHierarchy as any)[parent];
+        const directChildren = (muscleGroupHierarchy)[parent];
         if (directChildren) {
             children.push(...directChildren);
             directChildren.forEach((child: string) => {
@@ -280,7 +279,7 @@ export default function GuidePage() {
   const renderCheckboxes = (groupNames: string[], isSubGroup = false) => (
     <div className={isSubGroup ? "grid grid-cols-2 gap-2 pl-6" : "space-y-3"}>
       {groupNames.map(group => {
-        const subGroupItems = (subGroups as any)[group];
+        const subGroupItems = (subGroups)[group];
         return (
           <div key={group} className="space-y-2">
             <FormField
@@ -577,3 +576,5 @@ export default function GuidePage() {
     </div>
   );
 }
+
+    

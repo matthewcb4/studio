@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -149,7 +150,7 @@ const ChartTooltipContent = React.forwardRef<
       if (labelFormatter) {
         return (
           <div className={cn("font-medium", labelClassName)}>
-            {labelFormatter(value, payload)}
+            {labelFormatter(value as string, payload)}
           </div>
         )
       }
@@ -319,7 +320,7 @@ ChartLegendContent.displayName = "ChartLegend"
 // Helper to extract item config from a payload.
 function getPayloadConfigFromPayload(
   config: ChartConfig,
-  payload: unknown,
+  payload: object,
   key: string
 ) {
   if (typeof payload !== "object" || payload === null) {
@@ -337,16 +338,16 @@ function getPayloadConfigFromPayload(
 
   if (
     key in payload &&
-    typeof payload[key as keyof typeof payload] === "string"
+    typeof (payload as any)[key] === "string"
   ) {
-    configLabelKey = payload[key as keyof typeof payload] as string
+    configLabelKey = (payload as any)[key] as string
   } else if (
     payloadPayload &&
     key in payloadPayload &&
-    typeof payloadPayload[key as keyof typeof payloadPayload] === "string"
+    typeof (payloadPayload as any)[key] === "string"
   ) {
-    configLabelKey = payloadPayload[
-      key as keyof typeof payloadPayload
+    configLabelKey = (payloadPayload as any)[
+      key
     ] as string
   }
 
@@ -363,3 +364,5 @@ export {
   ChartLegendContent,
   ChartStyle,
 }
+
+    

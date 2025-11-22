@@ -162,7 +162,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('7');
-  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const customWorkoutsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -188,6 +187,8 @@ export default function DashboardPage() {
   , [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
+  // Initialize state based on the profile data directly.
+  const [showOnboarding, setShowOnboarding] = useState(false);
   useEffect(() => {
     if (userProfile && !userProfile.hasCompletedOnboarding) {
         setShowOnboarding(true);
@@ -383,3 +384,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    

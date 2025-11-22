@@ -71,7 +71,6 @@ export function useCollection<T = any>(
     }
 
     setIsLoading(true);
-    setError(null);
 
     // Directly use memoizedTargetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
@@ -85,7 +84,7 @@ export function useCollection<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
+      (err: FirestoreError) => {
         // This logic extracts the path from either a ref or a query
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
@@ -111,3 +110,5 @@ export function useCollection<T = any>(
 
   return { data, isLoading, error };
 }
+
+    

@@ -164,22 +164,21 @@ export default function ProgressPage() {
   const exerciseChartData = useMemo(() => {
     if (!selectedExerciseId || !workoutLogs) return [];
 
-    return workoutLogs
-      .map((log) => {
-        const exerciseLog = log.exercises.find(
-          (e) => e.exerciseId === selectedExerciseId
-        );
-        if (!exerciseLog) return null;
-
+    const data: { date: Date; maxWeight: number }[] = [];
+    workoutLogs.forEach((log) => {
+      const exerciseLog = log.exercises.find(
+        (e) => e.exerciseId === selectedExerciseId
+      );
+      if (exerciseLog) {
         const maxWeight = Math.max(0, ...exerciseLog.sets.map((s) => s.weight ?? 0));
-
-        return {
+        data.push({
           date: new Date(log.date),
           maxWeight,
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a!.date.getTime() - b!.date.getTime());
+        });
+      }
+    });
+
+    return data.sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [selectedExerciseId, workoutLogs]);
 
   const weightChartData = useMemo(() => {
@@ -286,7 +285,7 @@ export default function ProgressPage() {
                   >
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart
-                        data={weightChartData as any}
+                        data={weightChartData}
                         margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -377,7 +376,7 @@ export default function ProgressPage() {
                   >
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart
-                        data={exerciseChartData as any}
+                        data={exerciseChartData}
                         margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -432,3 +431,5 @@ export default function ProgressPage() {
     </div>
   );
 }
+
+    

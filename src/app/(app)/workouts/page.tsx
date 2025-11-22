@@ -69,7 +69,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
+const generateUniqueId = (): string => {
+    let result = '';
+    // Use useEffect with an empty dependency array to run this only on the client
+    useEffect(() => {
+        result = `_${Math.random().toString(36).substr(2, 9)}`;
+    }, []);
+    return result;
+};
 
 // Group exercises by supersetId for display
 const groupExercises = (exercises: WorkoutExercise[] = []) => {
@@ -162,7 +169,7 @@ function WorkoutForm({
   const updateExercise = (
     exerciseIdToUpdate: string,
     field: keyof WorkoutExercise,
-    value: any
+    value: string | number
   ) => {
     const newExercises = exercises.map(ex => {
       if (ex.id === exerciseIdToUpdate) {
@@ -173,8 +180,8 @@ function WorkoutForm({
             updatedEx.exerciseId = selectedExercise.id;
             updatedEx.exerciseName = selectedExercise.name;
           } else {
-            updatedEx.exerciseId = value; 
-            updatedEx.exerciseName = value;
+            updatedEx.exerciseId = value as string; 
+            updatedEx.exerciseName = value as string;
           }
         } else {
           (updatedEx[field] as any) = value;
@@ -456,9 +463,8 @@ function WorkoutsPageContent() {
   const searchParams = useSearchParams();
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(
-    null
-  );
+  // Initialize state based on the URL parameter
+  const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(null);
   const [sortOrder, setSortOrder] = useState('alphabetical');
 
   const workoutsCollection = useMemoFirebase(() => {
@@ -482,8 +488,6 @@ function WorkoutsPageContent() {
 
   // This effect handles opening the sheet when the ?edit=... param is present
   useEffect(() => {
-    if (isLoadingWorkouts || isLoadingExercises) return;
-
     const editId = searchParams.get('edit');
     if (editId && workouts) {
       const workoutToEdit = workouts.find(w => w.id === editId);
@@ -492,7 +496,7 @@ function WorkoutsPageContent() {
         setIsSheetOpen(true);
       }
     }
-  }, [searchParams, workouts, isLoadingWorkouts, isLoadingExercises]);
+  }, [searchParams, workouts]);
 
   // This function handles closing the sheet and clearing the URL param
   const handleSheetClose = (open: boolean) => {
@@ -704,3 +708,5 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
+
+    
