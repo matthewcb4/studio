@@ -3,7 +3,7 @@ import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { ThemeProvider } from "next-themes"
+import { ThemeProvider } from "@/components/theme-provider";
 
 const APP_NAME = "fRepo";
 const APP_DEFAULT_TITLE = "fRepo";
@@ -36,7 +36,6 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: dark)', color: 'black' },
   ],
 };
-
 
 declare global {
   interface Window {
