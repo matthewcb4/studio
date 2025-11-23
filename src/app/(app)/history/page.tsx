@@ -118,7 +118,10 @@ function EditWorkoutLog({ log, onSave, onCancel }: { log: WorkoutLog, onSave: (u
     const handleSetChange = (exIndex: number, setIndex: number, field: keyof LoggedSet, value: string) => {
         const newExercises = [...editedLog.exercises];
         const newSets = [...newExercises[exIndex].sets];
-        (newSets[setIndex] as any)[field] = parseFloat(value) || 0;
+        
+        const updatedSet = { ...newSets[setIndex], [field]: parseFloat(value) || 0 };
+        newSets[setIndex] = updatedSet;
+        
         newExercises[exIndex] = { ...newExercises[exIndex], sets: newSets };
         setEditedLog(prev => ({ ...prev, exercises: newExercises }));
     };
