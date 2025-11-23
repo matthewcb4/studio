@@ -9,6 +9,7 @@ import {
   CollectionReference,
   DocumentReference,
   SetOptions,
+  DocumentData,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import {FirestorePermissionError} from '@/firebase/errors';
@@ -37,7 +38,7 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: Record<s
  * Does NOT await the write operation internally.
  * Returns the Promise for the new doc ref, but typically not awaited by caller.
  */
-export function addDocumentNonBlocking(colRef: CollectionReference, data: Record<string, unknown>) {
+export function addDocumentNonBlocking(colRef: CollectionReference<DocumentData>, data: Record<string, unknown>) {
   const promise = addDoc(colRef, data)
     .catch((_error: unknown) => {
       errorEmitter.emit(
@@ -57,7 +58,7 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: Record
  * Initiates an updateDoc operation for a document reference.
  * Does NOT await the write operation internally.
  */
-export function updateDocumentNonBlocking(docRef: DocumentReference, data: Record<string, unknown>) {
+export function updateDocumentNonBlocking(docRef: DocumentReference<DocumentData>, data: Record<string, unknown>) {
   updateDoc(docRef, data)
     .catch((_error: unknown) => {
       errorEmitter.emit(
@@ -88,3 +89,5 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
       )
     });
 }
+
+    

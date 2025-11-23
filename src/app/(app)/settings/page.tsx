@@ -170,6 +170,7 @@ export default function SettingsPage() {
   const onExerciseSubmit = async (values: z.infer<typeof exerciseFormSchema>) => {
     setIsSubmittingExercise(true);
     try {
+      if (!firestore) throw new Error("Firestore not initialized");
       const exerciseCollectionRef = collection(firestore, 'exercises');
       await addDocumentNonBlocking(exerciseCollectionRef, values);
       toast({ title: 'Success', description: `${values.name} added to exercises.` });
@@ -249,7 +250,7 @@ export default function SettingsPage() {
   };
 
   const handleSelectVideo = (masterExerciseId: string, videoId: string) => {
-    if (!user) return;
+    if (!user || !firestore) return;
     const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
     setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
     toast({
@@ -793,3 +794,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
