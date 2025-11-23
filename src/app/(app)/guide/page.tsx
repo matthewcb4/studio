@@ -29,19 +29,17 @@ import { format } from 'date-fns';
 const muscleGroupHierarchy: Record<string, string[]> = {
   "Full Body": ["Upper Body", "Lower Body", "Core"],
   "Upper Body": ["Chest", "Back", "Shoulders", "Arms"],
-  "Lower Body": ["Legs"],
+  "Lower Body": ["Quads", "Hamstrings", "Glutes", "Calves"],
   "Core": ["Abs", "Obliques"],
   "Arms": ["Biceps", "Triceps"],
-  "Legs": ["Quads", "Hamstrings", "Glutes", "Calves"],
 };
 
 const topLevelGroups = ["Full Body", "Upper Body", "Lower Body", "Core"];
 const subGroups: Record<string, string[]> = {
     "Upper Body": ["Chest", "Back", "Shoulders", "Arms"],
-    "Lower Body": ["Legs"],
+    "Lower Body": ["Quads", "Hamstrings", "Glutes", "Calves"],
     "Core": ["Abs", "Obliques"],
     "Arms": ["Biceps", "Triceps"],
-    "Legs": ["Quads", "Hamstrings", "Glutes", "Calves"],
 };
 
 
@@ -277,7 +275,7 @@ export default function GuidePage() {
   const displayWorkout = hasUsedAiToday && generatedWorkout;
 
   const renderCheckboxes = (groupNames: string[], isSubGroup = false) => (
-    <div className={isSubGroup ? "grid grid-cols-1 md:grid-cols-2 gap-2 pl-6" : "space-y-3"}>
+    <div className={isSubGroup ? "grid grid-cols-2 md:grid-cols-2 gap-2 pl-6" : "space-y-3"}>
       {groupNames.map(group => {
         const subGroupItems = (subGroups)[group];
         return (
