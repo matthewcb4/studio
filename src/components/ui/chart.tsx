@@ -292,7 +292,7 @@ const ChartLegendContent = React.forwardRef<
 
           return (
             <div
-              key={item.value}
+              key={item.value as string}
               className={cn(
                 "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground"
               )}
@@ -338,7 +338,6 @@ function getPayloadConfigFromPayload(
 
   if (
     key in payload &&
-<<<<<<< HEAD
     typeof (payload as Record<string, unknown>)[key] === "string"
   ) {
     configLabelKey = (payload as Record<string, string>)[key]
@@ -348,21 +347,6 @@ function getPayloadConfigFromPayload(
     typeof (payloadPayload as Record<string, unknown>)[key] === "string"
   ) {
     configLabelKey = (payloadPayload as Record<string, string>)[
-=======
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    typeof (payload as any)[key] === "string"
-  ) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    configLabelKey = (payload as any)[key] as string
-  } else if (
-    payloadPayload &&
-    key in payloadPayload &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    typeof (payloadPayload as any)[key] === "string"
-  ) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    configLabelKey = (payloadPayload as any)[
->>>>>>> origin/build-fixes
       key
     ]
   }
