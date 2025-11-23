@@ -469,8 +469,7 @@ function WorkoutsPageContent() {
   const searchParams = useSearchParams();
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  // Initialize state based on the URL parameter
-  const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(null);
+  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState('alphabetical');
 
   const workoutsCollection = useMemoFirebase(() => {
@@ -492,25 +491,25 @@ function WorkoutsPageContent() {
   , [firestore, user]);
   const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
 
+  const editingWorkout = useMemo(() => {
+      if (!editingWorkoutId || !workouts) return null;
+      return workouts.find(w => w.id === editingWorkoutId) || null;
+  }, [editingWorkoutId, workouts])
+
   // This effect handles opening the sheet when the ?edit=... param is present
   useEffect(() => {
     const editId = searchParams.get('edit');
-    if (editId && workouts) {
-      const workoutToEdit = workouts.find(w => w.id === editId);
-      if (workoutToEdit && (!editingWorkout || editingWorkout.id !== workoutToEdit.id)) {
-        setTimeout(() => {
-            setEditingWorkout(workoutToEdit);
-            setIsSheetOpen(true);
-        }, 0);
-      }
+    if (editId && !editingWorkoutId) {
+      setEditingWorkoutId(editId);
+      setIsSheetOpen(true);
     }
-  }, [searchParams, workouts, editingWorkout]);
+  }, [searchParams, editingWorkoutId]);
 
   // This function handles closing the sheet and clearing the URL param
   const handleSheetClose = (open: boolean) => {
     if (!open) {
       setIsSheetOpen(false);
-      setEditingWorkout(null);
+      setEditingWorkoutId(null);
       // Clear the edit parameter from the URL without reloading the page
       router.replace(pathname, { scroll: false });
     } else {
@@ -520,7 +519,7 @@ function WorkoutsPageContent() {
 
 
   const handleCreateNew = () => {
-    setEditingWorkout(null);
+    setEditingWorkoutId(null);
     setIsSheetOpen(true);
   };
 
@@ -540,10 +539,10 @@ function WorkoutsPageContent() {
   ) => {
     if (!user || !workoutsCollection) return;
     
-    if (editingWorkout) {
+    if (editingWorkoutId) {
       // It's an update, just save the data.
       const dataToSave = { ...workoutData, userId: user.uid };
-      const workoutDoc = doc(workoutsCollection, editingWorkout.id);
+      const workoutDoc = doc(workoutsCollection, editingWorkoutId);
       updateDocumentNonBlocking(workoutDoc, dataToSave);
     } else {
       // It's a new workout, add createdAt timestamp.
@@ -726,4 +725,3 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
-
