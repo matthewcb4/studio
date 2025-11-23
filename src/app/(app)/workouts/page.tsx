@@ -21,7 +21,6 @@ import {
   SheetDescription,
   SheetFooter,
   SheetClose,
-  SheetTrigger,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,7 +41,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown } from 'lucide-react';
 import type {
   CustomWorkout,
   WorkoutExercise,
@@ -455,7 +454,6 @@ function WorkoutsPageContent() {
   const searchParams = useSearchParams();
 
   const editId = searchParams.get('edit');
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const workoutsCollection = useMemo(() => {
     if (!user) return null;
@@ -481,10 +479,7 @@ function WorkoutsPageContent() {
       return workouts.find(w => w.id === editId) || null;
   }, [editId, workouts]);
 
-  useEffect(() => {
-    setIsSheetOpen(!!editId);
-  }, [editId]);
-
+  const isSheetOpen = !!editId;
 
   // This function handles closing the sheet and clearing the URL param
   const handleSheetClose = (open: boolean) => {
@@ -492,7 +487,6 @@ function WorkoutsPageContent() {
       // Clear the edit parameter from the URL without reloading the page
       router.replace(pathname, { scroll: false });
     }
-    setIsSheetOpen(open);
   };
 
 
@@ -697,5 +691,3 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
-
-    

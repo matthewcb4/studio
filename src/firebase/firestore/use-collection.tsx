@@ -65,9 +65,7 @@ export function useCollection<T = DocumentData>(
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
       // If the query is not ready, we are not loading and have no data/error.
-      setIsLoading(false);
-      setData(null);
-      setError(null);
+      // No need to set state here as the initial state is already correct.
       return;
     }
 
@@ -111,5 +109,3 @@ export function useCollection<T = DocumentData>(
 
   return { data, isLoading, error };
 }
-
-    

@@ -283,18 +283,21 @@ export default function SettingsPage() {
     if (!user) return;
     setIsDeletingAccount(true);
     try {
+        // We need to use the `deleteUser` from our firebase barrel file
+        // which correctly re-authenticates if necessary.
         await deleteUser(user);
         toast({
             title: "Account Deleted",
             description: "Your account and all associated data have been deleted."
         });
         router.push('/');
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error deleting account:", error);
+        const errorMessage = (error instanceof Error) ? error.message : "An error occurred. You may need to sign in again to delete your account.";
         toast({
             variant: "destructive",
             title: "Deletion Failed",
-            description: error.message || "An error occurred. You may need to sign in again to delete your account.",
+            description: errorMessage,
         });
     } finally {
         setIsDeletingAccount(false);
@@ -794,5 +797,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

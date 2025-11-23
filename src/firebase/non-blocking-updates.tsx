@@ -19,7 +19,7 @@ import {FirestorePermissionError} from '@/firebase/errors';
  * Does NOT await the write operation internally.
  */
 export function setDocumentNonBlocking(docRef: DocumentReference, data: Record<string, unknown>, options: SetOptions) {
-  setDoc(docRef, data, options).catch((_error: unknown) => {
+  setDoc(docRef, data, options).catch((__error: unknown) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -40,7 +40,7 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: Record<s
  */
 export function addDocumentNonBlocking(colRef: CollectionReference<DocumentData>, data: Record<string, unknown>) {
   const promise = addDoc(colRef, data)
-    .catch((_error: unknown) => {
+    .catch((__error: unknown) => {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
@@ -60,7 +60,7 @@ export function addDocumentNonBlocking(colRef: CollectionReference<DocumentData>
  */
 export function updateDocumentNonBlocking(docRef: DocumentReference<DocumentData>, data: Record<string, unknown>) {
   updateDoc(docRef, data)
-    .catch((_error: unknown) => {
+    .catch((__error: unknown) => {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
@@ -79,7 +79,7 @@ export function updateDocumentNonBlocking(docRef: DocumentReference<DocumentData
  */
 export function deleteDocumentNonBlocking(docRef: DocumentReference) {
   deleteDoc(docRef)
-    .catch((_error: unknown) => {
+    .catch((__error: unknown) => {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
@@ -89,5 +89,3 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
       )
     });
 }
-
-    

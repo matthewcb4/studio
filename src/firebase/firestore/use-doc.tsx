@@ -50,9 +50,8 @@ export function useDoc<T = DocumentData>(
 
   useEffect(() => {
     if (!memoizedDocRef) {
-        setIsLoading(false);
-        setData(null);
-        setError(null);
+        // If the ref is not ready, we are not loading and have no data/error.
+        // No need to set state here as the initial state is already correct.
         return;
     }
 
@@ -90,5 +89,3 @@ export function useDoc<T = DocumentData>(
 
   return { data, isLoading, error };
 }
-
-    
