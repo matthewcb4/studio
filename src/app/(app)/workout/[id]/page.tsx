@@ -47,10 +47,7 @@ import {
   useDoc,
   useUser,
   useFirestore,
-<<<<<<< HEAD
-=======
   useMemoFirebase,
->>>>>>> origin/build-fixes
   updateDocumentNonBlocking,
   useCollection,
 } from '@/firebase';
@@ -116,7 +113,7 @@ export default function WorkoutSessionPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const workoutDocRef = useMemo(() => {
+  const workoutDocRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, `users/${user.uid}/customWorkouts/${workoutId}`);
   }, [firestore, user, workoutId]);
@@ -124,12 +121,12 @@ export default function WorkoutSessionPage() {
   const { data: workout, isLoading: isLoadingWorkout } =
     useDoc<CustomWorkout>(workoutDocRef);
 
-  const exercisePreferencesQuery = useMemo(() =>
+  const exercisePreferencesQuery = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
   , [firestore, user]);
   const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
   
-  const progressLogsQuery = useMemo(() =>
+  const progressLogsQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, `users/${user.uid}/progressLogs`), orderBy("date", "desc"), limit(1)) : null
   , [firestore, user]);
   const { data: latestProgress } = useCollection<ProgressLog>(progressLogsQuery);
@@ -544,3 +541,4 @@ export default function WorkoutSessionPage() {
     </div>
   );
 }
+

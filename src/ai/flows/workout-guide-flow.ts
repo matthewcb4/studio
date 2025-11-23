@@ -31,10 +31,10 @@ export type GenerateWorkoutInput = z.infer<typeof GenerateWorkoutInputSchema>;
 const ExerciseSchema = z.object({
   name: z.string().describe("Name of the exercise."),
   category: z.string().describe("The primary muscle group targeted by this exercise (e.g., Chest, Back, Legs, Shoulders, Arms, Core)."),
-  sets: z.coerce.string().describe("Number of sets to perform, can be a range like '3-4'."),
-  reps: z.coerce.string().describe("Number of repetitions per set, can be a range like '8-12'."),
-  rest: z.coerce.string().describe("Rest time in seconds between sets."),
-  supersetId: z.coerce.string().describe("Identifier to group exercises into a superset. Exercises with the same supersetId are performed back-to-back with no rest."),
+  sets: z.string().describe("Number of sets to perform, can be a range like '3-4'."),
+  reps: z.string().describe("Number of repetitions per set, can be a range like '8-12'."),
+  rest: z.string().describe("Rest time in seconds between sets."),
+  supersetId: z.string().describe("Identifier to group exercises into a superset. Exercises with the same supersetId are performed back-to-back with no rest."),
 });
 
 const GenerateWorkoutOutputSchema = z.object({
@@ -98,6 +98,12 @@ const workoutGuideFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
+    // Ensure superset IDs are strings, not numbers, to be safe.
+    if(output?.exercises) {
+      output.exercises.forEach(ex => {
+        ex.supersetId = String(ex.supersetId);
+      });
+    }
     return output!;
   }
 );

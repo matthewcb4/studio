@@ -47,7 +47,7 @@ export interface InternalQuery extends Query<DocumentData> {
  * use useMemo to memoize it per React guidence.  Also make sure that it's dependencies are stable
  * references
  *  
- * @template T Optional type for document data. Defaults to DocumentData.
+ * @template T Optional type for document data. Defaults to any.
  * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} targetRefOrQuery -
  * The Firestore CollectionReference or Query. Waits if null/undefined.
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
@@ -59,19 +59,29 @@ export function useCollection<T = DocumentData>(
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
-      // If the query is not ready, we are not loading and have no data/error.
-      // No need to set state here as the initial state is already correct.
-      return;
+      // Reset state asynchronously to avoid "synchronous setState in effect" warning
+      // This is safe because we also return early from the hook if memoizedTargetRefOrQuery is null,
+      // so the component will receive null data immediately anyway.
+      const t = setTimeout(() => {
+        setData(d => d ? null : d);
+        setIsLoading(l => l ? false : l);
+        setError(e => e ? null : e);
+      }, 0);
+      return () => clearTimeout(t);
     }
 
-    // Set loading state to true when a new query is provided
-    setIsLoading(true);
+    // Set loading state asynchronously to avoid synchronous setState warning
+    const t = setTimeout(() => {
+        setIsLoading(true);
+        setData(null);
+    }, 0);
 
+    // Directly use memoizedTargetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -83,7 +93,7 @@ export function useCollection<T = DocumentData>(
         setError(null);
         setIsLoading(false);
       },
-      (_err: FirestoreError) => {
+      () => {
         // This logic extracts the path from either a ref or a query
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
@@ -105,6 +115,7 @@ export function useCollection<T = DocumentData>(
     );
 
     return () => {
+        clearTimeout(t);
         unsubscribe();
     };
   }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.

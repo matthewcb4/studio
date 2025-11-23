@@ -21,6 +21,7 @@ import {
   SheetDescription,
   SheetFooter,
   SheetClose,
+  SheetTrigger,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,6 +56,7 @@ import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  useMemoFirebase,
   setDocumentNonBlocking,
   useFirebase,
 } from '@/firebase';
@@ -67,13 +69,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-<<<<<<< HEAD
-const generateUniqueId = (): string => `_${performance.now().toString(36)}${Math.random().toString(36).substr(2, 9)}`;
-=======
 const generateUniqueId = (): string => {
     return `_${Math.random().toString(36).substr(2, 9)}`;
 };
->>>>>>> origin/build-fixes
 
 // Group exercises by supersetId for display
 const groupExercises = (exercises: WorkoutExercise[] = []) => {
@@ -187,16 +185,11 @@ function WorkoutForm({
             updatedEx.exerciseId = value as string; 
             updatedEx.exerciseName = value as string;
           }
-<<<<<<< HEAD
-        } else {
-          (updatedEx[field] as string | number) = value;
-=======
         } else if (field === 'sets') {
           updatedEx.sets = Number(value);
         } else if (field === 'reps' || field === 'unit' || field === 'exerciseName' || field === 'supersetId' || field === 'id') {
           // @ts-expect-error - we know these are strings and match the type
           updatedEx[field] = String(value);
->>>>>>> origin/build-fixes
         }
         return updatedEx;
       }
@@ -474,9 +467,12 @@ function WorkoutsPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const editId = searchParams.get('edit');
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  // Initialize state based on the URL parameter
+  const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(null);
+  const [sortOrder, setSortOrder] = useState('alphabetical');
 
-  const workoutsCollection = useMemo(() => {
+  const workoutsCollection = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, `users/${user.uid}/customWorkouts`);
   }, [firestore, user]);
@@ -484,25 +480,17 @@ function WorkoutsPageContent() {
   const { data: workouts, isLoading: isLoadingWorkouts } =
     useCollection<CustomWorkout>(workoutsCollection);
 
-  const masterExercisesQuery = useMemo(() => {
+  const masterExercisesQuery = useMemoFirebase(() => {
       if (!firestore) return null;
       return query(collection(firestore, 'exercises'), orderBy('name', 'asc'));
   }, [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
   
-  const exercisePreferencesQuery = useMemo(() =>
+  const exercisePreferencesQuery = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
   , [firestore, user]);
   const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
 
-<<<<<<< HEAD
-  const editingWorkout = useMemo(() => {
-      if (!editId || !workouts) return null;
-      return workouts.find(w => w.id === editId) || null;
-  }, [editId, workouts]);
-
-  const isSheetOpen = !!editId;
-=======
   // This effect handles opening the sheet when the ?edit=... param is present
   useEffect(() => {
     const editId = searchParams.get('edit');
@@ -516,19 +504,23 @@ function WorkoutsPageContent() {
       }
     }
   }, [searchParams, workouts, editingWorkout]);
->>>>>>> origin/build-fixes
 
   // This function handles closing the sheet and clearing the URL param
   const handleSheetClose = (open: boolean) => {
     if (!open) {
+      setIsSheetOpen(false);
+      setEditingWorkout(null);
       // Clear the edit parameter from the URL without reloading the page
       router.replace(pathname, { scroll: false });
+    } else {
+      setIsSheetOpen(true);
     }
   };
 
 
   const handleCreateNew = () => {
-    router.push(`${pathname}?edit=new`, { scroll: false });
+    setEditingWorkout(null);
+    setIsSheetOpen(true);
   };
 
   const handleEdit = (workout: CustomWorkout) => {
@@ -549,7 +541,7 @@ function WorkoutsPageContent() {
     
     const dataToSave = { ...workoutData, userId: user.uid };
 
-    if (editingWorkout && editingWorkout.id !== 'new') {
+    if (editingWorkout) {
       const workoutDoc = doc(workoutsCollection, editingWorkout.id);
       updateDocumentNonBlocking(workoutDoc, dataToSave);
     } else {
@@ -559,7 +551,6 @@ function WorkoutsPageContent() {
     handleSheetClose(false);
   };
   
-  const [sortOrder, setSortOrder] = useState('alphabetical');
   const sortedWorkouts = useMemo(() => {
     if (!workouts) return [];
     const sorted = [...workouts];
@@ -576,16 +567,6 @@ function WorkoutsPageContent() {
 
   const isLoading = isLoadingWorkouts || isLoadingExercises || isLoadingPreferences;
   
-  const workoutFormToRender = editId ? (
-    <WorkoutForm
-      workout={editId === 'new' ? null : editingWorkout}
-      masterExercises={masterExercises || []}
-      exercisePreferences={exercisePreferences || null}
-      onSave={handleSaveWorkout}
-      onCancel={() => handleSheetClose(false)}
-    />
-  ) : null;
-  
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-start justify-between flex-wrap gap-4">
@@ -596,10 +577,25 @@ function WorkoutsPageContent() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-            <Button onClick={handleCreateNew}>
+            <Sheet open={isSheetOpen} onOpenChange={handleSheetClose}>
+            <SheetTrigger asChild>
+                <Button onClick={handleCreateNew}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create New Workout
-            </Button>
+                </Button>
+            </SheetTrigger>
+            <SheetContent className="w-full max-w-[95vw] sm:max-w-2xl flex flex-col">
+                <Suspense fallback={<div className="p-6">Loading form...</div>}>
+                <WorkoutForm
+                    workout={editingWorkout}
+                    masterExercises={masterExercises || []}
+                    exercisePreferences={exercisePreferences || null}
+                    onSave={handleSaveWorkout}
+                    onCancel={() => handleSheetClose(false)}
+                />
+                </Suspense>
+            </SheetContent>
+            </Sheet>
             <Select value={sortOrder} onValueChange={setSortOrder}>
                 <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Sort by" />
@@ -611,15 +607,6 @@ function WorkoutsPageContent() {
             </Select>
         </div>
       </div>
-      
-      <Sheet open={isSheetOpen} onOpenChange={handleSheetClose}>
-          <SheetContent className="w-full max-w-[95vw] sm:max-w-2xl flex flex-col">
-              <Suspense fallback={<div className="p-6">Loading form...</div>}>
-                {workoutFormToRender}
-              </Suspense>
-          </SheetContent>
-      </Sheet>
-
       {isLoading && <div className="text-center">Loading workouts...</div>}
       {!isLoading && workouts?.length === 0 && (
         <Card className="flex items-center justify-center h-64">
@@ -728,3 +715,4 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
+

@@ -4,7 +4,7 @@
 import React, { useMemo, useState } from 'react';
 import Image from 'next/image';
 import type { UserProfile, WorkoutLog, Exercise } from '@/lib/types';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,7 +126,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
   const firestore = useFirestore();
   const [view, setView] = useState<'front' | 'back'>('front');
 
-  const exercisesQuery = useMemo(() => 
+  const exercisesQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'exercises')) : null,
     [firestore]
   );
@@ -280,3 +280,4 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     </Card>
   );
 }
+

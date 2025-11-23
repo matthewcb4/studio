@@ -329,26 +329,30 @@ function getPayloadConfigFromPayload(
 
   const payloadPayload =
     "payload" in payload &&
-    typeof (payload as { payload: unknown }).payload === "object" &&
-    (payload as { payload: unknown }).payload !== null
-      ? (payload as { payload: unknown }).payload
+    typeof payload.payload === "object" &&
+    payload.payload !== null
+      ? payload.payload
       : undefined
 
   let configLabelKey: string = key
 
   if (
     key in payload &&
-    typeof (payload as Record<string, unknown>)[key] === "string"
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    typeof (payload as any)[key] === "string"
   ) {
-    configLabelKey = (payload as Record<string, string>)[key]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    configLabelKey = (payload as any)[key] as string
   } else if (
     payloadPayload &&
     key in payloadPayload &&
-    typeof (payloadPayload as Record<string, unknown>)[key] === "string"
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    typeof (payloadPayload as any)[key] === "string"
   ) {
-    configLabelKey = (payloadPayload as Record<string, string>)[
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    configLabelKey = (payloadPayload as any)[
       key
-    ]
+    ] as string
   }
 
   return configLabelKey in config
@@ -364,3 +368,4 @@ export {
   ChartLegendContent,
   ChartStyle,
 }
+
