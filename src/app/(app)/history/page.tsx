@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import {
   Card,
@@ -37,7 +37,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import type { WorkoutLog, LoggedExercise, LoggedSet } from "@/lib/types";
+import type { WorkoutLog, LoggedSet } from "@/lib/types";
 import { useCollection, useUser, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, doc } from "firebase/firestore";
 import { Trash2, Star, Edit, Loader2 } from "lucide-react";
@@ -333,4 +333,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-
