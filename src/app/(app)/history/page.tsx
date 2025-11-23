@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState } from "react";
-import { format } from "date-fns";
+import { useState, useMemo, useEffect } from "react";
+import { format, parseISO } from "date-fns";
 import {
   Card,
   CardContent,
@@ -22,6 +22,8 @@ import {
   SheetTitle,
   SheetDescription,
   SheetTrigger,
+  SheetClose,
+  SheetFooter,
 } from "@/components/ui/sheet";
 import {
     AlertDialog,
@@ -35,11 +37,14 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import type { WorkoutLog } from "@/lib/types";
-import { useCollection, useUser, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
+import type { WorkoutLog, LoggedExercise, LoggedSet } from "@/lib/types";
+import { useCollection, useUser, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, doc } from "firebase/firestore";
-import { Trash2, Star } from "lucide-react";
+import { Trash2, Star, Edit, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 
 function StarRating({ rating }: { rating: number }) {
     if (rating < 1) return null;
@@ -102,9 +107,110 @@ function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
   )
 }
 
+function EditWorkoutLog({ log, onSave, onCancel }: { log: WorkoutLog, onSave: (updatedLog: WorkoutLog) => void, onCancel: () => void }) {
+    const [editedLog, setEditedLog] = useState<WorkoutLog>(log);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleFieldChange = (field: keyof WorkoutLog, value: string) => {
+        setEditedLog(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSetChange = (exIndex: number, setIndex: number, field: keyof LoggedSet, value: string) => {
+        const newExercises = [...editedLog.exercises];
+        const newSets = [...newExercises[exIndex].sets];
+        // @ts-expect-error - we know the keys match
+        newSets[setIndex] = { ...newSets[setIndex], [field]: parseFloat(value) || 0 };
+        newExercises[exIndex] = { ...newExercises[exIndex], sets: newSets };
+        setEditedLog(prev => ({ ...prev, exercises: newExercises }));
+    };
+
+    const handleSaveChanges = () => {
+        setIsSaving(true);
+        // Recalculate volume
+        const totalVolume = editedLog.exercises.reduce(
+            (total, ex) =>
+                total + ex.sets.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0),
+            0
+        );
+        onSave({ ...editedLog, volume: totalVolume });
+        // isSaving will be reset by the parent component closing the sheet
+    };
+    
+    return (
+        <SheetContent className="sm:max-w-lg w-full flex flex-col">
+            <SheetHeader>
+                <SheetTitle>Edit Workout Log</SheetTitle>
+                <SheetDescription>
+                    Modify the details of your logged workout session.
+                </SheetDescription>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto p-1 -mx-1">
+                <div className="space-y-4 py-4">
+                    <div>
+                        <Label htmlFor="workoutName">Workout Name</Label>
+                        <Input
+                            id="workoutName"
+                            value={editedLog.workoutName}
+                            onChange={e => handleFieldChange('workoutName', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="date">Date</Label>
+                        <Input
+                            id="date"
+                            type="date"
+                            value={format(parseISO(editedLog.date), 'yyyy-MM-dd')}
+                            onChange={e => handleFieldChange('date', new Date(e.target.value).toISOString())}
+                        />
+                    </div>
+                     <div className="space-y-4">
+                        <h3 className="font-semibold text-lg mt-4">Logged Exercises</h3>
+                        {editedLog.exercises.map((ex, exIndex) => (
+                            <div key={exIndex} className="p-4 border rounded-lg">
+                                <h4 className="font-semibold">{ex.exerciseName}</h4>
+                                <div className="mt-2 space-y-2">
+                                {ex.sets.map((set, setIndex) => (
+                                    <div key={setIndex} className="grid grid-cols-3 items-center gap-2">
+                                        <Label className="text-sm text-muted-foreground">Set {setIndex + 1}</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="Weight"
+                                            value={set.weight || ''}
+                                            onChange={e => handleSetChange(exIndex, setIndex, 'weight', e.target.value)}
+                                            className="h-8"
+                                        />
+                                        <Input
+                                            type="number"
+                                            placeholder="Reps"
+                                            value={set.reps || ''}
+                                            onChange={e => handleSetChange(exIndex, setIndex, 'reps', e.target.value)}
+                                            className="h-8"
+                                        />
+                                    </div>
+                                ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <SheetFooter>
+                <SheetClose asChild>
+                    <Button variant="outline" onClick={onCancel}>Cancel</Button>
+                </SheetClose>
+                <Button onClick={handleSaveChanges} disabled={isSaving}>
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                </Button>
+            </SheetFooter>
+        </SheetContent>
+    );
+}
+
 
 export default function HistoryPage() {
   const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
+  const [editingLog, setEditingLog] = useState<WorkoutLog | null>(null);
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -124,6 +230,17 @@ export default function HistoryPage() {
       title: "Workout Log Deleted",
       description: "The workout log has been successfully removed.",
     });
+  };
+  
+  const handleSaveLog = (updatedLog: WorkoutLog) => {
+    if (!user || !editingLog) return;
+    const logDocRef = doc(firestore, `users/${user.uid}/workoutLogs`, editingLog.id);
+    updateDocumentNonBlocking(logDocRef, updatedLog);
+    toast({
+        title: "Workout Log Updated",
+        description: "Your changes have been saved successfully."
+    });
+    setEditingLog(null); // Close the sheet
   };
 
   return (
@@ -164,20 +281,22 @@ export default function HistoryPage() {
                         {log.rating ? <StarRating rating={log.rating} /> : <span className="text-muted-foreground text-xs">N/A</span>}
                     </TableCell>
                     <TableCell className="text-right">
-                       <div className="flex flex-col items-center gap-2">
+                       <div className="flex justify-end items-center gap-2">
                           <SheetTrigger asChild>
                               <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => setSelectedLog(log)}
-                                  className="w-[70px]"
                               >
                                   Details
                               </Button>
                           </SheetTrigger>
+                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setEditingLog(log)}>
+                                <Edit className="h-4 w-4" />
+                           </Button>
                           <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                  <Button variant="destructive" size="icon" className="w-8 h-8">
+                                  <Button variant="destructive" size="icon" className="h-9 w-9">
                                       <Trash2 className="h-4 w-4" />
                                   </Button>
                               </AlertDialogTrigger>
@@ -207,6 +326,11 @@ export default function HistoryPage() {
         
         {selectedLog && <WorkoutLogDetail log={selectedLog} />}
       </Sheet>
+      
+      <Sheet open={!!editingLog} onOpenChange={(isOpen) => !isOpen && setEditingLog(null)}>
+        {editingLog && <EditWorkoutLog log={editingLog} onSave={handleSaveLog} onCancel={() => setEditingLog(null)} />}
+      </Sheet>
     </div>
   );
 }
+
