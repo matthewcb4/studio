@@ -5,12 +5,13 @@
   "scope": "/",
   "start_url": "/",
   "name": "fitness Repo",
+  "orientation": "any",
   "short_name": "fRepo",
   "description": "Your ultimate fitness companion. Generate AI-powered workouts using your own defined equipment, track your progress, and crush your goals. Welcome to your new personal best.",
   "icons": [
     {
-      "src": "/icons/logo.png",
-      "sizes": "192x192",
+      "src": "/icons/icon.png",
+      "sizes": "1024x1024",
       "type": "image/png"
     },
     {
@@ -22,49 +23,49 @@
   "screenshots": [
     {
       "src": "/screenshots/dashboard.jpg",
+      "sizes": "904x2316",
       "type": "image/jpeg",
-      "sizes": "1080x1920",
       "form_factor": "narrow"
     },
     {
-      "src": "/screenshots/workout.jpg",
+      "src": "/screenshots/workouts.jpg",
+      "sizes": "904x2316",
       "type": "image/jpeg",
-      "sizes": "1080x1920",
       "form_factor": "narrow"
     },
     {
       "src": "/screenshots/ai_workouts.jpg",
-      "sizes": "1280x720",
+      "sizes": "904x2316",
       "type": "image/jpeg",
-      "form_factor": "wide"
+      "form_factor": "narrow"
     },
     {
       "src": "/screenshots/progress.jpg",
       "sizes": "1280x720",
       "type": "image/jpeg",
-      "form_factor": "wide"
+      "form_factor": "narrow"
     },
     {
       "src": "/screenshots/start_workout.jpg",
-      "sizes": "720x1280",
+      "sizes": "904x2316",
       "type": "image/jpeg",
       "form_factor": "narrow"
     },
     {
       "src": "/screenshots/working.jpg",
-      "sizes": "720x1280",
+      "sizes": "904x2316",
       "type": "image/jpeg",
       "form_factor": "narrow"
     },
     {
       "src": "/screenshots/heatmap.jpg",
-      "sizes": "720x1280",
+      "sizes": "904x2316",
       "type": "image/jpeg",
       "form_factor": "narrow"
     },
     {
       "src": "/screenshots/edit_workout.jpg",
-      "sizes": "720x1280",
+      "sizes": "904x2316",
       "type": "image/jpeg",
       "form_factor": "narrow"
     }
