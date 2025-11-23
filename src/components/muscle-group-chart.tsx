@@ -50,12 +50,12 @@ const categoryToMuscleGroup: Record<string, string[]> = {
 const ALL_MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
 
 const chartColors: Record<string, string> = {
-    Chest: 'hsl(var(--chart-1))',
-    Back: 'hsl(var(--chart-2))',
-    Legs: 'hsl(var(--primary))',
-    Shoulders: 'hsl(var(--chart-4))',
-    Arms: 'hsl(var(--chart-5))',
-    Core: 'hsl(var(--chart-3))',
+    Chest: "hsl(340, 82%, 52%)",    // Bright Pink
+    Back: "hsl(10, 82%, 52%)",     // Bright Orange
+    Legs: "hsl(200, 82%, 52%)",    // Bright Blue
+    Shoulders: "hsl(150, 82%, 52%)", // Bright Sea Green
+    Arms: "hsl(280, 82%, 52%)",      // Bright Purple
+    Core: "hsl(50, 82%, 52%)",       // Bright Yellow
 };
 
 interface MuscleGroupVolumeChartProps {
