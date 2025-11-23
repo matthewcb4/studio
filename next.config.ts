@@ -10,58 +10,70 @@ const pwaConfig = {
     name: 'fitness Repo',
     short_name: 'fRepo',
     description: 'Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Welcome to your new personal best.',
+    icons: [
+      {
+        src: '/logo.png',
+        sizes: '192x192',
+        type: 'image/png',
+      },
+      {
+        src: '/logo.png',
+        sizes: '512x512',
+        type: 'image/png',
+      },
+    ],
     screenshots: [
       {
-        src: '/screenshots/dashboard.jpg',
+        src: '/dashboard.jpg',
         sizes: '1280x720',
         type: 'image/jpeg',
         form_factor: 'wide',
         label: 'Desktop Dashboard View'
       },
       {
-        src: '/screenshots/workouts.jpg',
+        src: '/workouts.jpg',
         sizes: '1280x720',
         type: 'image/jpeg',
         form_factor: 'wide',
         label: 'Workout Creation'
       },
       {
-        src: '/screenshots/ai_workouts.jpg',
+        src: '/ai_workouts.jpg',
         sizes: '1280x720',
         type: 'image/jpeg',
         form_factor: 'wide',
         label: 'AI Workout Generation'
       },
       {
-        src: '/screenshots/progress.jpg',
+        src: '/progress.jpg',
         sizes: '1280x720',
         type: 'image/jpeg',
         form_factor: 'wide',
         label: 'Progress Tracking'
       },
       {
-        src: '/screenshots/mobile_dashboard.jpg',
+        src: '/mobile_dashboard.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
         label: 'Mobile Dashboard'
       },
       {
-        src: '/screenshots/mobile_guide.jpg',
+        src: '/mobile_guide.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
         label: 'Mobile AI Guide'
       },
       {
-        src: '/screenshots/mobile_workout.jpg',
+        src: '/mobile_workout.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
         label: 'Mobile Workout Session'
       },
       {
-        src: '/screenshots/mobile_history.jpg',
+        src: '/mobile_history.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
