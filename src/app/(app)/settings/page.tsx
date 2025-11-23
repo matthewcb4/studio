@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
-import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteUser } from '@/firebase';
+import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useDoc, setDocumentNonBlocking, deleteUser } from '@/firebase';
 import { collection, doc, writeBatch, query, orderBy } from 'firebase/firestore';
 import type { UserEquipment, UserProfile, Exercise, UserExercisePreference } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -69,17 +69,17 @@ export default function SettingsPage() {
   const [isFindingVideo, setIsFindingVideo] = useState(false);
 
 
-  const equipmentCollection = useMemoFirebase(() => 
+  const equipmentCollection = useMemo(() => 
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
   , [firestore, user]);
   const { data: equipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
 
-  const exercisesCollectionQuery = useMemoFirebase(() =>
+  const exercisesCollectionQuery = useMemo(() =>
     firestore ? query(collection(firestore, 'exercises'), orderBy('name')) : null
   , [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollectionQuery);
 
-  const exercisePreferencesQuery = useMemoFirebase(() =>
+  const exercisePreferencesQuery = useMemo(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
   , [firestore, user]);
   const { data: exercisePreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
@@ -98,7 +98,7 @@ export default function SettingsPage() {
     );
   }, [masterExercises, exerciseFilter]);
 
-  const userProfileRef = useMemoFirebase(() =>
+  const userProfileRef = useMemo(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
   , [firestore, user]);
   const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);

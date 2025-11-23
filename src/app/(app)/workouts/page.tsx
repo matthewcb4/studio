@@ -56,7 +56,6 @@ import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
-  useMemoFirebase,
   setDocumentNonBlocking,
   useFirebase,
 } from '@/firebase';
@@ -69,11 +68,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const generateUniqueId = (): string => {
-  // This is a client-side only function
-  return `_${performance.now().toString(36)}${Math.random().toString(36).substr(2, 9)}`;
-};
-
+const generateUniqueId = (): string => `_${performance.now().toString(36)}${Math.random().toString(36).substr(2, 9)}`;
 
 // Group exercises by supersetId for display
 const groupExercises = (exercises: WorkoutExercise[] = []) => {
@@ -464,7 +459,7 @@ function WorkoutsPageContent() {
   const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(null);
   const [sortOrder, setSortOrder] = useState('alphabetical');
 
-  const workoutsCollection = useMemoFirebase(() => {
+  const workoutsCollection = useMemo(() => {
     if (!user) return null;
     return collection(firestore, `users/${user.uid}/customWorkouts`);
   }, [firestore, user]);
@@ -472,13 +467,13 @@ function WorkoutsPageContent() {
   const { data: workouts, isLoading: isLoadingWorkouts } =
     useCollection<CustomWorkout>(workoutsCollection);
 
-  const masterExercisesQuery = useMemoFirebase(() => {
+  const masterExercisesQuery = useMemo(() => {
       if (!firestore) return null;
       return query(collection(firestore, 'exercises'), orderBy('name', 'asc'));
   }, [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
   
-  const exercisePreferencesQuery = useMemoFirebase(() =>
+  const exercisePreferencesQuery = useMemo(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
   , [firestore, user]);
   const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);

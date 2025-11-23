@@ -49,7 +49,6 @@ import {
   useCollection,
   useUser,
   useFirestore,
-  useMemoFirebase,
   addDocumentNonBlocking,
 } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
@@ -72,7 +71,7 @@ export default function ProgressPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const exercisesQuery = useMemoFirebase(() => 
+  const exercisesQuery = useMemo(() => 
       firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null,
       [firestore]
   );
@@ -81,7 +80,7 @@ export default function ProgressPage() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | undefined>(undefined);
   const [isSubmittingWeight, setIsSubmittingWeight] = useState(false);
 
-  const workoutLogsQuery = useMemoFirebase(
+  const workoutLogsQuery = useMemo(
     () => {
       if (!user) return null;
       return query(
@@ -94,7 +93,7 @@ export default function ProgressPage() {
   const { data: workoutLogs, isLoading: isLoadingWorkoutLogs } =
     useCollection<WorkoutLog>(workoutLogsQuery);
 
-  const progressLogsQuery = useMemoFirebase(
+  const progressLogsQuery = useMemo(
     () => {
       if (!user) return null;
       return query(

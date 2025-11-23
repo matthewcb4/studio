@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format, isWithinInterval, subDays } from "date-fns";
-import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from "@/firebase";
+import { useCollection, useUser, useFirestore, useDoc, setDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp, Star } from "lucide-react";
@@ -65,12 +65,12 @@ function ProgressSummaryCard() {
     const { user } = useUser();
     const firestore = useFirestore();
 
-    const userProfileRef = useMemoFirebase(() => 
+    const userProfileRef = useMemo(() => 
         user ? doc(firestore, `users/${user.uid}/profile/main`) : null
     , [firestore, user]);
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
 
-    const progressLogsQuery = useMemoFirebase(() => 
+    const progressLogsQuery = useMemo(() => 
         user ? query(collection(firestore, `users/${user.uid}/progressLogs`), orderBy("date", "desc"), limit(1)) : null
     , [firestore, user]);
     const { data: latestProgress, isLoading: isLoadingProgress } = useCollection<ProgressLog>(progressLogsQuery);
@@ -163,26 +163,26 @@ export default function DashboardPage() {
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('7');
 
-  const customWorkoutsQuery = useMemoFirebase(() => {
+  const customWorkoutsQuery = useMemo(() => {
     if (!user) return null;
     return collection(firestore, `users/${user.uid}/customWorkouts`);
   }, [firestore, user]);
   const { data: customWorkouts, isLoading: isLoadingWorkouts } = useCollection<CustomWorkout>(customWorkoutsQuery);
   
-  const allWorkoutLogsQuery = useMemoFirebase(() => {
+  const allWorkoutLogsQuery = useMemo(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
   }, [firestore, user]);
 
   const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
 
-  const exercisesQuery = useMemoFirebase(() => 
+  const exercisesQuery = useMemo(() => 
     firestore ? query(collection(firestore, 'exercises')) : null,
     [firestore]
   );
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
 
-  const userProfileRef = useMemoFirebase(() => 
+  const userProfileRef = useMemo(() => 
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
   , [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
