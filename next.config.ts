@@ -8,28 +8,28 @@ const pwaConfig = withPWA({
   disable: process.env.NODE_ENV === 'development',
   screenshots: [
     {
-      src: '/screenshots/mobile-1.jpg',
+      src: '/screenshots/dashboard.jpg',
       sizes: '720x1280',
       type: 'image/jpeg',
       form_factor: 'narrow',
       label: 'Dashboard View'
     },
     {
-      src: '/screenshots/mobile-2.jpg',
+      src: '/screenshots/working.jpg',
       sizes: '720x1280',
       type: 'image/jpeg',
       form_factor: 'narrow',
       label: 'Workout Logging'
     },
     {
-      src: '/screenshots/desktop-1.jpg',
+      src: '/screenshots/progress.jpg',
       sizes: '1280x720',
       type: 'image/jpeg',
       form_factor: 'wide',
       label: 'Progress Tracking'
     },
     {
-      src: '/screenshots/desktop-2.jpg',
+      src: '/screenshots/ai_workouts.jpg',
       sizes: '1280x720',
       type: 'image/jpeg',
       form_factor: 'wide',
