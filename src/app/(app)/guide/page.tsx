@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, useCollection, addDocumentNonBlocking, setDocumentNonBlocking, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
@@ -81,18 +81,18 @@ export default function GuidePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [hasUsedAiToday, setHasUsedAiToday] = useState(false);
 
-  const equipmentCollection = useMemo(() => 
+  const equipmentCollection = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
   , [firestore, user]);
 
   const { data: userEquipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
 
-  const userProfileRef = useMemo(() => 
+  const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
   , [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
-  const workoutLogsQuery = useMemo(() => {
+  const workoutLogsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
   }, [firestore, user]);

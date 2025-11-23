@@ -34,7 +34,7 @@ export interface UseDocResult<T> {
  * references
  *
  *
- * @template T Optional type for document data. Defaults to DocumentData.
+ * @template T Optional type for document data. Defaults to any.
  * @param {DocumentReference<DocumentData> | null | undefined} docRef -
  * The Firestore DocumentReference. Waits if null/undefined.
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
@@ -45,17 +45,23 @@ export function useDoc<T = DocumentData>(
   type StateDataType = WithId<T> | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
     if (!memoizedDocRef) {
-        // If the ref is not ready, we are not loading and have no data/error.
-        // No need to set state here as the initial state is already correct.
-        return;
+      const t = setTimeout(() => {
+        setData(d => d ? null : d);
+        setIsLoading(l => l ? false : l);
+        setError(e => e ? null : e);
+      }, 0);
+      return () => clearTimeout(t);
     }
 
-    setIsLoading(true);
+    const t = setTimeout(() => {
+        setIsLoading(true);
+        setData(null);
+    }, 0);
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
@@ -69,7 +75,7 @@ export function useDoc<T = DocumentData>(
         setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
         setIsLoading(false);
       },
-      (_err: FirestoreError) => {
+      () => {
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
@@ -84,8 +90,15 @@ export function useDoc<T = DocumentData>(
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+        clearTimeout(t);
+        unsubscribe();
+    };
   }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+
+  if (!memoizedDocRef) {
+    return { data: null, isLoading: false, error: null };
+  }
 
   return { data, isLoading, error };
 }

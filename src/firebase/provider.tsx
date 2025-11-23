@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
@@ -152,6 +152,11 @@ export const useFirebaseApp = (): FirebaseApp => {
   return firebaseApp;
 };
 
+export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return useMemo(factory, deps);
+}
+
 /**
  * Hook specifically for accessing the authenticated user's state.
  * This provides the User object, loading status, and any auth errors.
@@ -161,5 +166,3 @@ export const useUser = (): UserHookResult => { // Renamed from useAuthUser
   const { user, isUserLoading, userError } = useFirebase(); // Leverages the main hook
   return { user, isUserLoading, userError };
 };
-
-    

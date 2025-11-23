@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardTitle, CardFooter } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
-import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useDoc, setDocumentNonBlocking, deleteUser } from '@/firebase';
+import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteUser } from '@/firebase';
 import { collection, doc, writeBatch, query, orderBy } from 'firebase/firestore';
 import type { UserEquipment, UserProfile, Exercise, UserExercisePreference } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -69,17 +69,17 @@ export default function SettingsPage() {
   const [isFindingVideo, setIsFindingVideo] = useState(false);
 
 
-  const equipmentCollection = useMemo(() => 
+  const equipmentCollection = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
   , [firestore, user]);
   const { data: equipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
 
-  const exercisesCollectionQuery = useMemo(() =>
+  const exercisesCollectionQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'exercises'), orderBy('name')) : null
   , [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollectionQuery);
 
-  const exercisePreferencesQuery = useMemo(() =>
+  const exercisePreferencesQuery = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
   , [firestore, user]);
   const { data: exercisePreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
@@ -98,7 +98,7 @@ export default function SettingsPage() {
     );
   }, [masterExercises, exerciseFilter]);
 
-  const userProfileRef = useMemo(() =>
+  const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
   , [firestore, user]);
   const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
@@ -170,7 +170,6 @@ export default function SettingsPage() {
   const onExerciseSubmit = async (values: z.infer<typeof exerciseFormSchema>) => {
     setIsSubmittingExercise(true);
     try {
-      if (!firestore) throw new Error("Firestore not initialized");
       const exerciseCollectionRef = collection(firestore, 'exercises');
       await addDocumentNonBlocking(exerciseCollectionRef, values);
       toast({ title: 'Success', description: `${values.name} added to exercises.` });
@@ -192,7 +191,8 @@ export default function SettingsPage() {
 
     formKeys.forEach(key => {
         if (values[key] !== undefined && values[key] !== '') {
-            (dataToSave as any)[key] = values[key];
+            // @ts-expect-error - we know the keys match
+            dataToSave[key] = values[key];
         }
     });
 
@@ -250,7 +250,7 @@ export default function SettingsPage() {
   };
 
   const handleSelectVideo = (masterExerciseId: string, videoId: string) => {
-    if (!user || !firestore) return;
+    if (!user) return;
     const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
     setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
     toast({
@@ -283,21 +283,18 @@ export default function SettingsPage() {
     if (!user) return;
     setIsDeletingAccount(true);
     try {
-        // We need to use the `deleteUser` from our firebase barrel file
-        // which correctly re-authenticates if necessary.
         await deleteUser(user);
         toast({
             title: "Account Deleted",
             description: "Your account and all associated data have been deleted."
         });
         router.push('/');
-    } catch (error: unknown) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error("Error deleting account:", error);
-        const errorMessage = (error instanceof Error) ? error.message : "An error occurred. You may need to sign in again to delete your account.";
         toast({
             variant: "destructive",
             title: "Deletion Failed",
-            description: errorMessage,
+            description: error.message || "An error occurred. You may need to sign in again to delete your account.",
         });
     } finally {
         setIsDeletingAccount(false);
@@ -797,3 +794,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

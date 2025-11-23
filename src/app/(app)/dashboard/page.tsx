@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format, isWithinInterval, subDays } from "date-fns";
-import { useCollection, useUser, useFirestore, useDoc, setDocumentNonBlocking } from "@/firebase";
+import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp, Star } from "lucide-react";
@@ -65,12 +65,12 @@ function ProgressSummaryCard() {
     const { user } = useUser();
     const firestore = useFirestore();
 
-    const userProfileRef = useMemo(() => 
+    const userProfileRef = useMemoFirebase(() =>
         user ? doc(firestore, `users/${user.uid}/profile/main`) : null
     , [firestore, user]);
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
 
-    const progressLogsQuery = useMemo(() => 
+    const progressLogsQuery = useMemoFirebase(() =>
         user ? query(collection(firestore, `users/${user.uid}/progressLogs`), orderBy("date", "desc"), limit(1)) : null
     , [firestore, user]);
     const { data: latestProgress, isLoading: isLoadingProgress } = useCollection<ProgressLog>(progressLogsQuery);
@@ -163,31 +163,37 @@ export default function DashboardPage() {
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('7');
 
-  const customWorkoutsQuery = useMemo(() => {
+  const customWorkoutsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, `users/${user.uid}/customWorkouts`);
   }, [firestore, user]);
   const { data: customWorkouts, isLoading: isLoadingWorkouts } = useCollection<CustomWorkout>(customWorkoutsQuery);
   
-  const allWorkoutLogsQuery = useMemo(() => {
+  const allWorkoutLogsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
   }, [firestore, user]);
 
   const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
 
-  const exercisesQuery = useMemo(() => 
+  const exercisesQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'exercises')) : null,
     [firestore]
   );
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
 
-  const userProfileRef = useMemo(() => 
+  const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
   , [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
+  // Initialize state based on the profile data directly.
   const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    if (userProfile && !userProfile.hasCompletedOnboarding && !showOnboarding) {
+        setTimeout(() => setShowOnboarding(true), 0);
+    }
+  }, [userProfile, showOnboarding]);
 
   const handleOnboardingComplete = () => {
     if (userProfileRef) {
@@ -197,8 +203,6 @@ export default function DashboardPage() {
     router.push('/settings');
   };
 
-  const shouldShowOnboarding = userProfile && !userProfile.hasCompletedOnboarding;
-  
   const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
 
   const filteredLogs = useMemo(() => {
@@ -239,7 +243,7 @@ export default function DashboardPage() {
 
   return (
     <>
-        <OnboardingModal isOpen={shouldShowOnboarding || showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
+        <OnboardingModal isOpen={showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
         <div className="flex flex-col gap-4 md:gap-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -380,3 +384,4 @@ export default function DashboardPage() {
     </>
   );
 }
+

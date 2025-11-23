@@ -27,7 +27,6 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  appleMobileWebAppCapable: 'yes',
 };
 
 export const viewport: Viewport = {
@@ -39,7 +38,8 @@ export const viewport: Viewport = {
 
 declare global {
   interface Window {
-    workbox: unknown;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    workbox: any;
   }
 }
 

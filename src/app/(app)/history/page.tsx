@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import {
   Card,
@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { WorkoutLog } from "@/lib/types";
-import { useCollection, useUser, useFirestore, deleteDocumentNonBlocking } from "@/firebase";
+import { useCollection, useUser, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, doc } from "firebase/firestore";
 import { Trash2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -109,7 +109,7 @@ export default function HistoryPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const workoutLogsQuery = useMemo(() => {
+  const workoutLogsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
   }, [firestore, user]);
@@ -210,5 +210,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-
-    
