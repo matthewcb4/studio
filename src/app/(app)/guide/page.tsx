@@ -277,7 +277,7 @@ export default function GuidePage() {
   const displayWorkout = hasUsedAiToday && generatedWorkout;
 
   const renderCheckboxes = (groupNames: string[], isSubGroup = false) => (
-    <div className={isSubGroup ? "grid grid-cols-2 md:grid-cols-2 gap-2 pl-6" : "space-y-3"}>
+    <div className={isSubGroup ? "grid grid-cols-1 md:grid-cols-2 gap-2 pl-6" : "space-y-3"}>
       {groupNames.map(group => {
         const subGroupItems = (subGroups)[group];
         return (
