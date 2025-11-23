@@ -63,28 +63,28 @@ const pwaConfig = {
         label: 'Progress Tracking'
       },
       {
-        src: '/screenshots/mobile_dashboard.jpg',
+        src: '/screenshots/start_workout.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
         label: 'Mobile Dashboard'
       },
       {
-        src: '/screenshots/mobile_guide.jpg',
+        src: '/screenshots/working.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
         label: 'Mobile AI Guide'
       },
       {
-        src: '/screenshots/mobile_workout.jpg',
+        src: '/screenshots/heatmap.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
         label: 'Mobile Workout Session'
       },
       {
-        src: '/screenshots/mobile_history.jpg',
+        src: '/screenshots/edit_workout.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
