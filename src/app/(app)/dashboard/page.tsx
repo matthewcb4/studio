@@ -187,21 +187,15 @@ export default function DashboardPage() {
   , [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
-  // Initialize state based on the profile data directly.
   const [showOnboarding, setShowOnboarding] = useState(false);
-  useEffect(() => {
-    if (userProfile && !userProfile.hasCompletedOnboarding && !showOnboarding) {
-        setTimeout(() => setShowOnboarding(true), 0);
-    }
-  }, [userProfile, showOnboarding]);
 
   useEffect(() => {
-    if (userProfile && !userProfile.hasCompletedOnboarding && !showOnboarding) {
+    if (userProfile && !userProfile.hasCompletedOnboarding) {
         // Use a timeout to ensure the state update doesn't happen during the initial render
-        const timer = setTimeout(() => setShowOnboarding(true), 0);
+        const timer = setTimeout(() => setShowOnboarding(true), 50);
         return () => clearTimeout(timer);
     }
-  }, [userProfile, showOnboarding]);
+  }, [userProfile]);
 
   const handleOnboardingComplete = () => {
     if (userProfileRef) {
