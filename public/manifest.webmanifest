@@ -1,7 +1,7 @@
 {
   "theme_color": "#293B62",
   "background_color": "#E7E8EA",
-  "display": "standalone",
+  "display": "fullscreen",
   "scope": "/",
   "start_url": "/",
   "name": "fitness Repo",

@@ -66,7 +66,7 @@ export default function SettingsPage() {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [exerciseFilter, setExerciseFilter] = useState('');
   const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
-  const [isFindingVideo, setIsFindingVideo] = useState(false);
+  const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
 
 
   const equipmentCollection = useMemoFirebase(() =>
@@ -262,8 +262,7 @@ export default function SettingsPage() {
 
   const handleFindVideo = async (exerciseId: string, exerciseName: string) => {
     if (!exerciseName) return;
-    setIsFindingVideo(true);
-    setVideoResults({ exerciseId, videos: [] });
+    setFindingVideoFor(exerciseId);
     try {
         const result = await findExerciseVideo({ exerciseName });
         if (result.videos && result.videos.length > 0) {
@@ -275,7 +274,7 @@ export default function SettingsPage() {
         console.error("Error finding video:", error);
         toast({ variant: "destructive", title: "AI Error", description: "Could not find videos at this time." });
     } finally {
-        setIsFindingVideo(false);
+        setFindingVideoFor(null);
     }
   };
 
@@ -657,9 +656,9 @@ export default function SettingsPage() {
                                           size="sm"
                                           className="mr-2"
                                           onClick={() => handleFindVideo(item.id, item.name)}
-                                          disabled={isFindingVideo && videoResults.exerciseId === item.id}
+                                          disabled={findingVideoFor === item.id}
                                         >
-                                          {isFindingVideo && videoResults.exerciseId === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
+                                          {findingVideoFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
                                         </Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
@@ -795,3 +794,4 @@ export default function SettingsPage() {
   );
 }
 
+    
