@@ -56,11 +56,6 @@ function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
 
   const initials = useMemo(() => {
     if (isUserLoading || !user) return '';
@@ -84,7 +79,7 @@ function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
-            <AvatarFallback>{hasMounted ? initials : ''}</AvatarFallback>
+            <AvatarFallback>{!isUserLoading && initials}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
