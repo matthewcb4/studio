@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, Suspense, useRef } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
@@ -110,25 +110,18 @@ function WorkoutForm({
   onSave: (workout: Partial<CustomWorkout>) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
+  const [name, setName] = useState(workout?.name || '');
+  const [description, setDescription] = useState(workout?.description || '');
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => {
+    if (workout?.exercises) {
+      // Deep copy exercises to avoid direct mutation of props
+      return JSON.parse(JSON.stringify(workout.exercises.map(ex => ({ ...ex, unit: ex.unit || 'reps' }))));
+    }
+    return [];
+  });
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (workout) {
-      setName(workout.name);
-      setDescription(workout.description || '');
-      // Deep copy exercises to avoid direct mutation of props
-      const initializedExercises = workout.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || [];
-      setExercises(JSON.parse(JSON.stringify(initializedExercises)));
-    } else {
-      setName('');
-      setDescription('');
-      setExercises([]);
-    }
-  }, [workout]);
 
   const addExerciseGroup = () => {
     const newSupersetId = generateUniqueId();
@@ -498,9 +491,7 @@ function WorkoutsPageContent() {
     if (!open) {
       setEditingWorkoutId(null);
       // Clean up the URL when the sheet is closed.
-      if (searchParams.has('edit')) {
-        router.replace(pathname, { scroll: false });
-      }
+      router.replace(pathname, { scroll: false });
     }
   };
 
@@ -582,13 +573,15 @@ function WorkoutsPageContent() {
             </SheetTrigger>
             <SheetContent className="w-full max-w-[95vw] sm:max-w-2xl flex flex-col">
                 <Suspense fallback={<div className="p-6">Loading form...</div>}>
-                <WorkoutForm
-                    workout={editingWorkout}
-                    masterExercises={masterExercises || []}
-                    exercisePreferences={exercisePreferences || null}
-                    onSave={handleSaveWorkout}
-                    onCancel={() => handleSheetOpenChange(false)}
-                />
+                {isSheetOpen && (
+                    <WorkoutForm
+                        workout={editingWorkout}
+                        masterExercises={masterExercises || []}
+                        exercisePreferences={exercisePreferences || null}
+                        onSave={handleSaveWorkout}
+                        onCancel={() => handleSheetOpenChange(false)}
+                    />
+                )}
                 </Suspense>
             </SheetContent>
             </Sheet>
