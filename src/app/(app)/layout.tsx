@@ -38,7 +38,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -56,27 +56,23 @@ function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
-
-  const [initials, setInitials] = useState('');
-
-  useEffect(() => {
-    if (isUserLoading || !user) {
-        setInitials('');
-        return;
-    }
-    if (user.displayName) {
-        setInitials(user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase());
-    } else if (user.email) {
-        setInitials(user.email.substring(0, 2).toUpperCase());
-    } else {
-        setInitials('U');
-    }
-  }, [user, isUserLoading]);
-
-
+  
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/');
+  };
+
+  const getInitials = () => {
+    if (isUserLoading || !user) {
+      return '';
+    }
+    if (user.displayName) {
+      return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    }
+    if (user.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
   };
 
   return (
@@ -85,7 +81,7 @@ function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
-            <AvatarFallback>{!isUserLoading && initials}</AvatarFallback>
+            <AvatarFallback>{!isUserLoading && getInitials()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
