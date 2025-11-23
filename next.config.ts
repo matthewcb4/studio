@@ -12,68 +12,68 @@ const pwaConfig = {
     description: 'Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Welcome to your new personal best.',
     icons: [
       {
-        src: '/logo.png',
+        src: '/icons/logo.png',
         sizes: '192x192',
         type: 'image/png',
       },
       {
-        src: '/logo.png',
+        src: '/icons/logo.png',
         sizes: '512x512',
         type: 'image/png',
       },
     ],
     screenshots: [
       {
-        src: '/dashboard.jpg',
+        src: '/screenshots/dashboard.jpg',
         sizes: '1280x720',
         type: 'image/jpeg',
         form_factor: 'wide',
         label: 'Desktop Dashboard View'
       },
       {
-        src: '/workouts.jpg',
+        src: '/screenshots/workouts.jpg',
         sizes: '1280x720',
         type: 'image/jpeg',
         form_factor: 'wide',
         label: 'Workout Creation'
       },
       {
-        src: '/ai_workouts.jpg',
+        src: '/screenshots/ai_workouts.jpg',
         sizes: '1280x720',
         type: 'image/jpeg',
         form_factor: 'wide',
         label: 'AI Workout Generation'
       },
       {
-        src: '/progress.jpg',
+        src: '/screenshots/progress.jpg',
         sizes: '1280x720',
         type: 'image/jpeg',
         form_factor: 'wide',
         label: 'Progress Tracking'
       },
       {
-        src: '/mobile_dashboard.jpg',
+        src: '/screenshots/mobile_dashboard.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
         label: 'Mobile Dashboard'
       },
       {
-        src: '/mobile_guide.jpg',
+        src: '/screenshots/mobile_guide.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
         label: 'Mobile AI Guide'
       },
       {
-        src: '/mobile_workout.jpg',
+        src: '/screenshots/mobile_workout.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
         label: 'Mobile Workout Session'
       },
       {
-        src: '/mobile_history.jpg',
+        src: '/screenshots/mobile_history.jpg',
         sizes: '720x1280',
         type: 'image/jpeg',
         form_factor: 'narrow',
