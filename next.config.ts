@@ -22,6 +22,27 @@ const pwaConfig = withPWA({
       label: 'Workout Logging'
     },
     {
+      src: '/screenshots/history.jpg',
+      sizes: '720x1280',
+      type: 'image/jpeg',
+      form_factor: 'narrow',
+      label: 'Workout History'
+    },
+    {
+      src: '/screenshots/progress_mobile.jpg',
+      sizes: '720x1280',
+      type: 'image/jpeg',
+      form_factor: 'narrow',
+      label: 'Progress Tracking (Mobile)'
+    },
+    {
+      src: '/screenshots/workouts.jpg',
+      sizes: '720x1280',
+      type: 'image/jpeg',
+      form_factor: 'narrow',
+      label: 'Custom Workouts'
+    },
+    {
       src: '/screenshots/progress.jpg',
       sizes: '1280x720',
       type: 'image/jpeg',
