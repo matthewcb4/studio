@@ -63,7 +63,7 @@ function UserNav() {
   }, []);
 
   const initials = useMemo(() => {
-    if (isUserLoading) return '';
+    if (isUserLoading || !user) return '';
     if (user?.displayName) {
       return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     }
