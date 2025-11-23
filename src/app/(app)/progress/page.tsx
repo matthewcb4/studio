@@ -43,7 +43,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from 'recharts';
-import { format } from 'date-fns';
+import { format, subDays, isWithinInterval } from 'date-fns';
 import type { ChartConfig } from '@/components/ui/chart';
 import {
   useCollection,
@@ -62,6 +62,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { MuscleGroupVolumeChart } from '@/components/muscle-group-chart';
+
 
 const weightLogSchema = z.object({
   weight: z.coerce.number().min(1, { message: 'Please enter a valid weight.' }),
@@ -80,6 +82,7 @@ export default function ProgressPage() {
   
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | undefined>(undefined);
   const [isSubmittingWeight, setIsSubmittingWeight] = useState(false);
+  const [dateRange, setDateRange] = useState('30');
 
   const workoutLogsQuery = useMemoFirebase(
     () => {
@@ -126,6 +129,19 @@ export default function ProgressPage() {
         setSelectedExerciseId(loggedExercises[0].id);
     }
   }, [loggedExercises, selectedExerciseId])
+
+  const filteredLogs = useMemo(() => {
+    if (!workoutLogs) return [];
+    const now = new Date();
+    const days = parseInt(dateRange, 10);
+    const startDate = subDays(now, days);
+    
+    return workoutLogs.filter(log => {
+        const logDate = new Date(log.date);
+        return isWithinInterval(logDate, { start: startDate, end: now });
+    });
+  }, [workoutLogs, dateRange]);
+
 
   const weightForm = useForm<z.infer<typeof weightLogSchema>>({
     resolver: zodResolver(weightLogSchema),
@@ -211,14 +227,30 @@ export default function ProgressPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold">Progress Tracker</h1>
-        <p className="text-muted-foreground">
-          Log your weight and visualize your performance over time.
-        </p>
+      <div className='flex justify-between items-start'>
+        <div>
+          <h1 className="text-3xl font-bold">Progress Tracker</h1>
+          <p className="text-muted-foreground">
+            Log your weight and visualize your performance over time.
+          </p>
+        </div>
+        <div className="w-[180px]">
+            <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Time range" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="7">Last 7 days</SelectItem>
+                    <SelectItem value="14">Last 14 days</SelectItem>
+                    <SelectItem value="30">Last 30 days</SelectItem>
+                    <SelectItem value="90">Last 90 days</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
       </div>
 
-      <Accordion type="multiple" className="w-full space-y-4">
+
+      <Accordion type="multiple" defaultValue={["exercise-performance"]} className="w-full space-y-4">
         <AccordionItem value="log-weight" className="border-none">
           <Card>
             <AccordionTrigger className="p-6 text-left">
@@ -328,6 +360,14 @@ export default function ProgressPage() {
             </AccordionContent>
           </Card>
         </AccordionItem>
+        
+        <AccordionItem value="volume-chart" className="border-none">
+            <MuscleGroupVolumeChart
+                filteredLogs={filteredLogs}
+                masterExercises={masterExercises}
+                isLoading={isLoading}
+            />
+        </AccordionItem>
 
         <AccordionItem value="exercise-performance" className="border-none">
           <Card>
@@ -431,5 +471,3 @@ export default function ProgressPage() {
     </div>
   );
 }
-
-    
