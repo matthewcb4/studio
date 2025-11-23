@@ -180,14 +180,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row">
@@ -217,7 +209,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <UserNav />
           </header>
-          <main className="flex-1 p-4 sm:px-6 sm:py-6">{children}</main>
+          <main className="flex-1 p-4 sm:px-6 sm:py-6">
+            {(isUserLoading || !user) ? (
+              <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              children
+            )}
+          </main>
         </div>
       </div>
     </SidebarProvider>
