@@ -27,6 +27,7 @@ export type CustomWorkout = {
   name: string;
   description?: string;
   exercises: WorkoutExercise[];
+  createdAt?: string; // ISO string for creation date
 };
 
 export type LoggedSet = {

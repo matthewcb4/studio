@@ -107,7 +107,7 @@ function WorkoutForm({
   workout: CustomWorkout | null;
   masterExercises: MasterExercise[];
   exercisePreferences: UserExercisePreference[] | null;
-  onSave: (workout: Omit<CustomWorkout, 'id' | 'userId'>) => void;
+  onSave: (workout: Partial<CustomWorkout>) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState('');
@@ -250,7 +250,7 @@ function WorkoutForm({
         return { ...ex, unit: ex.unit || 'reps' };
     });
 
-    const newWorkout: Omit<CustomWorkout, 'id' | 'userId'> = {
+    const newWorkout: Partial<CustomWorkout> = {
       name,
       description,
       exercises: finalizedExercises,
@@ -535,16 +535,18 @@ function WorkoutsPageContent() {
   };
 
   const handleSaveWorkout = (
-    workoutData: Omit<CustomWorkout, 'id' | 'userId'>
+    workoutData: Partial<CustomWorkout>
   ) => {
     if (!user || !workoutsCollection) return;
     
-    const dataToSave = { ...workoutData, userId: user.uid };
-
     if (editingWorkout) {
+      // It's an update, just save the data.
+      const dataToSave = { ...workoutData, userId: user.uid };
       const workoutDoc = doc(workoutsCollection, editingWorkout.id);
       updateDocumentNonBlocking(workoutDoc, dataToSave);
     } else {
+      // It's a new workout, add createdAt timestamp.
+      const dataToSave = { ...workoutData, userId: user.uid, createdAt: new Date().toISOString() };
       addDocumentNonBlocking(workoutsCollection, dataToSave);
     }
     // Let the onOpenChange handler do the closing and URL clearing
@@ -556,8 +558,16 @@ function WorkoutsPageContent() {
     const sorted = [...workouts];
     if (sortOrder === 'alphabetical') {
         sorted.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortOrder === 'date_desc') {
+        sorted.sort((a, b) => {
+            if (a.createdAt && b.createdAt) {
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            }
+            if (a.createdAt) return -1; // a comes first
+            if (b.createdAt) return 1;  // b comes first
+            return 0; // no dates, keep original order
+        });
     }
-    // Add logic for 'date' when available
     return sorted;
   }, [workouts, sortOrder]);
   
@@ -602,7 +612,7 @@ function WorkoutsPageContent() {
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
-                    <SelectItem value="date_desc" disabled>Date Created (Newest)</SelectItem>
+                    <SelectItem value="date_desc">Date Created (Newest)</SelectItem>
                 </SelectContent>
             </Select>
         </div>
