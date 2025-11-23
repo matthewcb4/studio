@@ -477,16 +477,16 @@ function WorkoutsPageContent() {
 
   // Effect to handle opening the sheet on initial load if ?edit=... is present.
   useEffect(() => {
-    if (initialUrlCheckDone.current) return;
-
-    const editId = searchParams.get('edit');
-    if (editId) {
-      setEditingWorkoutId(editId);
-      setIsSheetOpen(true);
+    if (!initialUrlCheckDone.current && searchParams.has('edit')) {
+      const editId = searchParams.get('edit');
+      if (editId) {
+        setEditingWorkoutId(editId);
+        setIsSheetOpen(true);
+      }
+      initialUrlCheckDone.current = true;
     }
-    initialUrlCheckDone.current = true;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array ensures this runs only once on mount.
+    // No dependency array - we want this to run on param changes if the sheet isn't already open
+  }, [searchParams]);
 
 
   const workoutsCollection = useMemoFirebase(() => {
@@ -514,17 +514,15 @@ function WorkoutsPageContent() {
   }, [editingWorkoutId, workouts])
 
 
-  const handleSheetClose = (open: boolean) => {
+  const handleSheetOpenChange = (open: boolean) => {
     if (!open) {
-      // Always clear state and URL param on close.
-      setIsSheetOpen(false);
       setEditingWorkoutId(null);
+      // Clean up the URL when the sheet is closed.
       if (searchParams.has('edit')) {
         router.replace(pathname, { scroll: false });
       }
-    } else {
-      setIsSheetOpen(true);
     }
+    setIsSheetOpen(open);
   };
 
 
@@ -559,7 +557,7 @@ function WorkoutsPageContent() {
       const dataToSave = { ...workoutData, userId: user.uid, createdAt: new Date().toISOString() };
       addDocumentNonBlocking(workoutsCollection, dataToSave);
     }
-    handleSheetClose(false);
+    handleSheetOpenChange(false);
   };
   
   const sortedWorkouts = useMemo(() => {
@@ -591,12 +589,12 @@ function WorkoutsPageContent() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div className="flex-shrink-0">
           <h1 className="text-3xl font-bold">My Workouts</h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground max-w-md">
             Create and manage your custom training routines.
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-            <Sheet open={isSheetOpen} onOpenChange={handleSheetClose}>
+            <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
             <SheetTrigger asChild>
                 <Button onClick={handleCreateNew}>
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -610,7 +608,7 @@ function WorkoutsPageContent() {
                     masterExercises={masterExercises || []}
                     exercisePreferences={exercisePreferences || null}
                     onSave={handleSaveWorkout}
-                    onCancel={() => handleSheetClose(false)}
+                    onCancel={() => handleSheetOpenChange(false)}
                 />
                 </Suspense>
             </SheetContent>
