@@ -1,6 +1,7 @@
 
 import type {NextConfig} from 'next';
 import withPWA from '@ducanh2912/next-pwa';
+import type { PluginOptions } from '@ducanh2912/next-pwa';
 
 const pwaConfig = withPWA({
   dest: 'public',
@@ -57,7 +58,7 @@ const pwaConfig = withPWA({
       label: 'AI Workout Generator'
     }
   ]
-});
+} as PluginOptions);
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -82,8 +83,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https'
-        ,
+        protocol: 'https',
         hostname: 'i.ytimg.com',
         port: '',
         pathname: '/**',

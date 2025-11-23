@@ -57,16 +57,22 @@ function UserNav() {
   const auth = useAuth();
   const router = useRouter();
 
-  const initials = useMemo(() => {
-    if (isUserLoading || !user) return '';
-    if (user?.displayName) {
-      return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const [initials, setInitials] = useState('');
+
+  useEffect(() => {
+    if (isUserLoading || !user) {
+        setInitials('');
+        return;
     }
-    if (user?.email) {
-      return user.email.substring(0, 2).toUpperCase();
+    if (user.displayName) {
+        setInitials(user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase());
+    } else if (user.email) {
+        setInitials(user.email.substring(0, 2).toUpperCase());
+    } else {
+        setInitials('U');
     }
-    return 'U';
   }, [user, isUserLoading]);
+
 
   const handleLogout = async () => {
     await signOut(auth);
