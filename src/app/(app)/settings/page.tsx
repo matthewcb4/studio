@@ -292,11 +292,7 @@ export default function SettingsPage() {
             description: "Your account and all associated data have been deleted."
         });
         router.push('/');
-<<<<<<< HEAD
     } catch (error: unknown) {
-=======
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
->>>>>>> origin/build-fixes
         console.error("Error deleting account:", error);
         const errorMessage = (error instanceof Error) ? error.message : "An error occurred. You may need to sign in again to delete your account.";
         toast({

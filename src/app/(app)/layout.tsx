@@ -53,19 +53,24 @@ const secondaryNavItems = [
 ];
 
 function UserNav() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const [initials, setInitials] = useState('U');
+
+
+  useEffect(() => {
+    if (user?.displayName) {
+      setInitials(user.displayName.split(' ').map(n => n[0]).join(''));
+    } else if (user) {
+      setInitials('U');
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/');
   };
-  
-  const getInitials = (name?: string | null) => {
-    if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('');
-  }
 
   return (
     <DropdownMenu>
@@ -73,7 +78,7 @@ function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
-            <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
+            <AvatarFallback>{isUserLoading ? '' : initials}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
