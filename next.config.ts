@@ -6,17 +6,6 @@ const pwaConfig = {
   dest: 'public',
   register: true,
   disable: process.env.NODE_ENV === 'development',
-  manifestTransforms: [
-    (manifest: any) => {
-      // Use the exact path for icons, don't append sizes
-      manifest.icons.forEach((icon: any) => {
-        if (icon.src.includes('logo')) {
-          icon.src = '/icons/logo.png';
-        }
-      });
-      return manifest;
-    },
-  ],
   manifest: {
     name: 'fitness Repo',
     short_name: 'fRepo',
