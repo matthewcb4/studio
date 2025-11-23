@@ -56,14 +56,22 @@ function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const initials = useMemo(() => {
-    if (isUserLoading) return '';
+    if (isUserLoading || !hasMounted) return '';
     if (user?.displayName) {
-      return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2);
+      return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
     }
     return 'U';
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, hasMounted]);
 
   const handleLogout = async () => {
     await signOut(auth);
