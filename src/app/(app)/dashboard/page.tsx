@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -143,7 +143,7 @@ function ProgressSummaryCard() {
         <Card>
             <CardHeader>
                 <CardTitle>Progress to Goal</CardTitle>
-                <CardDescription>Your journey to {targetWeight} lbs</CardDescription>
+                <CardDescription>Your journey to ${targetWeight} lbs</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
@@ -188,14 +188,14 @@ export default function DashboardPage() {
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
-<<<<<<< HEAD
-=======
+
   useEffect(() => {
     if (userProfile && !userProfile.hasCompletedOnboarding && !showOnboarding) {
-        setTimeout(() => setShowOnboarding(true), 0);
+        // Use a timeout to ensure the state update doesn't happen during the initial render
+        const timer = setTimeout(() => setShowOnboarding(true), 0);
+        return () => clearTimeout(timer);
     }
   }, [userProfile, showOnboarding]);
->>>>>>> origin/build-fixes
 
   const handleOnboardingComplete = () => {
     if (userProfileRef) {
