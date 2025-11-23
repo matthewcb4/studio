@@ -47,32 +47,33 @@ export interface InternalQuery extends Query<DocumentData> {
  * use useMemo to memoize it per React guidence.  Also make sure that it's dependencies are stable
  * references
  *  
- * @template T Optional type for document data. Defaults to any.
+ * @template T Optional type for document data. Defaults to DocumentData.
  * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} targetRefOrQuery -
  * The Firestore CollectionReference or Query. Waits if null/undefined.
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
  */
-export function useCollection<T = any>(
+export function useCollection<T = DocumentData>(
     memoizedTargetRefOrQuery: CollectionReference<DocumentData> | Query<DocumentData>  | null | undefined,
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
-      setData(null);
+      // If the query is not ready, we are not loading and have no data/error.
       setIsLoading(false);
+      setData(null);
       setError(null);
       return;
     }
 
+    // Set loading state to true when a new query is provided
     setIsLoading(true);
 
-    // Directly use memoizedTargetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -110,5 +111,3 @@ export function useCollection<T = any>(
 
   return { data, isLoading, error };
 }
-
-    

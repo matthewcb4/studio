@@ -39,7 +39,7 @@ export const viewport: Viewport = {
 
 declare global {
   interface Window {
-    workbox: any;
+    workbox: unknown;
   }
 }
 

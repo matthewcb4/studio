@@ -454,8 +454,8 @@ function WorkoutsPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  // Initialize state based on the URL parameter
+  const editId = searchParams.get('edit');
+  const [isSheetOpen, setIsSheetOpen] = useState(!!editId);
   const [editingWorkout, setEditingWorkout] = useState<CustomWorkout | null>(null);
   const [sortOrder, setSortOrder] = useState('alphabetical');
 
@@ -478,28 +478,27 @@ function WorkoutsPageContent() {
   , [firestore, user]);
   const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
 
-  // This effect handles opening the sheet when the ?edit=... param is present
   useEffect(() => {
-    const editId = searchParams.get('edit');
     if (editId && workouts) {
       const workoutToEdit = workouts.find(w => w.id === editId);
       if (workoutToEdit) {
         setEditingWorkout(workoutToEdit);
         setIsSheetOpen(true);
       }
+    } else if (!editId) {
+        setEditingWorkout(null);
+        setIsSheetOpen(false);
     }
-  }, [searchParams, workouts]);
+  }, [editId, workouts]);
+
 
   // This function handles closing the sheet and clearing the URL param
   const handleSheetClose = (open: boolean) => {
     if (!open) {
-      setIsSheetOpen(false);
-      setEditingWorkout(null);
       // Clear the edit parameter from the URL without reloading the page
       router.replace(pathname, { scroll: false });
-    } else {
-      setIsSheetOpen(true);
     }
+    setIsSheetOpen(open);
   };
 
 
@@ -700,5 +699,3 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
-
-    

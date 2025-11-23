@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -187,13 +187,7 @@ export default function DashboardPage() {
   , [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
-  // Initialize state based on the profile data directly.
   const [showOnboarding, setShowOnboarding] = useState(false);
-  useEffect(() => {
-    if (userProfile && !userProfile.hasCompletedOnboarding) {
-        setShowOnboarding(true);
-    }
-  }, [userProfile]);
 
   const handleOnboardingComplete = () => {
     if (userProfileRef) {
@@ -203,6 +197,8 @@ export default function DashboardPage() {
     router.push('/settings');
   };
 
+  const shouldShowOnboarding = userProfile && !userProfile.hasCompletedOnboarding;
+  
   const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
 
   const filteredLogs = useMemo(() => {
@@ -243,7 +239,7 @@ export default function DashboardPage() {
 
   return (
     <>
-        <OnboardingModal isOpen={showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
+        <OnboardingModal isOpen={shouldShowOnboarding || showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
         <div className="flex flex-col gap-4 md:gap-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -384,5 +380,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
