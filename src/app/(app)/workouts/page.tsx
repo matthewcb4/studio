@@ -70,13 +70,10 @@ import {
 } from "@/components/ui/accordion";
 
 const generateUniqueId = (): string => {
-    let result = '';
-    // Use useEffect with an empty dependency array to run this only on the client
-    useEffect(() => {
-        result = `_${Math.random().toString(36).substr(2, 9)}`;
-    }, []);
-    return result;
+  // This is a client-side only function
+  return `_${performance.now().toString(36)}${Math.random().toString(36).substr(2, 9)}`;
 };
+
 
 // Group exercises by supersetId for display
 const groupExercises = (exercises: WorkoutExercise[] = []) => {
