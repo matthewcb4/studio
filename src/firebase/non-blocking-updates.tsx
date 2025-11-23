@@ -19,11 +19,7 @@ import {FirestorePermissionError} from '@/firebase/errors';
  * Does NOT await the write operation internally.
  */
 export function setDocumentNonBlocking(docRef: DocumentReference, data: Record<string, unknown>, options: SetOptions) {
-<<<<<<< HEAD
-  setDoc(docRef, data, options).catch((__error: unknown) => {
-=======
-  setDoc(docRef, data, options).catch(() => {
->>>>>>> origin/build-fixes
+  setDoc(docRef, data, options).catch((_error: unknown) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -44,11 +40,7 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: Record<s
  */
 export function addDocumentNonBlocking(colRef: CollectionReference<DocumentData>, data: Record<string, unknown>) {
   const promise = addDoc(colRef, data)
-<<<<<<< HEAD
-    .catch((__error: unknown) => {
-=======
-    .catch(() => {
->>>>>>> origin/build-fixes
+    .catch((_error: unknown) => {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
@@ -66,16 +58,9 @@ export function addDocumentNonBlocking(colRef: CollectionReference<DocumentData>
  * Initiates an updateDoc operation for a document reference.
  * Does NOT await the write operation internally.
  */
-<<<<<<< HEAD
 export function updateDocumentNonBlocking(docRef: DocumentReference<DocumentData>, data: Record<string, unknown>) {
   updateDoc(docRef, data)
-    .catch((__error: unknown) => {
-=======
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function updateDocumentNonBlocking(docRef: DocumentReference, data: Record<string, any>) {
-  updateDoc(docRef, data)
-    .catch(() => {
->>>>>>> origin/build-fixes
+    .catch((_error: unknown) => {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
@@ -94,11 +79,7 @@ export function updateDocumentNonBlocking(docRef: DocumentReference, data: Recor
  */
 export function deleteDocumentNonBlocking(docRef: DocumentReference) {
   deleteDoc(docRef)
-<<<<<<< HEAD
-    .catch((__error: unknown) => {
-=======
-    .catch(() => {
->>>>>>> origin/build-fixes
+    .catch((_error: unknown) => {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
