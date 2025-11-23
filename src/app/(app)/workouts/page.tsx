@@ -407,7 +407,8 @@ function WorkoutForm({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="reps">Reps</SelectItem>
+                                <SelectItem value="reps">Weight & Reps</SelectItem>
+                                <SelectItem value="reps-only">Reps Only</SelectItem>
                                 <SelectItem value="seconds">Seconds</SelectItem>
                                 <SelectItem value="bodyweight">Bodyweight</SelectItem>
                             </SelectContent>

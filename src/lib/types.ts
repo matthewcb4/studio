@@ -17,7 +17,7 @@ export type WorkoutExercise = {
   exerciseName: string;
   sets: number;
   reps: string; // e.g., "8-12"
-  unit: 'reps' | 'seconds' | 'bodyweight'; // The unit for the 'reps' field value
+  unit: 'reps' | 'seconds' | 'bodyweight' | 'reps-only'; // The unit for the 'reps' field value
   supersetId: string; // Used to group exercises into supersets
 };
 

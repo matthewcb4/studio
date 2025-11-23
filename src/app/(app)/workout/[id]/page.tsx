@@ -213,12 +213,17 @@ export default function WorkoutSessionPage() {
     if (skipped) {
         newLog = { weight: 0, reps: 0 };
     } else {
-        if (unit === 'bodyweight') {
+        if (unit === 'reps-only') {
             if (!state.reps) {
                 toast({ title: 'Missing Info', description: 'Please enter reps.', variant: 'destructive' });
                 return;
             }
-            // For bodyweight, weight is user's bodyweight + any additional weight, if checked
+            newLog = { weight: 0, reps: parseFloat(state.reps) };
+        } else if (unit === 'bodyweight') {
+            if (!state.reps) {
+                toast({ title: 'Missing Info', description: 'Please enter reps.', variant: 'destructive' });
+                return;
+            }
             const additionalWeight = state.weight ? parseFloat(state.weight) : 0;
             const bodyweightComponent = state.includeBodyweight ? latestWeight : 0;
             newLog = { weight: bodyweightComponent + additionalWeight, reps: parseFloat(state.reps) };
@@ -454,6 +459,12 @@ export default function WorkoutSessionPage() {
                             </div>
                         </div>
                     )}
+                    {unit === 'reps-only' && (
+                        <div className="space-y-2">
+                            <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
+                            <Input id={`reps-${exercise.id}`} type="number" placeholder="15" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
+                        </div>
+                    )}
                     {unit === 'bodyweight' && (
                        <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
@@ -541,4 +552,3 @@ export default function WorkoutSessionPage() {
     </div>
   );
 }
-
