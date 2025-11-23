@@ -362,11 +362,24 @@ export default function ProgressPage() {
         </AccordionItem>
         
         <AccordionItem value="volume-chart" className="border-none">
-            <MuscleGroupVolumeChart
-                filteredLogs={filteredLogs}
-                masterExercises={masterExercises}
-                isLoading={isLoading}
-            />
+            <Card>
+                <AccordionTrigger className="p-6 text-left">
+                    <MuscleGroupVolumeChart
+                        isTrigger={true}
+                        filteredLogs={filteredLogs}
+                        masterExercises={masterExercises}
+                        isLoading={isLoading}
+                    />
+                </AccordionTrigger>
+                <AccordionContent>
+                     <MuscleGroupVolumeChart
+                        isTrigger={false}
+                        filteredLogs={filteredLogs}
+                        masterExercises={masterExercises}
+                        isLoading={isLoading}
+                    />
+                </AccordionContent>
+            </Card>
         </AccordionItem>
 
         <AccordionItem value="exercise-performance" className="border-none">

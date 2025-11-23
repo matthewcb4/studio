@@ -57,12 +57,14 @@ interface MuscleGroupVolumeChartProps {
   filteredLogs: WorkoutLog[];
   masterExercises: Exercise[] | null;
   isLoading: boolean;
+  isTrigger?: boolean;
 }
 
 export function MuscleGroupVolumeChart({
   filteredLogs,
   masterExercises,
   isLoading,
+  isTrigger = false,
 }: MuscleGroupVolumeChartProps) {
   
   const chartData = useMemo(() => {
@@ -111,35 +113,37 @@ export function MuscleGroupVolumeChart({
     }, {} as ChartConfig);
   }, []);
 
+  if (isTrigger) {
+    return (
+        <div>
+            <CardTitle>Muscle Group Volume</CardTitle>
+            <CardDescription className="mt-1.5 text-left">
+                Total volume (lbs) for each muscle group over time.
+            </CardDescription>
+        </div>
+    )
+  }
+
   if (isLoading) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Muscle Group Volume</CardTitle>
-                <CardDescription>Loading chart...</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="h-[300px] flex items-center justify-center">
-                    <p className="text-muted-foreground">Loading data...</p>
-                </div>
-            </CardContent>
-        </Card>
+        <CardContent>
+            <div className="h-[300px] flex items-center justify-center">
+                <p className="text-muted-foreground">Loading data...</p>
+            </div>
+        </CardContent>
     );
   }
 
   if (chartData.length === 0) {
-    return null; // Don't render the card if there's no data
+    return isTrigger ? null : (
+         <CardContent>
+            <p>No data to display for this period.</p>
+        </CardContent>
+    );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Muscle Group Volume</CardTitle>
-        <CardDescription>
-          Total volume (lbs) for each muscle group over time.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <CardContent className="p-0">
         <div className="h-[350px]">
           <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -185,7 +189,6 @@ export function MuscleGroupVolumeChart({
             </ResponsiveContainer>
           </ChartContainer>
         </div>
-      </CardContent>
-    </Card>
+    </CardContent>
   );
 }
