@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
@@ -472,6 +472,23 @@ function WorkoutsPageContent() {
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState('alphabetical');
 
+  // Ref to ensure initial URL check only runs once.
+  const initialUrlCheckDone = useRef(false);
+
+  // Effect to handle opening the sheet on initial load if ?edit=... is present.
+  useEffect(() => {
+    if (initialUrlCheckDone.current) return;
+
+    const editId = searchParams.get('edit');
+    if (editId) {
+      setEditingWorkoutId(editId);
+      setIsSheetOpen(true);
+    }
+    initialUrlCheckDone.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array ensures this runs only once on mount.
+
+
   const workoutsCollection = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, `users/${user.uid}/customWorkouts`);
@@ -496,22 +513,15 @@ function WorkoutsPageContent() {
       return workouts.find(w => w.id === editingWorkoutId) || null;
   }, [editingWorkoutId, workouts])
 
-  // This effect handles opening the sheet when the ?edit=... param is present
-  useEffect(() => {
-    const editId = searchParams.get('edit');
-    if (editId && !editingWorkoutId) {
-      setEditingWorkoutId(editId);
-      setIsSheetOpen(true);
-    }
-  }, [searchParams, editingWorkoutId]);
 
-  // This function handles closing the sheet and clearing the URL param
   const handleSheetClose = (open: boolean) => {
     if (!open) {
+      // Always clear state and URL param on close.
       setIsSheetOpen(false);
       setEditingWorkoutId(null);
-      // Clear the edit parameter from the URL without reloading the page
-      router.replace(pathname, { scroll: false });
+      if (searchParams.has('edit')) {
+        router.replace(pathname, { scroll: false });
+      }
     } else {
       setIsSheetOpen(true);
     }
@@ -524,8 +534,8 @@ function WorkoutsPageContent() {
   };
 
   const handleEdit = (workout: CustomWorkout) => {
-    // Navigate to URL with edit param, which will trigger the useEffect
-    router.push(`${pathname}?edit=${workout.id}`, { scroll: false });
+    setEditingWorkoutId(workout.id);
+    setIsSheetOpen(true);
   };
 
   const handleDelete = (workoutId: string) => {
@@ -549,7 +559,6 @@ function WorkoutsPageContent() {
       const dataToSave = { ...workoutData, userId: user.uid, createdAt: new Date().toISOString() };
       addDocumentNonBlocking(workoutsCollection, dataToSave);
     }
-    // Let the onOpenChange handler do the closing and URL clearing
     handleSheetClose(false);
   };
   
