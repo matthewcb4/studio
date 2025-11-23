@@ -8,28 +8,28 @@ const pwaConfig = withPWA({
   disable: process.env.NODE_ENV === 'development',
   screenshots: [
     {
-      src: 'https://picsum.photos/seed/1/720/1280',
+      src: '/screenshots/mobile-1.jpg',
       sizes: '720x1280',
       type: 'image/jpeg',
       form_factor: 'narrow',
       label: 'Dashboard View'
     },
     {
-      src: 'https://picsum.photos/seed/2/720/1280',
+      src: '/screenshots/mobile-2.jpg',
       sizes: '720x1280',
       type: 'image/jpeg',
       form_factor: 'narrow',
       label: 'Workout Logging'
     },
     {
-      src: 'https://picsum.photos/seed/3/1280/720',
+      src: '/screenshots/desktop-1.jpg',
       sizes: '1280x720',
       type: 'image/jpeg',
       form_factor: 'wide',
       label: 'Progress Tracking'
     },
     {
-      src: 'https://picsum.photos/seed/4/1280/720',
+      src: '/screenshots/desktop-2.jpg',
       sizes: '1280x720',
       type: 'image/jpeg',
       form_factor: 'wide',
@@ -80,7 +80,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'httpshttps',
         hostname: 'raw.githubusercontent.com',
         port: '',
         pathname: '/**',
