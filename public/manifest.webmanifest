@@ -4,9 +4,9 @@
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
-  "name": "fRepo: Tonal Tracker",
+  "name": "fitness Repo",
   "short_name": "fRepo",
-  "description": "Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Welcome to your new personal best.",
+  "description": "Your ultimate fitness companion. Generate AI-powered workouts using your own defined equipment, track your progress, and crush your goals. Welcome to your new personal best.",
   "icons": [
     {
       "src": "/icons/logo.png",
@@ -30,6 +30,42 @@
       "src": "/screenshots/workout.jpg",
       "type": "image/jpeg",
       "sizes": "1080x1920",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/ai_workouts.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshots/progress.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshots/start_workout.jpg",
+      "sizes": "720x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/working.jpg",
+      "sizes": "720x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/heatmap.jpg",
+      "sizes": "720x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/edit_workout.jpg",
+      "sizes": "720x1280",
+      "type": "image/jpeg",
       "form_factor": "narrow"
     }
   ]
