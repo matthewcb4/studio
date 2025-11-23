@@ -26,56 +26,56 @@ const pwaConfig = {
       {
         src: '/screenshots/dashboard.jpg',
         sizes: '1280x720',
-        type: 'image/jpeg',
+        type: 'image/jpg',
         form_factor: 'wide',
         label: 'Desktop Dashboard View'
       },
       {
         src: '/screenshots/workouts.jpg',
         sizes: '1280x720',
-        type: 'image/jpeg',
+        type: 'image/jpg',
         form_factor: 'wide',
         label: 'Workout Creation'
       },
       {
         src: '/screenshots/ai_workouts.jpg',
         sizes: '1280x720',
-        type: 'image/jpeg',
+        type: 'image/jpg',
         form_factor: 'wide',
         label: 'AI Workout Generation'
       },
       {
         src: '/screenshots/progress.jpg',
         sizes: '1280x720',
-        type: 'image/jpeg',
+        type: 'image/jpg',
         form_factor: 'wide',
         label: 'Progress Tracking'
       },
       {
         src: '/screenshots/mobile_dashboard.jpg',
         sizes: '720x1280',
-        type: 'image/jpeg',
+        type: 'image/jpg',
         form_factor: 'narrow',
         label: 'Mobile Dashboard'
       },
       {
         src: '/screenshots/mobile_guide.jpg',
         sizes: '720x1280',
-        type: 'image/jpeg',
+        type: 'image/jpg',
         form_factor: 'narrow',
         label: 'Mobile AI Guide'
       },
       {
         src: '/screenshots/mobile_workout.jpg',
         sizes: '720x1280',
-        type: 'image/jpeg',
+        type: 'image/jpg',
         form_factor: 'narrow',
         label: 'Mobile Workout Session'
       },
       {
         src: '/screenshots/mobile_history.jpg',
         sizes: '720x1280',
-        type: 'image/jpeg',
+        type: 'image/jpg',
         form_factor: 'narrow',
         label: 'Mobile Workout History'
       }
