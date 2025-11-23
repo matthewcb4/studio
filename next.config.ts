@@ -6,6 +6,9 @@ const pwaConfig = {
   dest: 'public',
   register: true,
   disable: process.env.NODE_ENV === 'development',
+  // By creating a static manifest.webmanifest, we can disable the dynamic generation.
+  // This gives us full control and avoids pathing issues.
+  manifest: undefined, 
 };
 
 const nextConfig: NextConfig = {
@@ -31,7 +34,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'https' as const,
         hostname: 'i.ytimg.com',
         port: '',
         pathname: '/**',

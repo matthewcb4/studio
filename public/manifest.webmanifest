@@ -1,11 +1,12 @@
 {
-  "name": "fitness Repo",
+  "theme_color": "#293B62",
+  "background_color": "#E7E8EA",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "name": "fRepo: Tonal Tracker",
   "short_name": "fRepo",
   "description": "Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Welcome to your new personal best.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#E7E8EA",
-  "theme_color": "#293B62",
   "icons": [
     {
       "src": "/icons/logo.png",
@@ -21,59 +22,15 @@
   "screenshots": [
     {
       "src": "/screenshots/dashboard.jpg",
-      "sizes": "1280x720",
       "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "Desktop Dashboard View"
+      "sizes": "1080x1920",
+      "form_factor": "narrow"
     },
     {
-      "src": "/screenshots/workouts.jpg",
-      "sizes": "1280x720",
+      "src": "/screenshots/workout.jpg",
       "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "Workout Creation"
-    },
-    {
-      "src": "/screenshots/ai_workouts.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "AI Workout Generation"
-    },
-    {
-      "src": "/screenshots/progress.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "Progress Tracking"
-    },
-    {
-      "src": "/screenshots/start_workout.jpg",
-      "sizes": "720x1280",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Mobile Dashboard"
-    },
-    {
-      "src": "/screenshots/working.jpg",
-      "sizes": "720x1280",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Mobile AI Guide"
-    },
-    {
-      "src": "/screenshots/heatmap.jpg",
-      "sizes": "720x1280",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Mobile Workout Session"
-    },
-    {
-      "src": "/screenshots/edit_workout.jpg",
-      "sizes": "720x1280",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Mobile Workout History"
+      "sizes": "1080x1920",
+      "form_factor": "narrow"
     }
   ]
 }
