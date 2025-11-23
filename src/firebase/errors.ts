@@ -5,7 +5,12 @@ import { getAuth, type User } from 'firebase/auth';
 type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
+<<<<<<< HEAD
   requestResourceData?: Record<string, unknown>;
+=======
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  requestResourceData?: any;
+>>>>>>> origin/build-fixes
 };
 
 interface FirebaseAuthToken {
@@ -31,7 +36,12 @@ interface SecurityRuleRequest {
   method: string;
   path: string;
   resource?: {
+<<<<<<< HEAD
     data: Record<string, unknown>;
+=======
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: any;
+>>>>>>> origin/build-fixes
   };
 }
 

@@ -30,7 +30,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog, LoggedExercise } from '@/lib/types';
+import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog, LoggedExercise, WorkoutLog } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -47,6 +47,10 @@ import {
   useDoc,
   useUser,
   useFirestore,
+<<<<<<< HEAD
+=======
+  useMemoFirebase,
+>>>>>>> origin/build-fixes
   updateDocumentNonBlocking,
   useCollection,
 } from '@/firebase';

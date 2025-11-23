@@ -64,6 +64,7 @@ export function useCollection<T = DocumentData>(
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
+<<<<<<< HEAD
       // If the query is not ready, we are not loading and have no data/error.
       // No need to set state here as the initial state is already correct.
       return;
@@ -71,6 +72,24 @@ export function useCollection<T = DocumentData>(
 
     // Set loading state to true when a new query is provided
     setIsLoading(true);
+=======
+      // Reset state asynchronously to avoid "synchronous setState in effect" warning
+      // This is safe because we also return early from the hook if memoizedTargetRefOrQuery is null,
+      // so the component will receive null data immediately anyway.
+      const t = setTimeout(() => {
+        setData(d => d ? null : d);
+        setIsLoading(l => l ? false : l);
+        setError(e => e ? null : e);
+      }, 0);
+      return () => clearTimeout(t);
+    }
+
+    // Set loading state asynchronously to avoid synchronous setState warning
+    const t = setTimeout(() => {
+        setIsLoading(true);
+        setData(null);
+    }, 0);
+>>>>>>> origin/build-fixes
 
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
@@ -83,7 +102,11 @@ export function useCollection<T = DocumentData>(
         setError(null);
         setIsLoading(false);
       },
+<<<<<<< HEAD
       (_err: FirestoreError) => {
+=======
+      () => {
+>>>>>>> origin/build-fixes
         // This logic extracts the path from either a ref or a query
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
@@ -104,8 +127,15 @@ export function useCollection<T = DocumentData>(
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+        clearTimeout(t);
+        unsubscribe();
+    };
   }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+
+  if (!memoizedTargetRefOrQuery) {
+    return { data: null, isLoading: false, error: null };
+  }
 
   return { data, isLoading, error };
 }

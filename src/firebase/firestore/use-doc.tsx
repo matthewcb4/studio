@@ -50,12 +50,24 @@ export function useDoc<T = DocumentData>(
 
   useEffect(() => {
     if (!memoizedDocRef) {
+<<<<<<< HEAD
         // If the ref is not ready, we are not loading and have no data/error.
         // No need to set state here as the initial state is already correct.
         return;
+=======
+      const t = setTimeout(() => {
+        setData(d => d ? null : d);
+        setIsLoading(l => l ? false : l);
+        setError(e => e ? null : e);
+      }, 0);
+      return () => clearTimeout(t);
+>>>>>>> origin/build-fixes
     }
 
-    setIsLoading(true);
+    const t = setTimeout(() => {
+        setIsLoading(true);
+        setData(null);
+    }, 0);
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
@@ -69,7 +81,11 @@ export function useDoc<T = DocumentData>(
         setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
         setIsLoading(false);
       },
+<<<<<<< HEAD
       (_err: FirestoreError) => {
+=======
+      () => {
+>>>>>>> origin/build-fixes
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
@@ -84,8 +100,15 @@ export function useDoc<T = DocumentData>(
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+        clearTimeout(t);
+        unsubscribe();
+    };
   }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+
+  if (!memoizedDocRef) {
+    return { data: null, isLoading: false, error: null };
+  }
 
   return { data, isLoading, error };
 }

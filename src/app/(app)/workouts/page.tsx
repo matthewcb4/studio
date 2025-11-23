@@ -67,7 +67,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
+<<<<<<< HEAD
 const generateUniqueId = (): string => `_${performance.now().toString(36)}${Math.random().toString(36).substr(2, 9)}`;
+=======
+const generateUniqueId = (): string => {
+    return `_${Math.random().toString(36).substr(2, 9)}`;
+};
+>>>>>>> origin/build-fixes
 
 // Group exercises by supersetId for display
 const groupExercises = (exercises: WorkoutExercise[] = []) => {
@@ -114,15 +120,22 @@ function WorkoutForm({
 
   useEffect(() => {
     if (workout) {
-      setName(workout.name);
-      setDescription(workout.description || '');
-      // Deep copy exercises to avoid direct mutation of props
-      const initializedExercises = workout.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || [];
-      setExercises(JSON.parse(JSON.stringify(initializedExercises)));
+      // Use setTimeout to avoid synchronous state updates during rendering
+      const t = setTimeout(() => {
+        setName(workout.name);
+        setDescription(workout.description || '');
+        // Deep copy exercises to avoid direct mutation of props
+        const initializedExercises = workout.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || [];
+        setExercises(JSON.parse(JSON.stringify(initializedExercises)));
+      }, 0);
+      return () => clearTimeout(t);
     } else {
-      setName('');
-      setDescription('');
-      setExercises([]);
+      const t = setTimeout(() => {
+        setName('');
+        setDescription('');
+        setExercises([]);
+      }, 0);
+      return () => clearTimeout(t);
     }
   }, [workout]);
 
@@ -174,8 +187,16 @@ function WorkoutForm({
             updatedEx.exerciseId = value as string; 
             updatedEx.exerciseName = value as string;
           }
+<<<<<<< HEAD
         } else {
           (updatedEx[field] as string | number) = value;
+=======
+        } else if (field === 'sets') {
+          updatedEx.sets = Number(value);
+        } else if (field === 'reps' || field === 'unit' || field === 'exerciseName' || field === 'supersetId' || field === 'id') {
+          // @ts-expect-error - we know these are strings and match the type
+          updatedEx[field] = String(value);
+>>>>>>> origin/build-fixes
         }
         return updatedEx;
       }
@@ -474,12 +495,28 @@ function WorkoutsPageContent() {
   , [firestore, user]);
   const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
 
+<<<<<<< HEAD
   const editingWorkout = useMemo(() => {
       if (!editId || !workouts) return null;
       return workouts.find(w => w.id === editId) || null;
   }, [editId, workouts]);
 
   const isSheetOpen = !!editId;
+=======
+  // This effect handles opening the sheet when the ?edit=... param is present
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId && workouts) {
+      const workoutToEdit = workouts.find(w => w.id === editId);
+      if (workoutToEdit && (!editingWorkout || editingWorkout.id !== workoutToEdit.id)) {
+        setTimeout(() => {
+            setEditingWorkout(workoutToEdit);
+            setIsSheetOpen(true);
+        }, 0);
+      }
+    }
+  }, [searchParams, workouts, editingWorkout]);
+>>>>>>> origin/build-fixes
 
   // This function handles closing the sheet and clearing the URL param
   const handleSheetClose = (open: boolean) => {

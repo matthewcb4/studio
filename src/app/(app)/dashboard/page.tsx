@@ -188,6 +188,14 @@ export default function DashboardPage() {
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
+<<<<<<< HEAD
+=======
+  useEffect(() => {
+    if (userProfile && !userProfile.hasCompletedOnboarding && !showOnboarding) {
+        setTimeout(() => setShowOnboarding(true), 0);
+    }
+  }, [userProfile, showOnboarding]);
+>>>>>>> origin/build-fixes
 
   const handleOnboardingComplete = () => {
     if (userProfileRef) {
