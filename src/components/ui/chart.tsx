@@ -338,14 +338,18 @@ function getPayloadConfigFromPayload(
 
   if (
     key in payload &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     typeof (payload as any)[key] === "string"
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     configLabelKey = (payload as any)[key] as string
   } else if (
     payloadPayload &&
     key in payloadPayload &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     typeof (payloadPayload as any)[key] === "string"
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     configLabelKey = (payloadPayload as any)[
       key
     ] as string

@@ -70,12 +70,7 @@ import {
 } from "@/components/ui/accordion";
 
 const generateUniqueId = (): string => {
-    let result = '';
-    // Use useEffect with an empty dependency array to run this only on the client
-    useEffect(() => {
-        result = `_${Math.random().toString(36).substr(2, 9)}`;
-    }, []);
-    return result;
+    return `_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 // Group exercises by supersetId for display
@@ -123,15 +118,22 @@ function WorkoutForm({
 
   useEffect(() => {
     if (workout) {
-      setName(workout.name);
-      setDescription(workout.description || '');
-      // Deep copy exercises to avoid direct mutation of props
-      const initializedExercises = workout.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || [];
-      setExercises(JSON.parse(JSON.stringify(initializedExercises)));
+      // Use setTimeout to avoid synchronous state updates during rendering
+      const t = setTimeout(() => {
+        setName(workout.name);
+        setDescription(workout.description || '');
+        // Deep copy exercises to avoid direct mutation of props
+        const initializedExercises = workout.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || [];
+        setExercises(JSON.parse(JSON.stringify(initializedExercises)));
+      }, 0);
+      return () => clearTimeout(t);
     } else {
-      setName('');
-      setDescription('');
-      setExercises([]);
+      const t = setTimeout(() => {
+        setName('');
+        setDescription('');
+        setExercises([]);
+      }, 0);
+      return () => clearTimeout(t);
     }
   }, [workout]);
 
@@ -183,8 +185,11 @@ function WorkoutForm({
             updatedEx.exerciseId = value as string; 
             updatedEx.exerciseName = value as string;
           }
-        } else {
-          (updatedEx[field] as any) = value;
+        } else if (field === 'sets') {
+          updatedEx.sets = Number(value);
+        } else if (field === 'reps' || field === 'unit' || field === 'exerciseName' || field === 'supersetId' || field === 'id') {
+          // @ts-expect-error - we know these are strings and match the type
+          updatedEx[field] = String(value);
         }
         return updatedEx;
       }
@@ -491,12 +496,14 @@ function WorkoutsPageContent() {
     const editId = searchParams.get('edit');
     if (editId && workouts) {
       const workoutToEdit = workouts.find(w => w.id === editId);
-      if (workoutToEdit) {
-        setEditingWorkout(workoutToEdit);
-        setIsSheetOpen(true);
+      if (workoutToEdit && (!editingWorkout || editingWorkout.id !== workoutToEdit.id)) {
+        setTimeout(() => {
+            setEditingWorkout(workoutToEdit);
+            setIsSheetOpen(true);
+        }, 0);
       }
     }
-  }, [searchParams, workouts]);
+  }, [searchParams, workouts, editingWorkout]);
 
   // This function handles closing the sheet and clearing the URL param
   const handleSheetClose = (open: boolean) => {

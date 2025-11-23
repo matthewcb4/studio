@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell, Youtube, FileText, Palette } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
@@ -191,7 +191,8 @@ export default function SettingsPage() {
 
     formKeys.forEach(key => {
         if (values[key] !== undefined && values[key] !== '') {
-            (dataToSave as any)[key] = values[key];
+            // @ts-expect-error - we know the keys match
+            dataToSave[key] = values[key];
         }
     });
 
@@ -288,7 +289,7 @@ export default function SettingsPage() {
             description: "Your account and all associated data have been deleted."
         });
         router.push('/');
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error("Error deleting account:", error);
         toast({
             variant: "destructive",

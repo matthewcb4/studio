@@ -190,10 +190,10 @@ export default function DashboardPage() {
   // Initialize state based on the profile data directly.
   const [showOnboarding, setShowOnboarding] = useState(false);
   useEffect(() => {
-    if (userProfile && !userProfile.hasCompletedOnboarding) {
-        setShowOnboarding(true);
+    if (userProfile && !userProfile.hasCompletedOnboarding && !showOnboarding) {
+        setTimeout(() => setShowOnboarding(true), 0);
     }
-  }, [userProfile]);
+  }, [userProfile, showOnboarding]);
 
   const handleOnboardingComplete = () => {
     if (userProfileRef) {

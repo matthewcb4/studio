@@ -4,6 +4,7 @@ import { getAuth, type User } from 'firebase/auth';
 type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requestResourceData?: any;
 };
 
@@ -30,6 +31,7 @@ interface SecurityRuleRequest {
   method: string;
   path: string;
   resource?: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
   };
 }

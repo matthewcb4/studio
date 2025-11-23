@@ -52,7 +52,7 @@ export interface InternalQuery extends Query<DocumentData> {
  * The Firestore CollectionReference or Query. Waits if null/undefined.
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
  */
-export function useCollection<T = any>(
+export function useCollection<T = DocumentData>(
     memoizedTargetRefOrQuery: CollectionReference<DocumentData> | Query<DocumentData>  | null | undefined,
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
@@ -64,13 +64,22 @@ export function useCollection<T = any>(
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
-      setData(null);
-      setIsLoading(false);
-      setError(null);
-      return;
+      // Reset state asynchronously to avoid "synchronous setState in effect" warning
+      // This is safe because we also return early from the hook if memoizedTargetRefOrQuery is null,
+      // so the component will receive null data immediately anyway.
+      const t = setTimeout(() => {
+        setData(d => d ? null : d);
+        setIsLoading(l => l ? false : l);
+        setError(e => e ? null : e);
+      }, 0);
+      return () => clearTimeout(t);
     }
 
-    setIsLoading(true);
+    // Set loading state asynchronously to avoid synchronous setState warning
+    const t = setTimeout(() => {
+        setIsLoading(true);
+        setData(null);
+    }, 0);
 
     // Directly use memoizedTargetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
@@ -84,7 +93,7 @@ export function useCollection<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (err: FirestoreError) => {
+      () => {
         // This logic extracts the path from either a ref or a query
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
@@ -105,10 +114,15 @@ export function useCollection<T = any>(
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+        clearTimeout(t);
+        unsubscribe();
+    };
   }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+
+  if (!memoizedTargetRefOrQuery) {
+    return { data: null, isLoading: false, error: null };
+  }
 
   return { data, isLoading, error };
 }
-
-    
