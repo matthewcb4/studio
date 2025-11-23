@@ -1,12 +1,76 @@
 
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 import withPWA from '@ducanh2912/next-pwa';
+import type { PWAConfig } from '@ducanh2912/next-pwa';
 
-const pwaConfig = withPWA({
+const pwaConfig: PWAConfig = {
   dest: 'public',
   register: true,
   disable: process.env.NODE_ENV === 'development',
-});
+  manifest: {
+    name: 'fitness Repo',
+    short_name: 'fRepo',
+    description: 'Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Welcome to your new personal best.',
+    screenshots: [
+      {
+        src: '/screenshots/dashboard.jpg',
+        sizes: '1280x720',
+        type: 'image/jpeg',
+        form_factor: 'wide',
+        label: 'Desktop Dashboard View'
+      },
+      {
+        src: '/screenshots/workouts.jpg',
+        sizes: '1280x720',
+        type: 'image/jpeg',
+        form_factor: 'wide',
+        label: 'Workout Creation'
+      },
+      {
+        src: '/screenshots/ai_workouts.jpg',
+        sizes: '1280x720',
+        type: 'image/jpeg',
+        form_factor: 'wide',
+        label: 'AI Workout Generation'
+      },
+      {
+        src: '/screenshots/progress.jpg',
+        sizes: '1280x720',
+        type: 'image/jpeg',
+        form_factor: 'wide',
+        label: 'Progress Tracking'
+      },
+      {
+        src: '/screenshots/mobile_dashboard.jpg',
+        sizes: '720x1280',
+        type: 'image/jpeg',
+        form_factor: 'narrow',
+        label: 'Mobile Dashboard'
+      },
+      {
+        src: '/screenshots/mobile_guide.jpg',
+        sizes: '720x1280',
+        type: 'image/jpeg',
+        form_factor: 'narrow',
+        label: 'Mobile AI Guide'
+      },
+      {
+        src: '/screenshots/mobile_workout.jpg',
+        sizes: '720x1280',
+        type: 'image/jpeg',
+        form_factor: 'narrow',
+        label: 'Mobile Workout Session'
+      },
+      {
+        src: '/screenshots/mobile_history.jpg',
+        sizes: '720x1280',
+        type: 'image/jpeg',
+        form_factor: 'narrow',
+        label: 'Mobile Workout History'
+      }
+    ]
+  }
+};
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -58,4 +122,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default pwaConfig(nextConfig);
+export default withPWA(pwaConfig)(nextConfig);

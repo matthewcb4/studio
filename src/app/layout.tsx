@@ -6,9 +6,9 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ThemeProvider } from "@/components/theme-provider";
 
 const APP_NAME = "fRepo";
-const APP_DEFAULT_TITLE = "fRepo";
+const APP_DEFAULT_TITLE = "fitness Repo";
 const APP_TITLE_TEMPLATE = "%s - fRepo";
-const APP_DESCRIPTION = "The Fitness Repository. Track your workouts with ease.";
+const APP_DESCRIPTION = "Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Welcome to your new personal best.";
 
 
 export const metadata: Metadata = {
