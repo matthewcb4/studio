@@ -118,22 +118,15 @@ function WorkoutForm({
 
   useEffect(() => {
     if (workout) {
-      // Use setTimeout to avoid synchronous state updates during rendering
-      const t = setTimeout(() => {
-        setName(workout.name);
-        setDescription(workout.description || '');
-        // Deep copy exercises to avoid direct mutation of props
-        const initializedExercises = workout.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || [];
-        setExercises(JSON.parse(JSON.stringify(initializedExercises)));
-      }, 0);
-      return () => clearTimeout(t);
+      setName(workout.name);
+      setDescription(workout.description || '');
+      // Deep copy exercises to avoid direct mutation of props
+      const initializedExercises = workout.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || [];
+      setExercises(JSON.parse(JSON.stringify(initializedExercises)));
     } else {
-      const t = setTimeout(() => {
-        setName('');
-        setDescription('');
-        setExercises([]);
-      }, 0);
-      return () => clearTimeout(t);
+      setName('');
+      setDescription('');
+      setExercises([]);
     }
   }, [workout]);
 
@@ -468,25 +461,11 @@ function WorkoutsPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
+  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(
+    () => searchParams.get('edit')
+  );
+  const [isSheetOpen, setIsSheetOpen] = useState(() => searchParams.has('edit'));
   const [sortOrder, setSortOrder] = useState('alphabetical');
-
-  // Ref to ensure initial URL check only runs once.
-  const initialUrlCheckDone = useRef(false);
-
-  // Effect to handle opening the sheet on initial load if ?edit=... is present.
-  useEffect(() => {
-    if (!initialUrlCheckDone.current && searchParams.has('edit')) {
-      const editId = searchParams.get('edit');
-      if (editId) {
-        setEditingWorkoutId(editId);
-        setIsSheetOpen(true);
-      }
-      initialUrlCheckDone.current = true;
-    }
-    // No dependency array - we want this to run on param changes if the sheet isn't already open
-  }, [searchParams]);
 
 
   const workoutsCollection = useMemoFirebase(() => {
@@ -515,6 +494,7 @@ function WorkoutsPageContent() {
 
 
   const handleSheetOpenChange = (open: boolean) => {
+    setIsSheetOpen(open);
     if (!open) {
       setEditingWorkoutId(null);
       // Clean up the URL when the sheet is closed.
@@ -522,7 +502,6 @@ function WorkoutsPageContent() {
         router.replace(pathname, { scroll: false });
       }
     }
-    setIsSheetOpen(open);
   };
 
 
