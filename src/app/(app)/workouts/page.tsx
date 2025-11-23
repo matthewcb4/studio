@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
@@ -112,13 +112,9 @@ function WorkoutForm({
 }) {
   const [name, setName] = useState(workout?.name || '');
   const [description, setDescription] = useState(workout?.description || '');
-  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => {
-    if (workout?.exercises) {
-      // Deep copy exercises to avoid direct mutation of props
-      return JSON.parse(JSON.stringify(workout.exercises.map(ex => ({ ...ex, unit: ex.unit || 'reps' }))));
-    }
-    return [];
-  });
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(
+    workout?.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || []
+  );
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
 
@@ -454,10 +450,8 @@ function WorkoutsPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(
-    () => searchParams.get('edit')
-  );
-  const [isSheetOpen, setIsSheetOpen] = useState(() => searchParams.has('edit'));
+  const [isSheetOpen, setIsSheetOpen] = useState(searchParams.has('edit'));
+  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(searchParams.get('edit'));
   const [sortOrder, setSortOrder] = useState('alphabetical');
 
 

@@ -63,7 +63,7 @@ function UserNav() {
   }, []);
 
   const initials = useMemo(() => {
-    if (isUserLoading || !hasMounted) return '';
+    if (isUserLoading) return '';
     if (user?.displayName) {
       return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     }
@@ -71,7 +71,7 @@ function UserNav() {
       return user.email.substring(0, 2).toUpperCase();
     }
     return 'U';
-  }, [user, isUserLoading, hasMounted]);
+  }, [user, isUserLoading]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -84,7 +84,7 @@ function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarFallback>{hasMounted ? initials : ''}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
