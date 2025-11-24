@@ -20,8 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, useDoc } from '@/firebase';
-import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc } from '@/firebase';
+import { collection, query, where, getDocs, doc, orderBy, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
 import { format } from 'date-fns';
@@ -239,10 +239,11 @@ export default function GuidePage() {
         name: generatedWorkout.workoutName,
         description: generatedWorkout.description,
         exercises: processedExercises,
+        createdAt: new Date().toISOString(),
       };
 
       const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
-      const newDocRef = await addDocumentNonBlocking(workoutsCollection, workoutData);
+      const newDocRef = await addDoc(workoutsCollection, workoutData);
 
       toast({
         title: "Workout Saved!",

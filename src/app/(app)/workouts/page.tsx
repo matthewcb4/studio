@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
@@ -450,8 +450,8 @@ function WorkoutsPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [isSheetOpen, setIsSheetOpen] = useState(searchParams.has('edit'));
-  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(searchParams.get('edit'));
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState('alphabetical');
 
 
@@ -478,6 +478,15 @@ function WorkoutsPageContent() {
       if (!editingWorkoutId || !workouts) return null;
       return workouts.find(w => w.id === editingWorkoutId) || null;
   }, [editingWorkoutId, workouts])
+
+  // Effect to open sheet if `edit` param is present
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId) {
+      setEditingWorkoutId(editId);
+      setIsSheetOpen(true);
+    }
+  }, [searchParams]);
 
 
   const handleSheetOpenChange = (open: boolean) => {
@@ -567,7 +576,7 @@ function WorkoutsPageContent() {
             </SheetTrigger>
             <SheetContent className="w-full max-w-[95vw] sm:max-w-2xl flex flex-col">
                 <Suspense fallback={<div className="p-6">Loading form...</div>}>
-                {isSheetOpen && (
+                {isSheetOpen && (isLoading ? <div>Loading workout data...</div> :
                     <WorkoutForm
                         workout={editingWorkout}
                         masterExercises={masterExercises || []}
