@@ -8,8 +8,8 @@ const Logo = (props: ComponentProps<'div'>) => (
     <Image
       src="/icons/icon-512x512.png"
       alt="fRepo Logo"
-      width={400}
-      height={400}
+      width={40}
+      height={40}
       className={cn('object-contain', props.className)}
     />
   </div>
