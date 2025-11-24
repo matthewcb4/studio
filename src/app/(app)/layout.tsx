@@ -210,7 +210,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Sidebar>
 
         <div className="flex flex-col flex-1">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
             <MobileNav />
             <div className="w-full flex-1">
               {/* Optional: Can add a search bar or other header elements here */}
