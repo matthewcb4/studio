@@ -143,7 +143,7 @@ function ProgressSummaryCard() {
         <Card>
             <CardHeader>
                 <CardTitle>Progress to Goal</CardTitle>
-                <CardDescription>Your journey to ${targetWeight} lbs</CardDescription>
+                <CardDescription>Your journey to {targetWeight} lbs</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
@@ -386,4 +386,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
