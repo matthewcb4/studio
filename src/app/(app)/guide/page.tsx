@@ -20,8 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc } from '@/firebase';
-import { collection, query, where, getDocs, doc, orderBy, addDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc } from '@/firebase';
+import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
 import { format } from 'date-fns';
@@ -214,7 +214,7 @@ export default function GuidePage() {
               name: ex.name,
               category: ex.category,
             };
-            await setDocumentNonBlocking(newExerciseDocRef, newExercise, { merge: false });
+            setDocumentNonBlocking(newExerciseDocRef, newExercise, { merge: false });
             masterExerciseId = newExerciseDocRef.id;
           } else {
             masterExerciseId = querySnapshot.docs[0].id;

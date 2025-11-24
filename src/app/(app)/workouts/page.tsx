@@ -53,7 +53,7 @@ import {
   useCollection,
   useUser,
   useFirestore,
-  addDocumentNonBlocking,
+  addDoc,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
   useMemoFirebase,
@@ -107,7 +107,7 @@ function WorkoutForm({
   workout: CustomWorkout | null;
   masterExercises: MasterExercise[];
   exercisePreferences: UserExercisePreference[] | null;
-  onSave: (workout: Partial<CustomWorkout>) => void;
+  onSave: (workout: Partial<CustomWorkout>, isNew: boolean) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(workout?.name || '');
@@ -232,12 +232,14 @@ function WorkoutForm({
         return { ...ex, unit: ex.unit || 'reps' };
     });
 
+    const isNew = !workout;
+
     const newWorkout: Partial<CustomWorkout> = {
       name,
       description,
       exercises: finalizedExercises,
     };
-    onSave(newWorkout);
+    onSave(newWorkout, isNew);
   };
 
   const handleMoveGroup = (groupIndex: number, direction: 'up' | 'down') => {
@@ -452,7 +454,7 @@ function WorkoutsPageContent() {
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState('alphabetical');
+  const [sortOrder, setSortOrder] = useState('date_desc');
 
 
   const workoutsCollection = useMemoFirebase(() => {
@@ -516,19 +518,29 @@ function WorkoutsPageContent() {
   };
 
   const handleSaveWorkout = (
-    workoutData: Partial<CustomWorkout>
+    workoutData: Partial<CustomWorkout>,
+    isNew: boolean
   ) => {
     if (!user || !workoutsCollection) return;
     
-    if (editingWorkoutId) {
-      // It's an update, just save the data.
-      const dataToSave = { ...workoutData, userId: user.uid };
-      const workoutDoc = doc(workoutsCollection, editingWorkoutId);
-      updateDocumentNonBlocking(workoutDoc, dataToSave);
-    } else {
-      // It's a new workout, add createdAt timestamp.
+    if (isNew) {
       const dataToSave = { ...workoutData, userId: user.uid, createdAt: new Date().toISOString() };
-      addDocumentNonBlocking(workoutsCollection, dataToSave);
+      addDoc(workoutsCollection, dataToSave);
+    } else {
+      const originalWorkout = workouts?.find(w => w.id === editingWorkoutId);
+      const dataToSave: Partial<CustomWorkout> & { userId: string } = {
+        ...workoutData,
+        userId: user.uid,
+      };
+
+      if (!originalWorkout?.createdAt) {
+        dataToSave.createdAt = new Date().toISOString();
+      } else {
+        dataToSave.createdAt = originalWorkout.createdAt;
+      }
+      
+      const workoutDoc = doc(workoutsCollection, editingWorkoutId!);
+      updateDocumentNonBlocking(workoutDoc, dataToSave);
     }
     handleSheetOpenChange(false);
   };
@@ -593,8 +605,8 @@ function WorkoutsPageContent() {
                     <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
                     <SelectItem value="date_desc">Date Created (Newest)</SelectItem>
+                    <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
                 </SelectContent>
             </Select>
         </div>
