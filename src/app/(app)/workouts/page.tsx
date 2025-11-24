@@ -366,7 +366,7 @@ function WorkoutForm({
                                 ))}
                                 </SelectContent>
                             </Select>
-                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                            <div className="flex flex-col sm:grid sm:grid-cols-2 items-start sm:items-center gap-4">
                                 <div className="flex items-center gap-2 flex-1 w-full">
                                     <Label htmlFor={`sets-${ex.id}`} className="min-w-fit">Sets</Label>
                                     <Input
@@ -496,8 +496,11 @@ function WorkoutsPageContent() {
     const editId = searchParams.get('edit');
     if (editId) {
       if (workouts && workouts.some(w => w.id === editId)) {
-        setEditingWorkoutId(editId);
-        setIsSheetOpen(true);
+        // Defer state update to next tick to avoid synchronous setState in effect warning
+        setTimeout(() => {
+            setEditingWorkoutId(editId);
+            setIsSheetOpen(true);
+        }, 0);
       }
     }
   }, [searchParams, workouts]);
