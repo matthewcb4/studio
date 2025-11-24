@@ -366,8 +366,8 @@ function WorkoutForm({
                                 ))}
                                 </SelectContent>
                             </Select>
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2 flex-1">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <div className="flex items-center gap-2 flex-1 w-full">
                                     <Label htmlFor={`sets-${ex.id}`} className="min-w-fit">Sets</Label>
                                     <Input
                                         id={`sets-${ex.id}`}
@@ -383,7 +383,7 @@ function WorkoutForm({
                                         placeholder="3"
                                     />
                                 </div>
-                                <div className="flex items-center gap-2 flex-1">
+                                <div className="flex items-center gap-2 flex-1 w-full">
                                     <Label htmlFor={`reps-${ex.id}`} className="min-w-fit">Reps</Label>
                                     <Input
                                         id={`reps-${ex.id}`}
@@ -583,17 +583,17 @@ function WorkoutsPageContent() {
   
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-start justify-between flex-wrap gap-4">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div className="flex-shrink-0">
           <h1 className="text-3xl font-bold">My Workouts</h1>
           <p className="text-muted-foreground max-w-md">
             Create and manage your custom training routines.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-2 w-full sm:w-auto">
             <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
             <SheetTrigger asChild>
-                <Button onClick={handleCreateNew}>
+                <Button onClick={handleCreateNew} className="w-full sm:w-auto">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create New Workout
                 </Button>
@@ -613,7 +613,7 @@ function WorkoutsPageContent() {
             </SheetContent>
             </Sheet>
             <Select value={sortOrder} onValueChange={setSortOrder}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
