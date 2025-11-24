@@ -485,10 +485,16 @@ function WorkoutsPageContent() {
   useEffect(() => {
     const editId = searchParams.get('edit');
     if (editId) {
-      setEditingWorkoutId(editId);
-      setIsSheetOpen(true);
+      // Check if workout data is available before opening the sheet
+      const workoutExists = workouts?.some(w => w.id === editId);
+      if (workoutExists) {
+        setEditingWorkoutId(editId);
+        setIsSheetOpen(true);
+      }
+      // If workout doesn't exist yet, we wait for the `workouts` data to update,
+      // and this effect will re-run.
     }
-  }, [searchParams]);
+  }, [searchParams, workouts]);
 
 
   const handleSheetOpenChange = (open: boolean) => {
