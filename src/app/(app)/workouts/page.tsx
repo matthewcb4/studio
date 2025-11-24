@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, Suspense, useEffect } from 'react';
@@ -334,70 +335,68 @@ function WorkoutForm({
                   return (
                     <div
                       key={ex.id}
-                      className="flex flex-col gap-2 p-3 border rounded-lg bg-background"
+                      className="flex flex-col gap-4 p-3 border rounded-lg bg-background"
                     >
-                          <div className="flex justify-between items-center">
-                            <Label className="text-xs">Exercise {exIndex + 1}</Label>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => removeExercise(ex.id)}
-                              className='h-7'
+                        <div className="flex justify-between items-center">
+                        <Label className="text-xs">Exercise {exIndex + 1}</Label>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeExercise(ex.id)}
+                            className='h-7'
+                        >
+                            <Trash2 className="h-4 w-4 mr-1" /> Remove
+                        </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <Select
+                                value={selectValue}
+                                onValueChange={(value) =>
+                                updateExercise(ex.id, 'exerciseId', value)
+                                }
                             >
-                              <Trash2 className="h-4 w-4 mr-1" /> Remove
-                            </Button>
-                          </div>
-                      <div className="grid grid-cols-2 gap-2">
-                         <Select
-                           value={selectValue}
-                           onValueChange={(value) =>
-                             updateExercise(ex.id, 'exerciseId', value)
-                           }
-                         >
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select exercise" />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {masterExercises.map((e) => (
-                               <SelectItem key={e.id} value={e.id}>
-                                 {e.name}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                         <Input
-                           type="number"
-                           value={ex.sets}
-                           onChange={(e) =>
-                             updateExercise(
-                               ex.id,
-                               'sets',
-                               parseInt(e.target.value) || 0
-                             )
-                           }
-                           placeholder="Sets"
-                         />
-                       </div>
-                       <div className="grid grid-cols-2 gap-2">
-                        <Input
-                           value={ex.reps}
-                           onChange={(e) =>
-                             updateExercise(ex.id, 'reps', e.target.value)
-                           }
-                           placeholder={ex.unit === 'reps' ? "e.g. 8-12" : "e.g. 30"}
-                         />
-                         <Select value={ex.unit || 'reps'} onValueChange={(value) => updateExercise(ex.id, 'unit', value)}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="reps">Weight & Reps</SelectItem>
-                                <SelectItem value="reps-only">Reps Only</SelectItem>
-                                <SelectItem value="seconds">Seconds</SelectItem>
-                                <SelectItem value="bodyweight">Bodyweight</SelectItem>
-                            </SelectContent>
-                         </Select>
-                       </div>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select exercise" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                {masterExercises.map((e) => (
+                                    <SelectItem key={e.id} value={e.id}>
+                                    {e.name}
+                                    </SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <Input
+                                type="number"
+                                value={ex.sets}
+                                onChange={(e) =>
+                                updateExercise(
+                                    ex.id,
+                                    'sets',
+                                    parseInt(e.target.value) || 0
+                                )
+                                }
+                                placeholder="Sets"
+                            />
+                            <Input
+                                value={ex.reps}
+                                onChange={(e) =>
+                                updateExercise(ex.id, 'reps', e.target.value)
+                                }
+                                placeholder={ex.unit === 'reps' ? "e.g. 8-12" : "e.g. 30"}
+                            />
+                            <Select value={ex.unit || 'reps'} onValueChange={(value) => updateExercise(ex.id, 'unit', value)}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="reps">Weight & Reps</SelectItem>
+                                    <SelectItem value="reps-only">Reps Only</SelectItem>
+                                    <SelectItem value="seconds">Seconds</SelectItem>
+                                    <SelectItem value="bodyweight">Bodyweight</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                        <div className="space-y-1">
                           <Label htmlFor={`video-id-${ex.id}`} className="text-xs">Linked Video ID</Label>
                            <div className="flex items-center gap-2">
@@ -484,15 +483,12 @@ function WorkoutsPageContent() {
   // Effect to open sheet if `edit` param is present
   useEffect(() => {
     const editId = searchParams.get('edit');
-    if (editId) {
-      // Check if workout data is available before opening the sheet
-      const workoutExists = workouts?.some(w => w.id === editId);
+    if (editId && workouts) {
+      const workoutExists = workouts.some(w => w.id === editId);
       if (workoutExists) {
         setEditingWorkoutId(editId);
         setIsSheetOpen(true);
       }
-      // If workout doesn't exist yet, we wait for the `workouts` data to update,
-      // and this effect will re-run.
     }
   }, [searchParams, workouts]);
 
