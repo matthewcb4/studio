@@ -348,7 +348,7 @@ function WorkoutForm({
                             <Trash2 className="h-4 w-4 mr-1" /> Remove
                         </Button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-4">
                             <Select
                                 value={selectValue}
                                 onValueChange={(value) =>
@@ -366,25 +366,36 @@ function WorkoutForm({
                                 ))}
                                 </SelectContent>
                             </Select>
-                            <Input
-                                type="number"
-                                value={ex.sets}
-                                onChange={(e) =>
-                                updateExercise(
-                                    ex.id,
-                                    'sets',
-                                    parseInt(e.target.value) || 0
-                                )
-                                }
-                                placeholder="Sets"
-                            />
-                            <Input
-                                value={ex.reps}
-                                onChange={(e) =>
-                                updateExercise(ex.id, 'reps', e.target.value)
-                                }
-                                placeholder={ex.unit === 'reps' ? "e.g. 8-12" : "e.g. 30"}
-                            />
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 flex-1">
+                                    <Label htmlFor={`sets-${ex.id}`} className="min-w-fit">Sets</Label>
+                                    <Input
+                                        id={`sets-${ex.id}`}
+                                        type="number"
+                                        value={ex.sets}
+                                        onChange={(e) =>
+                                        updateExercise(
+                                            ex.id,
+                                            'sets',
+                                            parseInt(e.target.value) || 0
+                                        )
+                                        }
+                                        placeholder="3"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 flex-1">
+                                    <Label htmlFor={`reps-${ex.id}`} className="min-w-fit">Reps</Label>
+                                    <Input
+                                        id={`reps-${ex.id}`}
+                                        value={ex.reps}
+                                        onChange={(e) =>
+                                        updateExercise(ex.id, 'reps', e.target.value)
+                                        }
+                                        placeholder={ex.unit === 'reps' ? "8-12" : "30"}
+                                    />
+                                </div>
+                            </div>
+                            
                             <Select value={ex.unit || 'reps'} onValueChange={(value) => updateExercise(ex.id, 'unit', value)}>
                                 <SelectTrigger>
                                     <SelectValue />
@@ -483,9 +494,8 @@ function WorkoutsPageContent() {
   // Effect to open sheet if `edit` param is present
   useEffect(() => {
     const editId = searchParams.get('edit');
-    if (editId && workouts) {
-      const workoutExists = workouts.some(w => w.id === editId);
-      if (workoutExists) {
+    if (editId) {
+      if (workouts && workouts.some(w => w.id === editId)) {
         setEditingWorkoutId(editId);
         setIsSheetOpen(true);
       }
@@ -519,7 +529,7 @@ function WorkoutsPageContent() {
     deleteDocumentNonBlocking(workoutDoc);
   };
 
-  const handleSaveWorkout = (
+  const handleSaveWorkout = async (
     workoutData: Partial<CustomWorkout>,
     isNew: boolean
   ) => {
@@ -527,7 +537,7 @@ function WorkoutsPageContent() {
     
     if (isNew) {
       const dataToSave = { ...workoutData, userId: user.uid, createdAt: new Date().toISOString() };
-      addDoc(workoutsCollection, dataToSave);
+      await addDoc(workoutsCollection, dataToSave);
     } else {
       const originalWorkout = workouts?.find(w => w.id === editingWorkoutId);
       const dataToSave: Partial<CustomWorkout> & { userId: string } = {
@@ -542,7 +552,7 @@ function WorkoutsPageContent() {
       }
       
       const workoutDoc = doc(workoutsCollection, editingWorkoutId!);
-      updateDocumentNonBlocking(workoutDoc, dataToSave);
+      await updateDocumentNonBlocking(workoutDoc, dataToSave);
     }
     handleSheetOpenChange(false);
   };
