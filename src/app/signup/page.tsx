@@ -52,8 +52,12 @@ export default function SignupPage() {
   });
 
   useEffect(() => {
-    // This check runs only on the client-side
-    setIsAndroid(/android/i.test(navigator.userAgent));
+    // Defer state update to prevent sync state update in effect error
+    const timer = setTimeout(() => {
+        setIsAndroid(/android/i.test(navigator.userAgent));
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
