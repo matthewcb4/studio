@@ -140,11 +140,11 @@ export function MuscleGroupVolumeChart({
         );
       }
       return (
-        <CardContent>
-            <div className="h-[350px] -ml-4">
+        <CardContent className="px-2 sm:px-4">
+            <div className="h-[350px]">
             <ChartContainer config={chartConfig} className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                         <CartesianGrid vertical={false} />
                         <XAxis
                             dataKey="date"
