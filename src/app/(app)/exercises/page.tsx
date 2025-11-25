@@ -39,7 +39,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Trash2, Youtube, Video, Loader2, List, Check } from 'lucide-react';
+import { PlusCircle, Trash2, Youtube, Video, Loader2, List, Check, Edit } from 'lucide-react';
 import type {
   Exercise as MasterExercise,
   UserExercisePreference,
@@ -53,6 +53,7 @@ import {
   deleteDocumentNonBlocking,
   useMemoFirebase,
   addDoc,
+  updateDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -68,6 +69,7 @@ import { seedExercises } from '@/lib/seed-data';
 const exerciseFormSchema = z.object({
   name: z.string().min(2, { message: 'Exercise name must be at least 2 characters.' }),
   category: z.string().min(2, { message: 'Please select a category.' }),
+  defaultUnit: z.enum(['reps', 'seconds', 'bodyweight', 'reps-only']).optional(),
 });
 
 const quickLogSetSchema = z.object({
@@ -92,6 +94,108 @@ function YouTubeEmbed({ videoId }: { videoId: string }) {
         ></iframe>
       </div>
     );
+}
+
+function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: MasterExercise | null, categories: string[], onSave: (data: z.infer<typeof exerciseFormSchema>) => void, onCancel: () => void }) {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<z.infer<typeof exerciseFormSchema>>({
+        resolver: zodResolver(exerciseFormSchema),
+        defaultValues: {
+            name: exercise?.name || '',
+            category: exercise?.category || '',
+            defaultUnit: exercise?.defaultUnit || 'reps',
+        },
+    });
+
+    const onSubmit = (data: z.infer<typeof exerciseFormSchema>) => {
+        setIsSubmitting(true);
+        onSave(data);
+    };
+    
+    const isEditing = !!exercise;
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{isEditing ? 'Edit Exercise' : 'Add New Exercise'}</DialogTitle>
+                <DialogDescription>
+                    {isEditing ? `Update the details for ${exercise.name}.` : 'Add a new exercise to your master list.'}
+                </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                     <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Exercise Name</FormLabel>
+                            <FormControl>
+                            <Input placeholder="e.g., Barbell Curl" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {categories.map(cat => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="defaultUnit"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Default Unit</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a default unit" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="reps">Weight & Reps</SelectItem>
+                                    <SelectItem value="reps-only">Reps Only</SelectItem>
+                                    <SelectItem value="seconds">Seconds</SelectItem>
+                                    <SelectItem value="bodyweight">Bodyweight</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+                        </DialogClose>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                             {isEditing ? 'Save Changes' : 'Add Exercise'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </Form>
+        </DialogContent>
+    )
 }
 
 function QuickLogForm({ exercise, onLog, onCancel }: { exercise: MasterExercise, onLog: (sets: LoggedSet[]) => void, onCancel: () => void }) {
@@ -185,13 +289,13 @@ export default function ExercisesPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    const [isSubmittingExercise, setIsSubmittingExercise] = useState(false);
     const [isSeeding, setIsSeeding] = useState(false);
     const [exerciseFilter, setExerciseFilter] = useState('');
     const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
     const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
     const [selectedVideo, setSelectedVideo] = useState<FindExerciseVideoOutput['videos'][0] | null>(null);
     const [loggingExercise, setLoggingExercise] = useState<MasterExercise | null>(null);
+    const [editingExercise, setEditingExercise] = useState<MasterExercise | null>(null);
 
     const exercisesCollectionQuery = useMemoFirebase(() =>
         firestore ? query(collection(firestore, 'exercises'), orderBy('name')) : null
@@ -217,26 +321,24 @@ export default function ExercisesPage() {
         );
     }, [masterExercises, exerciseFilter]);
 
-    const exerciseForm = useForm<z.infer<typeof exerciseFormSchema>>({
-        resolver: zodResolver(exerciseFormSchema),
-        defaultValues: {
-        name: '',
-        category: '',
-        },
-    });
-
-    const onExerciseSubmit = async (values: z.infer<typeof exerciseFormSchema>) => {
-        setIsSubmittingExercise(true);
+    const handleExerciseSave = async (values: z.infer<typeof exerciseFormSchema>) => {
+        if (!firestore) return;
         try {
-        const exerciseCollectionRef = collection(firestore, 'exercises');
-        await addDoc(exerciseCollectionRef, values);
-        toast({ title: 'Success', description: `${values.name} added to exercises.` });
-        exerciseForm.reset();
+            if (editingExercise) {
+                // Update
+                const exerciseDocRef = doc(firestore, 'exercises', editingExercise.id);
+                await updateDocumentNonBlocking(exerciseDocRef, values);
+                toast({ title: 'Success', description: `${values.name} has been updated.` });
+            } else {
+                // Create
+                const exerciseCollectionRef = collection(firestore, 'exercises');
+                await addDoc(exerciseCollectionRef, values);
+                toast({ title: 'Success', description: `${values.name} added to exercises.` });
+            }
+            setEditingExercise(null);
         } catch (error) {
-        console.error("Error adding exercise:", error);
-        toast({ title: 'Error', description: 'Failed to add exercise.', variant: 'destructive' });
-        } finally {
-            setIsSubmittingExercise(false);
+            console.error("Error saving exercise:", error);
+            toast({ title: 'Error', description: 'Failed to save exercise.', variant: 'destructive' });
         }
     };
     
@@ -335,67 +437,27 @@ export default function ExercisesPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-center gap-4">
-        <List className="w-8 h-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold">Exercises</h1>
-          <p className="text-muted-foreground">Manage your exercise library and perform quick logs.</p>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+            <List className="w-8 h-8 text-primary" />
+            <div>
+            <h1 className="text-3xl font-bold">Exercises</h1>
+            <p className="text-muted-foreground">Manage your exercise library and perform quick logs.</p>
+            </div>
         </div>
-      </div>
-      <div className="space-y-6">
-        <div>
-            <h2 className="text-2xl font-semibold">Master Exercise List</h2>
-            <p className="text-muted-foreground">
-                Add, remove, or link videos to exercises from the master list.
-            </p>
-        </div>
-        <Form {...exerciseForm}>
-            <form onSubmit={exerciseForm.handleSubmit(onExerciseSubmit)} className="space-y-4">
-                <FormField
-                    control={exerciseForm.control}
-                    name="name"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Exercise Name</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g., Barbell Curl" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={exerciseForm.control}
-                    name="category"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            {exerciseCategories.map(cat => (
-                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                            ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <Button type="submit" disabled={isSubmittingExercise}>
-                    {isSubmittingExercise ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                    <PlusCircle className="h-4 w-4" />
-                    )}
-                    <span className="ml-2">Add Exercise</span>
+        <Dialog onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}>
+            <DialogTrigger asChild>
+                <Button onClick={() => setEditingExercise(null)}>
+                    <PlusCircle className="mr-2 h-4 w-4"/> Add New
                 </Button>
-            </form>
-        </Form>
+            </DialogTrigger>
+            <ExerciseForm categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setEditingExercise(null)} />
+        </Dialog>
+      </div>
+
+       <Dialog open={!!editingExercise} onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}>
+            <ExerciseForm exercise={editingExercise} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setEditingExercise(null)} />
+        </Dialog>
 
         <Separator />
             
@@ -466,6 +528,9 @@ export default function ExercisesPage() {
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <Button variant="default" size="sm" className="h-8" onClick={() => setLoggingExercise(item)}>Log</Button>
+                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setEditingExercise(item)}>
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
                                     {preference?.videoId && (
                                         <DialogTrigger asChild>
                                             <Button variant="outline" size="icon" className="h-8 w-8">
@@ -538,6 +603,5 @@ export default function ExercisesPage() {
             </>
         )}
       </div>
-    </div>
   );
 }

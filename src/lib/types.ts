@@ -3,6 +3,7 @@ export type Exercise = {
   id: string;
   name: string;
   category?: string;
+  defaultUnit?: 'reps' | 'seconds' | 'bodyweight' | 'reps-only';
 };
 
 export type UserExercisePreference = {

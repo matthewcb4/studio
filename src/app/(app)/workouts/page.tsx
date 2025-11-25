@@ -79,7 +79,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 const generateUniqueId = (): string => {
@@ -174,6 +173,9 @@ function WorkoutForm({
           if (selectedExercise) {
             updatedEx.exerciseId = selectedExercise.id;
             updatedEx.exerciseName = selectedExercise.name;
+            if (selectedExercise.defaultUnit) {
+                updatedEx.unit = selectedExercise.defaultUnit;
+            }
           } else {
             updatedEx.exerciseId = value as string; 
             updatedEx.exerciseName = value as string;
