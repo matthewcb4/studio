@@ -331,6 +331,8 @@ export default function ExercisesPage() {
             setFindingVideoFor(null);
         }
     };
+    
+    const showSeedButton = !isLoadingExercises && masterExercises?.length === 0;
 
   return (
     <div className="flex flex-col gap-8">
@@ -514,26 +516,29 @@ export default function ExercisesPage() {
                       );
                     })
                     ) : (
-                    !isLoadingExercises && <p className="text-sm text-muted-foreground text-center py-4">No exercises found.</p>
+                    !isLoadingExercises && !showSeedButton && <p className="text-sm text-muted-foreground text-center py-4">No exercises found.</p>
                     )}
                 </div>
             </div>
             
-            <Separator className="my-6" />
-
-            <div>
-                <h4 className="font-medium mb-2">Seed Database</h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                If the exercise list is empty, you can populate it with a starter set of common exercises. This is a one-time action and may create duplicates if run more than once.
-                </p>
-                <Button onClick={handleSeedDatabase} disabled={isSeeding}>
-                {isSeeding ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Seeding...</>
-                ) : (
-                    "Seed Exercise Database"
-                )}
-                </Button>
-            </div>
+            {showSeedButton && (
+                <>
+                    <Separator className="my-6" />
+                    <div className="text-center p-4 border-2 border-dashed rounded-lg">
+                        <h4 className="font-medium mb-2">Your Exercise Library is Empty</h4>
+                        <p className="text-sm text-muted-foreground mb-4">
+                        Get started by populating your library with a starter set of common exercises.
+                        </p>
+                        <Button onClick={handleSeedDatabase} disabled={isSeeding}>
+                        {isSeeding ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Seeding...</>
+                        ) : (
+                            "Seed Exercise Database"
+                        )}
+                        </Button>
+                    </div>
+                </>
+            )}
 
         </CardContent>
       </Card>
