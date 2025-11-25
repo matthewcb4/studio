@@ -22,6 +22,7 @@ const VideoSchema = z.object({
     title: z.string().describe("The title of the YouTube video."),
     thumbnailUrl: z.string().describe("The URL of the video's thumbnail image."),
 });
+type Video = z.infer<typeof VideoSchema>;
 
 const FindExerciseVideoOutputSchema = z.object({
   videos: z.array(VideoSchema).describe("An array of relevant YouTube videos."),
@@ -43,7 +44,7 @@ export async function findExerciseVideo(input: FindExerciseVideoInput): Promise<
         const data: YouTubeSearchListResponse = await response.json();
 
         if (data.items) {
-            const videos = data.items.map((item: YouTubeSearchResult) => ({
+            const videos: Video[] = data.items.map((item: YouTubeSearchResult) => ({
                 videoId: item.id.videoId,
                 title: item.snippet.title,
                 thumbnailUrl: item.snippet.thumbnails.high.url,

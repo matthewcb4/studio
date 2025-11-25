@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { format, isWithinInterval, subDays } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
@@ -354,7 +354,7 @@ export default function DashboardPage() {
                                 <div className="text-4xl font-bold">{dashboardStats.workouts}</div>
                             </CardContent>
                         </Card>
-                        <Card>
+                         <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle>Total Volume</CardTitle>
                                 <CardDescription>{dateRangeLabel}</CardDescription>
