@@ -59,6 +59,7 @@ import {
   deleteDocumentNonBlocking,
   useMemoFirebase,
   setDocumentNonBlocking,
+  useFirebase,
 } from '@/firebase';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -68,18 +69,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { findExerciseVideo, FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
-import Image from 'next/image';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 const generateUniqueId = (): string => {
     return `_${Math.random().toString(36).substr(2, 9)}`;
@@ -93,6 +82,8 @@ const groupExercises = (exercises: WorkoutExercise[] = []) => {
         return acc;
     }, {} as Record<string, WorkoutExercise[]>);
     
+    // Sort outer groups, a bit tricky without a dedicated order field.
+    // Let's assume the first exercise's original index gives a hint.
     const originalOrder: Record<string, number> = {};
     exercises.forEach((ex, index) => {
         if(!(ex.supersetId in originalOrder)) {
@@ -125,17 +116,15 @@ function WorkoutForm({
   const [exercises, setExercises] = useState<WorkoutExercise[]>(
     workout?.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || []
   );
-  const { user, firestore } = useUser();
+  const { user, firestore } = useFirebase();
   const { toast } = useToast();
-  const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
-  const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
 
 
   const addExerciseGroup = () => {
     const newSupersetId = generateUniqueId();
     const newExercise: WorkoutExercise = {
       id: generateUniqueId(),
-      exerciseId: '', 
+      exerciseId: '', // Default to empty
       exerciseName: '',
       sets: 3,
       reps: '8-12',
@@ -148,13 +137,14 @@ function WorkoutForm({
   const addExerciseToGroup = (supersetId: string) => {
     const newExercise: WorkoutExercise = {
       id: generateUniqueId(),
-      exerciseId: '', 
+      exerciseId: '', // Default to empty
       exerciseName: '',
       sets: 3,
       reps: '8-12',
       unit: 'reps',
       supersetId: supersetId,
     };
+    // To maintain order, find the last index of an exercise with the same supersetId
     const lastIndex = exercises.map(e => e.supersetId).lastIndexOf(supersetId);
     const newExercises = [...exercises];
     newExercises.splice(lastIndex + 1, 0, newExercise);
@@ -198,33 +188,38 @@ function WorkoutForm({
     const remainingExercises = exercises.filter(ex => ex.id !== exerciseIdToRemove);
     setExercises(remainingExercises);
   };
-
-  const handleSelectVideo = (masterExerciseId: string, videoId: string) => {
-    if (!user) return;
-    const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
-    setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
-    toast({
-        title: "Video Preference Saved",
-        description: `Video linked for this exercise.`
-    });
-    setVideoResults({ exerciseId: '', videos: [] }); // Close dialog
+  
+  const handleFindVideo = (exerciseName: string) => {
+    if (!exerciseName) return;
+    const query = encodeURIComponent(`how to do ${exerciseName} #shorts`);
+    const url = `https://www.youtube.com/results?search_query=${query}`;
+    window.open(url, '_blank');
   };
 
-  const handleFindVideo = async (exerciseId: string, exerciseName: string) => {
-    if (!exerciseName) return;
-    setFindingVideoFor(exerciseId);
-    try {
-        const result = await findExerciseVideo({ exerciseName });
-        if (result.videos && result.videos.length > 0) {
-            setVideoResults({ exerciseId, videos: result.videos });
-        } else {
-            toast({ variant: "destructive", title: "No Videos Found", description: "The AI couldn't find any suitable videos for this exercise." });
-        }
-    } catch (error) {
-        console.error("Error finding video:", error);
-        toast({ variant: "destructive", title: "AI Error", description: "Could not find videos at this time." });
-    } finally {
-        setFindingVideoFor(null);
+  const handleVideoIdChange = (masterExerciseId: string, urlOrId: string) => {
+    if (!masterExerciseId || !user || !firestore) return;
+
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|shorts\/|v\/|)([\w-]{11})/;
+    const match = urlOrId.match(youtubeRegex);
+    const videoId = match ? match[1] : (urlOrId.length === 11 ? urlOrId : null);
+
+    const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
+
+    if (videoId) {
+        setDocumentNonBlocking(preferenceDocRef, { videoId, userId: user.uid }, { merge: true });
+        toast({
+            title: "Video Preference Saved",
+            description: `Video linked for this exercise.`
+        });
+    } else if (urlOrId === '') { // Allow clearing the video
+        setDocumentNonBlocking(preferenceDocRef, { videoId: null, userId: user.uid }, { merge: true });
+        toast({ title: "Video Preference Cleared" });
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Invalid YouTube ID",
+            description: "Please paste a valid 11-character YouTube video ID or a full URL."
+        });
     }
   };
 
@@ -278,28 +273,6 @@ function WorkoutForm({
       </SheetHeader>
 
       <div className="flex-1 overflow-y-auto p-1 -mx-1">
-        <AlertDialog open={videoResults.videos.length > 0} onOpenChange={() => setVideoResults({ exerciseId: '', videos: [] })}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Select a Video</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Choose a video to link to this exercise.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
-                    {videoResults.videos.map(video => (
-                        <button key={video.videoId} onClick={() => handleSelectVideo(videoResults.exerciseId, video.videoId)} className="text-left space-y-2 hover:bg-secondary p-2 rounded-lg">
-                            <Image src={video.thumbnailUrl} alt={video.title} width={170} height={94} className="rounded-md w-full" />
-                            <p className="text-xs font-medium line-clamp-2">{video.title}</p>
-                        </button>
-                    ))}
-                </div>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-
         <div className="grid gap-4 py-4 px-1">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
@@ -357,7 +330,8 @@ function WorkoutForm({
                 {group.map((ex, exIndex) => {
                   const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId);
                   const selectValue = matchedExercise ? matchedExercise.id : ex.exerciseId;
-                  
+                  const currentVideoId = exercisePreferences?.find(p => p.id === ex.exerciseId)?.videoId;
+
                   return (
                     <div
                       key={ex.id}
@@ -435,16 +409,18 @@ function WorkoutForm({
                             </Select>
                         </div>
                        <div className="space-y-1">
+                          <Label htmlFor={`video-id-${ex.id}`} className="text-xs">Linked Video ID</Label>
                            <div className="flex items-center gap-2">
-                                <Button 
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-full"
-                                  disabled={!ex.exerciseName || findingVideoFor === ex.id}
-                                  onClick={() => handleFindVideo(ex.id, ex.exerciseName)}
-                                >
-                                  {findingVideoFor === ex.id ? 'Searching...' : 'Find Video with AI'}
-                                  <Youtube className="h-4 w-4 ml-2" />
+                                <Input
+                                    id={`video-id-${ex.id}`}
+                                    className="mt-1 h-8 text-sm"
+                                    placeholder="Paste YouTube URL or ID"
+                                    defaultValue={currentVideoId || ''}
+                                    onBlur={(e) => handleVideoIdChange(ex.exerciseId, e.target.value)}
+                                    disabled={!ex.exerciseId}
+                                />
+                                <Button variant="outline" size="icon" className="h-8 w-8" disabled={!ex.exerciseName} onClick={() => handleFindVideo(ex.exerciseName)}>
+                                    <Youtube className="h-4 w-4" />
                                 </Button>
                            </div>
                         </div>
@@ -520,6 +496,7 @@ function WorkoutsPageContent() {
     const editId = searchParams.get('edit');
     if (editId) {
       if (workouts && workouts.some(w => w.id === editId)) {
+        // Defer state update to next tick to avoid synchronous setState in effect warning
         setTimeout(() => {
             setEditingWorkoutId(editId);
             setIsSheetOpen(true);
@@ -533,6 +510,7 @@ function WorkoutsPageContent() {
     setIsSheetOpen(open);
     if (!open) {
       setEditingWorkoutId(null);
+      // Clean up the URL when the sheet is closed.
       router.replace(pathname, { scroll: false });
     }
   };
