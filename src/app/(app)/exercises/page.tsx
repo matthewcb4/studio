@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -65,6 +66,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { seedExercises } from '@/lib/seed-data';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const exerciseFormSchema = z.object({
   name: z.string().min(2, { message: 'Exercise name must be at least 2 characters.' }),
@@ -73,8 +75,10 @@ const exerciseFormSchema = z.object({
 });
 
 const quickLogSetSchema = z.object({
-    weight: z.coerce.number().min(0, "Weight must be positive."),
-    reps: z.coerce.number().min(1, "Reps must be at least 1."),
+    weight: z.coerce.number().min(0, "Weight must be positive.").optional(),
+    reps: z.coerce.number().min(1, "Reps must be at least 1.").optional(),
+    duration: z.coerce.number().min(1, "Duration must be at least 1 second.").optional(),
+    includeBodyweight: z.boolean().optional(),
 });
 
 const quickLogSchema = z.object({
@@ -216,11 +220,12 @@ function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: M
 
 function QuickLogForm({ exercise, onLog, onCancel }: { exercise: MasterExercise, onLog: (sets: LoggedSet[]) => void, onCancel: () => void }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+    const unit = exercise.defaultUnit || 'reps';
+
     const form = useForm<z.infer<typeof quickLogSchema>>({
         resolver: zodResolver(quickLogSchema),
         defaultValues: {
-            sets: [{ weight: 0, reps: 0 }],
+            sets: [{}],
         },
     });
 
@@ -234,6 +239,113 @@ function QuickLogForm({ exercise, onLog, onCancel }: { exercise: MasterExercise,
         onLog(data.sets);
         setIsSubmitting(false);
         onCancel();
+    };
+
+    const renderSetInputs = (index: number) => {
+        switch (unit) {
+            case 'seconds':
+                return (
+                     <FormField
+                        control={form.control}
+                        name={`sets.${index}.duration`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Duration (s)</FormLabel>
+                                <FormControl><Input type="number" placeholder="60" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+            case 'reps-only':
+                return (
+                    <FormField
+                        control={form.control}
+                        name={`sets.${index}.reps`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Reps</FormLabel>
+                                <FormControl><Input type="number" placeholder="12" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+            case 'bodyweight':
+                 return (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-2">
+                             <FormField
+                                control={form.control}
+                                name={`sets.${index}.weight`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Add. Weight</FormLabel>
+                                        <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name={`sets.${index}.reps`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Reps</FormLabel>
+                                        <FormControl><Input type="number" placeholder="10" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name={`sets.${index}.includeBodyweight`}
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                        <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    <FormLabel className="text-sm font-normal">
+                                        Include Bodyweight
+                                    </FormLabel>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                );
+            case 'reps':
+            default:
+                return (
+                    <div className="grid grid-cols-2 gap-2">
+                         <FormField
+                            control={form.control}
+                            name={`sets.${index}.weight`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Weight (lbs)</FormLabel>
+                                    <FormControl><Input type="number" placeholder="135" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name={`sets.${index}.reps`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Reps</FormLabel>
+                                    <FormControl><Input type="number" placeholder="8" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                );
+        }
     };
     
     return (
@@ -250,29 +362,8 @@ function QuickLogForm({ exercise, onLog, onCancel }: { exercise: MasterExercise,
                         {fields.map((field, index) => (
                             <div key={field.id} className="flex items-end gap-2 p-3 border rounded-md">
                                 <div className="font-medium text-sm text-muted-foreground pt-7">Set {index + 1}</div>
-                                <div className="flex-1 grid grid-cols-2 gap-2">
-                                     <FormField
-                                        control={form.control}
-                                        name={`sets.${index}.weight`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Weight (lbs)</FormLabel>
-                                                <FormControl><Input type="number" placeholder="135" {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                     <FormField
-                                        control={form.control}
-                                        name={`sets.${index}.reps`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Reps</FormLabel>
-                                                <FormControl><Input type="number" placeholder="8" {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                <div className="flex-1">
+                                    {renderSetInputs(index)}
                                 </div>
                                 <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive h-9 w-9 mb-1">
                                     <Trash2 className="h-4 w-4" />
@@ -281,7 +372,7 @@ function QuickLogForm({ exercise, onLog, onCancel }: { exercise: MasterExercise,
                         ))}
                     </div>
                     
-                    <Button type="button" variant="outline" onClick={() => append({ weight: 0, reps: 0 })}>
+                    <Button type="button" variant="outline" onClick={() => append({})}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Set
                     </Button>
                     
