@@ -170,7 +170,19 @@ export function MuscleGroupVolumeChart({
                                 labelFormatter={(label) => format(parseISO(label), 'PPP')}
                             />}
                         />
-                        <ChartLegend content={<ChartLegendContent />} />
+                        <ChartLegend content={({ payload }) => {
+                            if (!payload) return null;
+                            const half = Math.ceil(payload.length / 2);
+                            const firstRow = payload.slice(0, half);
+                            const secondRow = payload.slice(half);
+
+                            return (
+                                <div className="flex flex-col items-center justify-center gap-y-1 mt-4">
+                                    <ChartLegendContent payload={firstRow} />
+                                    <ChartLegendContent payload={secondRow} />
+                                </div>
+                            );
+                        }} />
                         {ALL_MUSCLE_GROUPS.map(group => (
                             <Line
                                 key={group}
