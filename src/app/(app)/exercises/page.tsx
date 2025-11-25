@@ -445,17 +445,17 @@ export default function ExercisesPage() {
             <p className="text-muted-foreground">Manage your exercise library and perform quick logs.</p>
             </div>
         </div>
-        <Dialog onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}>
+        <Dialog onOpenChange={(isOpen) => { if (!isOpen) setEditingExercise(null) }}>
             <DialogTrigger asChild>
                 <Button onClick={() => setEditingExercise(null)}>
                     <PlusCircle className="mr-2 h-4 w-4"/> Add New
                 </Button>
             </DialogTrigger>
-            <ExerciseForm categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setEditingExercise(null)} />
+            <ExerciseForm exercise={null} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setEditingExercise(null)} />
         </Dialog>
       </div>
 
-       <Dialog open={!!editingExercise} onOpenChange={(isOpen) => !isOpen && setEditingExercise(null)}>
+       <Dialog open={!!editingExercise} onOpenChange={(isOpen) => { if (!isOpen) setEditingExercise(null) }}>
             <ExerciseForm exercise={editingExercise} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setEditingExercise(null)} />
         </Dialog>
 
@@ -607,3 +607,5 @@ export default function ExercisesPage() {
       </div>
   );
 }
+
+    
