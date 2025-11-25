@@ -30,7 +30,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent as VideoDialogContent, DialogHeader as VideoDialogHeader, DialogTitle as VideoDialogTitle, DialogTrigger as VideoDialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent as VideoDialogContent, DialogDescription as VideoDialogDescription, DialogHeader as VideoDialogHeader, DialogTitle as VideoDialogTitle, DialogTrigger as VideoDialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { findExerciseVideo, FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
@@ -630,9 +630,9 @@ export default function SettingsPage() {
                     <VideoDialogContent className="sm:max-w-4xl">
                         <VideoDialogHeader>
                             <VideoDialogTitle>Select a Video</VideoDialogTitle>
-                            <AlertDialogDescription>
+                            <VideoDialogDescription>
                                 Click a video on the right to preview it, then link it to this exercise.
-                            </AlertDialogDescription>
+                            </VideoDialogDescription>
                         </VideoDialogHeader>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
@@ -843,3 +843,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
