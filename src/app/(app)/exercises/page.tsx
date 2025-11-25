@@ -38,6 +38,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Trash2, Youtube, Video, Loader2, List, Check } from 'lucide-react';
 import type {
@@ -537,3 +538,5 @@ export default function ExercisesPage() {
     </div>
   );
 }
+
+    
