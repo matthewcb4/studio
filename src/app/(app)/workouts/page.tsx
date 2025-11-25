@@ -60,7 +60,7 @@ import {
   useMemoFirebase,
   setDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, query, orderBy, type Firestore } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
   Accordion,
@@ -125,7 +125,8 @@ function WorkoutForm({
   const [exercises, setExercises] = useState<WorkoutExercise[]>(
     workout?.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || []
   );
-  const { user, firestore } = useUser();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
   const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
@@ -199,7 +200,7 @@ function WorkoutForm({
     setExercises(remainingExercises);
   };
 
-  const handleSelectVideo = (masterExerciseId: string, videoId: string) => {
+  const handleSelectVideo = (firestore: Firestore, masterExerciseId: string, videoId: string) => {
     if (!user) return;
     const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
     setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
@@ -288,7 +289,7 @@ function WorkoutForm({
                 </AlertDialogHeader>
                 <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
                     {videoResults.videos.map(video => (
-                        <button key={video.videoId} onClick={() => handleSelectVideo(videoResults.exerciseId, video.videoId)} className="text-left space-y-2 hover:bg-secondary p-2 rounded-lg">
+                        <button key={video.videoId} onClick={() => handleSelectVideo(firestore, videoResults.exerciseId, video.videoId)} className="text-left space-y-2 hover:bg-secondary p-2 rounded-lg">
                             <Image src={video.thumbnailUrl} alt={video.title} width={170} height={94} className="rounded-md w-full" />
                             <p className="text-xs font-medium line-clamp-2">{video.title}</p>
                         </button>
