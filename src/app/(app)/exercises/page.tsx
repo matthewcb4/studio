@@ -3,12 +3,6 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -392,7 +386,7 @@ export default function ExercisesPage() {
 
 
         <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
-            <DialogContent className="sm:max-w-lg w-full">
+            <DialogContent className="sm:max-w-lg w-full max-w-[95vw]">
                 <DialogHeader>
                     <DialogTitle>Select a Video</DialogTitle>
                     <DialogDescription>

@@ -168,7 +168,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [loggingExercise, setLoggingExercise] = useState<Exercise | null>(null);
+  const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
   const [dateRange, setDateRange] = useState('7');
 
   const customWorkoutsQuery = useMemoFirebase(() => {
@@ -205,15 +205,11 @@ export default function DashboardPage() {
     }
   }, [userProfile]);
   
-  useEffect(() => {
-    if (selectedExerciseId) {
-        const exercise = masterExercises?.find(ex => ex.id === selectedExerciseId);
-        if (exercise) {
-            setLoggingExercise(exercise);
-        }
-    } else {
-        setLoggingExercise(null);
+  const loggingExercise = useMemo(() => {
+    if (selectedExerciseId && masterExercises) {
+      return masterExercises.find(ex => ex.id === selectedExerciseId) || null;
     }
+    return null;
   }, [selectedExerciseId, masterExercises]);
 
 
@@ -248,7 +244,7 @@ export default function DashboardPage() {
             title: "Exercise Logged!",
             description: `${exercise.name} has been added to your history.`
         });
-        setLoggingExercise(null);
+        setIsQuickLogOpen(false);
         setSelectedExerciseId(null);
     };
 
@@ -379,7 +375,7 @@ export default function DashboardPage() {
                 )}
             </div>
 
-             <Dialog open={!!loggingExercise} onOpenChange={(open) => {if (!open) {setLoggingExercise(null); setSelectedExerciseId(null);}}}>
+             <Dialog open={isQuickLogOpen} onOpenChange={(open) => {if (!open) {setSelectedExerciseId(null); setIsQuickLogOpen(false);}}}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card>
                         <CardHeader>
@@ -392,13 +388,13 @@ export default function DashboardPage() {
                             <div className="flex flex-col gap-4">
                                 <Combobox
                                     options={exerciseOptions || []}
-                                    value={selectedExerciseId}
+                                    value={selectedExerciseId || ''}
                                     onSelect={setSelectedExerciseId}
                                     placeholder="Select an exercise..."
                                     searchPlaceholder="Search exercises..."
                                 />
                                 <DialogTrigger asChild>
-                                    <Button disabled={!selectedExerciseId}>Log Exercise</Button>
+                                    <Button disabled={!selectedExerciseId} onClick={() => setIsQuickLogOpen(true)}>Log Exercise</Button>
                                 </DialogTrigger>
                             </div>
                         </CardContent>
@@ -407,13 +403,7 @@ export default function DashboardPage() {
                     <ProgressSummaryCard />
                 </div>
                 <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Quick Log: {loggingExercise?.name}</DialogTitle>
-                        <DialogDescription>
-                            Record your sets for this exercise. This will create a new entry in your workout history.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => {setLoggingExercise(null); setSelectedExerciseId(null);}} />}
+                     {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => {setIsQuickLogOpen(false); setSelectedExerciseId(null);}} />}
                 </DialogContent>
             </Dialog>
             

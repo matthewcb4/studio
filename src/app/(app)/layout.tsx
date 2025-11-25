@@ -39,7 +39,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useUser, useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -58,25 +58,23 @@ function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
-  const [initials, setInitials] = useState('');
   
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/');
   };
 
-  useEffect(() => {
+  const initials = useMemo(() => {
     if (!isUserLoading && user) {
         if (user.displayName) {
-            setInitials(user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase());
+            return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
         } else if (user.email) {
-            setInitials(user.email.substring(0, 2).toUpperCase());
+            return user.email.substring(0, 2).toUpperCase();
         } else {
-            setInitials('U');
+            return 'U';
         }
-    } else {
-        setInitials('');
     }
+    return '';
   }, [user, isUserLoading]);
 
   return (

@@ -48,7 +48,6 @@ import type {
   CustomWorkout,
   WorkoutExercise,
   Exercise as MasterExercise,
-  UserExercisePreference,
 } from '@/lib/types';
 import {
   useCollection,
@@ -72,7 +71,6 @@ import { findExerciseVideo, FindExerciseVideoOutput } from '@/ai/flows/find-exer
 import Image from 'next/image';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,

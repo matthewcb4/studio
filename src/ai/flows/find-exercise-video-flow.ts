@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import type {YouTubeSearchListResponse, YouTubeSearchResult} from '@/lib/youtube-types';
 
 const FindExerciseVideoInputSchema = z.object({
   exerciseName: z.string().describe("The name of the exercise to search for."),
@@ -39,10 +40,10 @@ export async function findExerciseVideo(input: FindExerciseVideoInput): Promise<
 
     try {
         const response = await fetch(url);
-        const data = await response.json();
+        const data: YouTubeSearchListResponse = await response.json();
 
         if (data.items) {
-            const videos = data.items.map((item: any) => ({
+            const videos = data.items.map((item: YouTubeSearchResult) => ({
                 videoId: item.id.videoId,
                 title: item.snippet.title,
                 thumbnailUrl: item.snippet.thumbnails.high.url,
