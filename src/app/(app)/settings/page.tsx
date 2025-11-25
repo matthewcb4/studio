@@ -627,7 +627,7 @@ export default function SettingsPage() {
                 <Separator />
 
                  <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
-                    <DialogContent className="sm:max-w-4xl">
+                    <VideoDialogContent className="sm:max-w-4xl">
                         <VideoDialogHeader>
                             <VideoDialogTitle>Select a Video</VideoDialogTitle>
                             <AlertDialogDescription>
@@ -661,7 +661,7 @@ export default function SettingsPage() {
                                 ))}
                             </div>
                         </div>
-                    </DialogContent>
+                    </VideoDialogContent>
                 </Dialog>
 
 
@@ -841,7 +841,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
-
-    
