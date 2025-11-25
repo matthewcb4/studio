@@ -10,7 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import {run} from 'genkit/ai';
+import { run } from 'genkit';
 
 const FindExerciseVideoInputSchema = z.object({
   exerciseName: z.string().describe("The name of the exercise to search for."),
