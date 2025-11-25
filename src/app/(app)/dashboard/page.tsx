@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { format, isWithinInterval, subDays } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
@@ -38,6 +38,7 @@ import { OnboardingModal } from "@/components/onboarding-modal";
 import { MuscleGroupVolumeChart } from "@/components/muscle-group-chart";
 import { QuickLogForm } from "@/components/quick-log-form";
 import { useToast } from "@/hooks/use-toast";
+import { Combobox } from "@/components/ui/combobox";
 
 
 const parseDuration = (duration: string): number => {
@@ -184,7 +185,7 @@ export default function DashboardPage() {
   const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
 
   const exercisesQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'exercises')) : null,
+    firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null,
     [firestore]
   );
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
@@ -288,6 +289,11 @@ export default function DashboardPage() {
   }, [dateRange]);
   
   const isLoading = isLoadingLogs || isLoadingExercises;
+  
+  const exerciseOptions = useMemo(() => {
+    if (!masterExercises) return [];
+    return masterExercises.map(ex => ({ value: ex.id, label: ex.name }));
+  }, [masterExercises]);
 
   return (
     <>
@@ -373,18 +379,13 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="flex flex-col gap-4">
-                                <Select onValueChange={setSelectedExerciseId} value={selectedExerciseId || ""} disabled={isLoadingExercises}>
-                                    <SelectTrigger>
-                                    <SelectValue placeholder={isLoadingExercises ? "Loading..." : "Select an exercise"} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                    {masterExercises?.map((ex) => (
-                                        <SelectItem key={ex.id} value={ex.id}>
-                                        {ex.name}
-                                        </SelectItem>
-                                    ))}
-                                    </SelectContent>
-                                </Select>
+                                <Combobox
+                                    options={exerciseOptions || []}
+                                    value={selectedExerciseId}
+                                    onSelect={setSelectedExerciseId}
+                                    placeholder="Select an exercise..."
+                                    searchPlaceholder="Search exercises..."
+                                />
                                 <DialogTrigger asChild>
                                     <Button disabled={!selectedExerciseId}>Log Exercise</Button>
                                 </DialogTrigger>
@@ -394,7 +395,9 @@ export default function DashboardPage() {
 
                     <ProgressSummaryCard />
                 </div>
+                <DialogContent>
                  {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => {setLoggingExercise(null); setSelectedExerciseId(null);}} />}
+                </DialogContent>
             </Dialog>
 
 
