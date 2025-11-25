@@ -297,17 +297,12 @@ const ChartLegendContent = React.forwardRef<
                 "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground"
               )}
             >
-              {itemConfig?.icon && !hideIcon ? (
-                <itemConfig.icon />
-              ) : (
-                !hideIcon && <div
-                  className="h-2 w-2 shrink-0 rounded-[2px]"
-                  style={{
-                    backgroundColor: item.color,
-                  }}
-                />
-              )}
-              <span style={{ color: item.color }} className="font-medium">
+              <span
+                className="font-medium"
+                style={{
+                  color: item.color,
+                }}
+              >
                 {itemConfig?.label}
               </span>
             </div>
