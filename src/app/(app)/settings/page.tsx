@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell, Youtube, FileText, Palette } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Settings, Target, Database, User as UserIcon, Dumbbell, Youtube, FileText, Palette, Video } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent as VideoDialogContent, DialogHeader as VideoDialogHeader, DialogTitle as VideoDialogTitle, DialogTrigger as VideoDialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { findExerciseVideo, FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
@@ -53,6 +54,21 @@ const goalsFormSchema = z.object({
     biologicalSex: z.enum(['Male', 'Female']).optional(),
 });
 
+function YouTubeEmbed({ videoId }: { videoId: string }) {
+    return (
+      <div className="aspect-video w-full rounded-lg overflow-hidden">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title="YouTube video player"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="w-full h-full"
+        ></iframe>
+      </div>
+    );
+  }
+
 
 export default function SettingsPage() {
   const { user } = useUser();
@@ -67,6 +83,7 @@ export default function SettingsPage() {
   const [exerciseFilter, setExerciseFilter] = useState('');
   const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
   const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<FindExerciseVideoOutput['videos'][0] | null>(null);
 
 
   const equipmentCollection = useMemoFirebase(() =>
@@ -258,6 +275,7 @@ export default function SettingsPage() {
         description: `Video linked for this exercise.`
     });
     setVideoResults({ exerciseId: '', videos: [] }); // Close dialog
+    setSelectedVideo(null);
   };
 
   const handleFindVideo = async (exerciseId: string, exerciseName: string) => {
@@ -267,6 +285,7 @@ export default function SettingsPage() {
         const result = await findExerciseVideo({ exerciseName });
         if (result.videos && result.videos.length > 0) {
             setVideoResults({ exerciseId, videos: result.videos });
+            setSelectedVideo(result.videos[0]);
         } else {
             toast({ variant: "destructive", title: "No Videos Found", description: "The AI couldn't find any suitable videos for this exercise." });
         }
@@ -607,27 +626,43 @@ export default function SettingsPage() {
 
                 <Separator />
 
-                 <AlertDialog open={videoResults.videos.length > 0} onOpenChange={() => setVideoResults({ exerciseId: '', videos: [] })}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Select a Video</AlertDialogTitle>
+                 <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
+                    <DialogContent className="sm:max-w-4xl">
+                        <VideoDialogHeader>
+                            <VideoDialogTitle>Select a Video</VideoDialogTitle>
                             <AlertDialogDescription>
-                                Choose a video to link to this exercise.
+                                Click a video on the right to preview it, then link it to this exercise.
                             </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
-                            {videoResults.videos.map(video => (
-                                <button key={video.videoId} onClick={() => handleSelectVideo(videoResults.exerciseId, video.videoId)} className="text-left space-y-2 hover:bg-secondary p-2 rounded-lg">
-                                    <Image src={video.thumbnailUrl} alt={video.title} width={170} height={94} className="rounded-md w-full" />
-                                    <p className="text-xs font-medium line-clamp-2">{video.title}</p>
-                                </button>
-                            ))}
+                        </VideoDialogHeader>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                {selectedVideo ? (
+                                    <>
+                                        <YouTubeEmbed videoId={selectedVideo.videoId} />
+                                        <h3 className="font-semibold">{selectedVideo.title}</h3>
+                                        <Button className="w-full" onClick={() => handleSelectVideo(videoResults.exerciseId, selectedVideo.videoId)}>
+                                            Link this Video
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
+                                        <p className="text-muted-foreground">Select a video to preview</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                                {videoResults.videos.map(video => (
+                                    <button key={video.videoId} onClick={() => setSelectedVideo(video)} className="w-full text-left space-y-2 hover:bg-secondary p-2 rounded-lg transition-colors">
+                                        <div className="flex gap-4">
+                                            <Image src={video.thumbnailUrl} alt={video.title} width={120} height={67} className="rounded-md bg-muted" />
+                                            <p className="text-sm font-medium line-clamp-3">{video.title}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                    </DialogContent>
+                </Dialog>
 
 
                 <div className="space-y-4">
@@ -650,11 +685,18 @@ export default function SettingsPage() {
                                         <p className="font-medium">{item.name}</p>
                                         <p className="text-xs text-muted-foreground">{item.category}</p>
                                     </div>
-                                    <div className="flex items-center">
+                                    <div className="flex items-center gap-1">
+                                        {preference?.videoId && (
+                                            <VideoDialogTrigger asChild>
+                                                <Button variant="outline" size="icon" className="h-8 w-8">
+                                                    <Video className="h-4 w-4" />
+                                                </Button>
+                                            </VideoDialogTrigger>
+                                        )}
                                         <Button
                                           variant="outline"
-                                          size="sm"
-                                          className="mr-2"
+                                          size="icon"
+                                          className="h-8 w-8"
                                           onClick={() => handleFindVideo(item.id, item.name)}
                                           disabled={findingVideoFor === item.id}
                                         >
@@ -691,6 +733,12 @@ export default function SettingsPage() {
                                         onBlur={(e) => handleSelectVideo(item.id, e.target.value)}
                                     />
                                 </div>
+                                <VideoDialogContent>
+                                    <VideoDialogHeader>
+                                        <VideoDialogTitle>{item.name}</VideoDialogTitle>
+                                    </VideoDialogHeader>
+                                    {preference?.videoId ? <YouTubeEmbed videoId={preference.videoId}/> : <p>No video linked.</p>}
+                                </VideoDialogContent>
                             </div>
                           );
                         })
@@ -793,5 +841,7 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
 
     
