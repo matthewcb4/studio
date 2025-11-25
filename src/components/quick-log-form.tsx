@@ -37,6 +37,20 @@ interface QuickLogFormProps {
   onCancel: () => void;
 }
 
+const getDefaultSetValues = (unit: string) => {
+    switch (unit) {
+        case 'seconds':
+            return { duration: '' };
+        case 'reps-only':
+            return { reps: '' };
+        case 'bodyweight':
+            return { weight: '', reps: '', includeBodyweight: false };
+        case 'reps':
+        default:
+            return { weight: '', reps: '' };
+    }
+}
+
 export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const unit = exercise.defaultUnit || 'reps';
@@ -44,7 +58,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
     const form = useForm<z.infer<typeof quickLogSchema>>({
         resolver: zodResolver(quickLogSchema),
         defaultValues: {
-            sets: [{}],
+            sets: [getDefaultSetValues(unit)],
         },
     });
 
@@ -55,7 +69,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
 
     const onSubmit = (data: z.infer<typeof quickLogSchema>) => {
         setIsSubmitting(true);
-        onLog(data.sets);
+        onLog(data.sets as LoggedSet[]);
         setIsSubmitting(false);
         onCancel();
     };
@@ -70,7 +84,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Duration (s)</FormLabel>
-                                <FormControl><Input type="number" placeholder="60" {...field} /></FormControl>
+                                <FormControl><Input type="number" placeholder="60" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -84,7 +98,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Reps</FormLabel>
-                                <FormControl><Input type="number" placeholder="12" {...field} /></FormControl>
+                                <FormControl><Input type="number" placeholder="12" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -100,7 +114,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Add. Weight</FormLabel>
-                                        <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+                                        <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -111,7 +125,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Reps</FormLabel>
-                                        <FormControl><Input type="number" placeholder="10" {...field} /></FormControl>
+                                        <FormControl><Input type="number" placeholder="10" {...field} value={field.value ?? ''} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -146,7 +160,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Weight (lbs)</FormLabel>
-                                    <FormControl><Input type="number" placeholder="135" {...field} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="135" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -157,7 +171,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Reps</FormLabel>
-                                    <FormControl><Input type="number" placeholder="8" {...field} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="8" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -191,7 +205,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                         ))}
                     </div>
                     
-                    <Button type="button" variant="outline" onClick={() => append({})}>
+                    <Button type="button" variant="outline" onClick={() => append(getDefaultSetValues(unit))}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Set
                     </Button>
                     
