@@ -27,14 +27,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { format, isWithinInterval, subDays } from "date-fns";
-import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from "@/firebase";
+import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
-import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise } from "@/lib/types";
+import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise, LoggedSet } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp, Star } from "lucide-react";
 import { MuscleHeatmap } from "@/components/muscle-heatmap";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { MuscleGroupVolumeChart } from "@/components/muscle-group-chart";
+import { QuickLogForm } from "@/components/quick-log-form";
+import { useToast } from "@/hooks/use-toast";
+
 
 const parseDuration = (duration: string): number => {
     const parts = duration.split(':');
@@ -160,7 +164,10 @@ export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [loggingExercise, setLoggingExercise] = useState<Exercise | null>(null);
   const [dateRange, setDateRange] = useState('7');
 
   const customWorkoutsQuery = useMemoFirebase(() => {
@@ -196,6 +203,18 @@ export default function DashboardPage() {
         return () => clearTimeout(timer);
     }
   }, [userProfile]);
+  
+  useEffect(() => {
+    if (selectedExerciseId) {
+        const exercise = masterExercises?.find(ex => ex.id === selectedExerciseId);
+        if (exercise) {
+            setLoggingExercise(exercise);
+        }
+    } else {
+        setLoggingExercise(null);
+    }
+  }, [selectedExerciseId, masterExercises]);
+
 
   const handleOnboardingComplete = () => {
     if (userProfileRef) {
@@ -204,6 +223,33 @@ export default function DashboardPage() {
     setShowOnboarding(false);
     router.push('/settings');
   };
+  
+    const handleQuickLog = async (exercise: Exercise, sets: LoggedSet[]) => {
+        if (!user) return;
+
+        const totalVolume = sets.reduce((acc, set) => acc + (set.weight || 0) * (set.reps || 0), 0);
+
+        const workoutLog = {
+            userId: user.uid,
+            workoutName: `Quick Log: ${exercise.name}`,
+            date: new Date().toISOString(),
+            duration: "00:00", // Not tracked for quick logs
+            exercises: [{
+                exerciseId: exercise.id,
+                exerciseName: exercise.name,
+                sets: sets
+            }],
+            volume: totalVolume,
+        };
+        const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
+        await addDoc(logsCollection, workoutLog);
+        toast({
+            title: "Exercise Logged!",
+            description: `${exercise.name} has been added to your history.`
+        });
+        setLoggingExercise(null);
+        setSelectedExerciseId(null);
+    };
 
   const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
 
@@ -246,6 +292,10 @@ export default function DashboardPage() {
   return (
     <>
         <OnboardingModal isOpen={showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
+        <Dialog open={!!loggingExercise} onOpenChange={(open) => {if (!open) {setLoggingExercise(null); setSelectedExerciseId(null);}}}>
+            {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => {setLoggingExercise(null); setSelectedExerciseId(null);}} />}
+        </Dialog>
+
         <div className="flex flex-col gap-4 md:gap-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -267,31 +317,31 @@ export default function DashboardPage() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Card className="lg:col-span-2">
-                <CardHeader>
-                    <CardTitle>Start Workout</CardTitle>
-                    <CardDescription>
-                    Select one of your custom workouts to begin a session.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col gap-4">
-                    <Select onValueChange={setSelectedWorkoutId} disabled={isLoadingWorkouts}>
-                        <SelectTrigger>
-                        <SelectValue placeholder={isLoadingWorkouts ? "Loading..." : "Select a workout"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {customWorkouts?.map((workout) => (
-                            <SelectItem key={workout.id} value={workout.id}>
-                            {workout.name}
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    <Button asChild disabled={!selectedWorkoutId}>
-                        <Link href={selectedWorkoutId ? `/workout/${selectedWorkoutId}` : '#'}>Start Session</Link>
-                    </Button>
-                    </div>
-                </CardContent>
+                    <CardHeader>
+                        <CardTitle>Start Workout</CardTitle>
+                        <CardDescription>
+                        Select one of your custom workouts to begin a session.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col gap-4">
+                        <Select onValueChange={setSelectedWorkoutId} disabled={isLoadingWorkouts}>
+                            <SelectTrigger>
+                            <SelectValue placeholder={isLoadingWorkouts ? "Loading..." : "Select a workout"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {customWorkouts?.map((workout) => (
+                                <SelectItem key={workout.id} value={workout.id}>
+                                {workout.name}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <Button asChild disabled={!selectedWorkoutId}>
+                            <Link href={selectedWorkoutId ? `/workout/${selectedWorkoutId}` : '#'}>Start Session</Link>
+                        </Button>
+                        </div>
+                    </CardContent>
                 </Card>
 
                 {hasData ? (
@@ -315,8 +365,40 @@ export default function DashboardPage() {
                 )}
             </div>
 
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Quick Log</CardTitle>
+                        <CardDescription>
+                        Log a single exercise on the fly.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col gap-4">
+                            <Select onValueChange={setSelectedExerciseId} value={selectedExerciseId || ""} disabled={isLoadingExercises}>
+                                <SelectTrigger>
+                                <SelectValue placeholder={isLoadingExercises ? "Loading..." : "Select an exercise"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                {masterExercises?.map((ex) => (
+                                    <SelectItem key={ex.id} value={ex.id}>
+                                    {ex.name}
+                                    </SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <DialogTrigger asChild>
+                                <Button disabled={!selectedExerciseId}>Log Exercise</Button>
+                            </DialogTrigger>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                 <ProgressSummaryCard />
+             </div>
+
+
             <div className="grid gap-4 sm:grid-cols-2">
-                <ProgressSummaryCard />
                 
                 {hasData && (
                     <Card>
