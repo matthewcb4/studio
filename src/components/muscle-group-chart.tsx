@@ -61,6 +61,13 @@ interface MuscleGroupVolumeChartProps {
   isTrigger?: boolean;
 }
 
+const formatK = (value: number) => {
+    if (value >= 1000) {
+        return `${(value / 1000).toFixed(value % 1000 !== 0 ? 1 : 0)}k`;
+    }
+    return value.toString();
+}
+
 export function MuscleGroupVolumeChart({
   filteredLogs,
   masterExercises,
@@ -147,7 +154,7 @@ export function MuscleGroupVolumeChart({
                             padding={{ left: 20, right: 20 }}
                         />
                         <YAxis
-                            tickFormatter={(value) => `${value.toLocaleString()}`}
+                            tickFormatter={(value) => formatK(value as number)}
                             axisLine={false}
                             tickLine={false}
                         />
