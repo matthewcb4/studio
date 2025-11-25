@@ -14,15 +14,14 @@ export type FindExerciseVideoInput = {
   exerciseName: string;
 };
 
-
-const videoSchema = {
-    videoId: "",
-    title: "",
-    thumbnailUrl: "",
+type Video = {
+    videoId: string;
+    title: string;
+    thumbnailUrl: string;
 };
 
 export type FindExerciseVideoOutput = {
-  videos: (typeof videoSchema)[];
+  videos: Video[];
 };
 
 
