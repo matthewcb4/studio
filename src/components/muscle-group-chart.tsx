@@ -163,7 +163,7 @@ export function MuscleGroupVolumeChart({
                                 labelFormatter={(label) => format(parseISO(label), 'PPP')}
                             />}
                         />
-                        <ChartLegend content={<ChartLegendContent nameKey="label" />} />
+                        <ChartLegend content={<ChartLegendContent nameKey="label" hideIcon />} />
                         {ALL_MUSCLE_GROUPS.map(group => (
                             <Line
                                 key={group}
