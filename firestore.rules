@@ -120,8 +120,8 @@ service cloud.firestore {
     match /exercises/{exerciseId} {
       allow get, list: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn(); // Allow signed-in users to update
-      allow delete: if false; // Disallow deletes from the master list
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
   }
 }
