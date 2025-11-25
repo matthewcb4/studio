@@ -13,6 +13,7 @@ import {
   LogOut,
   Loader2,
   Settings,
+  List,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -44,6 +45,7 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/guide", icon: Bot, label: "AI Guide" },
   { href: "/workouts", icon: Dumbbell, label: "Workouts" },
+  { href: "/exercises", icon: List, label: "Exercises" },
   { href: "/history", icon: History, label: "History" },
   { href: "/progress", icon: BarChart3, label: "Progress" },
 ];
@@ -219,7 +221,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <UserNav />
           </header>
-          <main className="flex-1 p-4 pt-8 sm:px-6 sm:py-8">
+          <main className="flex-1 p-4 pt-6 sm:px-6 sm:py-6">
             {(isUserLoading || !user) ? (
               <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
