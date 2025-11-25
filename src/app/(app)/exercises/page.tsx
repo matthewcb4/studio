@@ -129,15 +129,16 @@ function QuickLogForm({ exercise, onLog, onCancel }: { exercise: MasterExercise,
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
                         {fields.map((field, index) => (
-                            <div key={field.id} className="flex items-center gap-2 p-2 border rounded-md">
-                                <Label className="text-sm text-muted-foreground">Set {index + 1}</Label>
+                            <div key={field.id} className="flex items-end gap-2 p-3 border rounded-md">
+                                <div className="font-medium text-sm text-muted-foreground pt-7">Set {index + 1}</div>
                                 <div className="flex-1 grid grid-cols-2 gap-2">
                                      <FormField
                                         control={form.control}
                                         name={`sets.${index}.weight`}
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormControl><Input type="number" placeholder="Weight (lbs)" {...field} /></FormControl>
+                                                <FormLabel>Weight (lbs)</FormLabel>
+                                                <FormControl><Input type="number" placeholder="135" {...field} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -147,13 +148,14 @@ function QuickLogForm({ exercise, onLog, onCancel }: { exercise: MasterExercise,
                                         name={`sets.${index}.reps`}
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormControl><Input type="number" placeholder="Reps" {...field} /></FormControl>
+                                                <FormLabel>Reps</FormLabel>
+                                                <FormControl><Input type="number" placeholder="8" {...field} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
                                 </div>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive h-8 w-8">
+                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive h-9 w-9 mb-1">
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
@@ -538,5 +540,3 @@ export default function ExercisesPage() {
     </div>
   );
 }
-
-    
