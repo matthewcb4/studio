@@ -56,24 +56,26 @@ function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const [initials, setInitials] = useState('');
   
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/');
   };
 
-  const getInitials = () => {
-    if (isUserLoading || !user) {
-      return '';
+  useEffect(() => {
+    if (!isUserLoading && user) {
+        if (user.displayName) {
+            setInitials(user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase());
+        } else if (user.email) {
+            setInitials(user.email.substring(0, 2).toUpperCase());
+        } else {
+            setInitials('U');
+        }
+    } else {
+        setInitials('');
     }
-    if (user.displayName) {
-      return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    }
-    if (user.email) {
-      return user.email.substring(0, 2).toUpperCase();
-    }
-    return 'U';
-  };
+  }, [user, isUserLoading]);
 
   return (
     <DropdownMenu>
@@ -81,7 +83,7 @@ function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User'} />
-            <AvatarFallback>{!isUserLoading && getInitials()}</AvatarFallback>
+            <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -217,7 +219,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <UserNav />
           </header>
-          <main className="flex-1 p-4 pt-6 sm:px-6 sm:py-8">
+          <main className="flex-1 p-4 pt-8 sm:px-6 sm:py-8">
             {(isUserLoading || !user) ? (
               <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
