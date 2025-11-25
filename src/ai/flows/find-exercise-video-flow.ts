@@ -10,6 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import {run} from 'genkit/ai';
 
 const FindExerciseVideoInputSchema = z.object({
   exerciseName: z.string().describe("The name of the exercise to search for."),
@@ -78,12 +79,15 @@ const findExerciseVideoFlow = ai.defineFlow(
     outputSchema: FindExerciseVideoOutputSchema,
   },
   async (input) => {
-    const { output } = await ai.generate({
-        prompt: `Find tutorial videos for the exercise: ${input.exerciseName}. Prioritize short videos or official-looking content.`,
-        tools: [findExerciseVideoTool],
-        config: {
-            maxOutputTokens: 1024,
-        },
+    const output = await run('run-video-prompt', async () => {
+        const {output} = await ai.generate({
+            prompt: `Find tutorial videos for the exercise: ${input.exerciseName}. Prioritize short videos or official-looking content.`,
+            tools: [findExerciseVideoTool],
+            config: {
+                maxOutputTokens: 1024,
+            },
+        });
+        return output;
     });
 
     if (output?.toolRequests && output.toolRequests.length > 0) {
