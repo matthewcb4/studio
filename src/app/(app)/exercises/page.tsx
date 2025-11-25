@@ -493,13 +493,13 @@ export default function ExercisesPage() {
                                     </div>
                                 </div>
                             </div>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>{item.name}</DialogTitle>
-                                </DialogHeader>
-                                {preference?.videoId ? <YouTubeEmbed videoId={preference.videoId}/> : <p>No video linked.</p>}
-                            </DialogContent>
                         </div>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{item.name}</DialogTitle>
+                            </DialogHeader>
+                            {preference?.videoId ? <YouTubeEmbed videoId={preference.videoId}/> : <p>No video linked.</p>}
+                        </DialogContent>
                     </Dialog>
                     );
                 })
