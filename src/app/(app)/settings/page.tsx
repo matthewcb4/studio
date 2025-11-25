@@ -679,67 +679,69 @@ export default function SettingsPage() {
                         filteredExercises.map((item) => {
                           const preference = exercisePreferences?.find(p => p.id === item.id);
                           return (
-                            <div key={item.id} className="p-3 bg-secondary rounded-md space-y-2">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <p className="font-medium">{item.name}</p>
-                                        <p className="text-xs text-muted-foreground">{item.category}</p>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        {preference?.videoId && (
-                                            <VideoDialogTrigger asChild>
-                                                <Button variant="outline" size="icon" className="h-8 w-8">
-                                                    <Video className="h-4 w-4" />
-                                                </Button>
-                                            </VideoDialogTrigger>
-                                        )}
-                                        <Button
-                                          variant="outline"
-                                          size="icon"
-                                          className="h-8 w-8"
-                                          onClick={() => handleFindVideo(item.id, item.name)}
-                                          disabled={findingVideoFor === item.id}
-                                        >
-                                          {findingVideoFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
-                                        </Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently delete the exercise "{item.name}".
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
-                                </div>
-                                <div>
-                                    <Label htmlFor={`video-id-${item.id}`} className="text-xs">Linked Video ID</Label>
-                                    <Input
-                                        id={`video-id-${item.id}`}
-                                        className="mt-1 h-8 text-sm"
-                                        placeholder="Paste YouTube URL or ID"
-                                        defaultValue={preference?.videoId || ''}
-                                        onBlur={(e) => handleSelectVideo(item.id, e.target.value)}
-                                    />
-                                </div>
-                                <VideoDialogContent>
-                                    <VideoDialogHeader>
-                                        <VideoDialogTitle>{item.name}</VideoDialogTitle>
-                                    </VideoDialogHeader>
-                                    {preference?.videoId ? <YouTubeEmbed videoId={preference.videoId}/> : <p>No video linked.</p>}
-                                </VideoDialogContent>
-                            </div>
+                            <Dialog key={item.id}>
+                              <div className="p-3 bg-secondary rounded-md space-y-2">
+                                  <div className="flex items-start justify-between">
+                                      <div>
+                                          <p className="font-medium">{item.name}</p>
+                                          <p className="text-xs text-muted-foreground">{item.category}</p>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                          {preference?.videoId && (
+                                              <VideoDialogTrigger asChild>
+                                                  <Button variant="outline" size="icon" className="h-8 w-8">
+                                                      <Video className="h-4 w-4" />
+                                                  </Button>
+                                              </VideoDialogTrigger>
+                                          )}
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => handleFindVideo(item.id, item.name)}
+                                            disabled={findingVideoFor === item.id}
+                                          >
+                                            {findingVideoFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
+                                          </Button>
+                                          <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                      <Trash2 className="h-4 w-4" />
+                                                  </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                  <AlertDialogHeader>
+                                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                      <AlertDialogDescription>
+                                                          This action cannot be undone. This will permanently delete the exercise "{item.name}".
+                                                      </AlertDialogDescription>
+                                                  </AlertDialogHeader>
+                                                  <AlertDialogFooter>
+                                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                      <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
+                                                  </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                          </AlertDialog>
+                                      </div>
+                                  </div>
+                                  <div>
+                                      <Label htmlFor={`video-id-${item.id}`} className="text-xs">Linked Video ID</Label>
+                                      <Input
+                                          id={`video-id-${item.id}`}
+                                          className="mt-1 h-8 text-sm"
+                                          placeholder="Paste YouTube URL or ID"
+                                          defaultValue={preference?.videoId || ''}
+                                          onBlur={(e) => handleSelectVideo(item.id, e.target.value)}
+                                      />
+                                  </div>
+                                  <VideoDialogContent>
+                                      <VideoDialogHeader>
+                                          <VideoDialogTitle>{item.name}</VideoDialogTitle>
+                                      </VideoDialogHeader>
+                                      {preference?.videoId ? <YouTubeEmbed videoId={preference.videoId}/> : <p>No video linked.</p>}
+                                  </VideoDialogContent>
+                              </div>
+                            </Dialog>
                           );
                         })
                         ) : (
