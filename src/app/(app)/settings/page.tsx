@@ -688,11 +688,11 @@ export default function SettingsPage() {
                                       </div>
                                       <div className="flex items-center gap-1">
                                           {preference?.videoId && (
-                                              <VideoDialogTrigger asChild>
+                                              <DialogTrigger asChild>
                                                   <Button variant="outline" size="icon" className="h-8 w-8">
                                                       <Video className="h-4 w-4" />
                                                   </Button>
-                                              </VideoDialogTrigger>
+                                              </DialogTrigger>
                                           )}
                                           <Button
                                             variant="outline"
@@ -843,5 +843,7 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
 
     
