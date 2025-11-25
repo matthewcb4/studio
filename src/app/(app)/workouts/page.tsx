@@ -41,7 +41,6 @@ import {
   DialogTitle,
   DialogClose,
   DialogFooter,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown } from 'lucide-react';
 import type {
@@ -110,13 +109,11 @@ const groupExercises = (exercises: WorkoutExercise[] = []) => {
 function WorkoutForm({
   workout,
   masterExercises,
-  exercisePreferences,
   onSave,
   onCancel,
 }: {
   workout: CustomWorkout | null;
   masterExercises: MasterExercise[];
-  exercisePreferences: UserExercisePreference[] | null;
   onSave: (workout: Partial<CustomWorkout>, isNew: boolean) => void;
   onCancel: () => void;
 }) {
@@ -506,11 +503,6 @@ function WorkoutsPageContent() {
   }, [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
   
-  const exercisePreferencesQuery = useMemoFirebase(() =>
-    user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
-  , [firestore, user]);
-  const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
-
   const editingWorkout = useMemo(() => {
       if (!editingWorkoutId || !workouts) return null;
       return workouts.find(w => w.id === editingWorkoutId) || null;
@@ -605,7 +597,7 @@ function WorkoutsPageContent() {
     return sortedWorkouts?.map(w => ({ ...w, groupedExercises: groupExercises(w.exercises || [])})) || [];
   }, [sortedWorkouts]);
 
-  const isLoading = isLoadingWorkouts || isLoadingExercises || isLoadingPreferences;
+  const isLoading = isLoadingWorkouts || isLoadingExercises;
   
   return (
     <div className="flex flex-col gap-8">
@@ -630,7 +622,6 @@ function WorkoutsPageContent() {
                     <WorkoutForm
                         workout={editingWorkout}
                         masterExercises={masterExercises || []}
-                        exercisePreferences={exercisePreferences || null}
                         onSave={handleSaveWorkout}
                         onCancel={() => handleSheetOpenChange(false)}
                     />

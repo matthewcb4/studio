@@ -23,7 +23,7 @@ import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment, Exercise, WorkoutLog, UserProfile } from '@/lib/types';
+import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise } from '@/lib/types';
 import { format } from 'date-fns';
 
 const muscleGroupHierarchy: Record<string, string[]> = {
@@ -201,7 +201,7 @@ export default function GuidePage() {
     try {
       const masterExercisesRef = collection(firestore, 'exercises');
 
-      const processedExercises = await Promise.all(
+      const processedExercises: WorkoutExercise[] = await Promise.all(
         generatedWorkout.exercises.map(async (ex) => {
           const q = query(masterExercisesRef, where("name", "==", ex.name));
           const querySnapshot = await getDocs(q);
@@ -214,21 +214,24 @@ export default function GuidePage() {
               name: ex.name,
               category: ex.category,
             };
-            setDocumentNonBlocking(newExerciseDocRef, newExercise, { merge: false });
+            await setDocumentNonBlocking(newExerciseDocRef, newExercise, { merge: false });
             masterExerciseId = newExerciseDocRef.id;
           } else {
             masterExerciseId = querySnapshot.docs[0].id;
           }
           
-          const isBodyweight = form.getValues('availableEquipment').includes('Bodyweight');
-          
+          let unit: WorkoutExercise['unit'] = 'reps';
+          if (ex.rest.includes('sec')) unit = 'seconds';
+          if (ex.name.toLowerCase().includes('plank') || ex.name.toLowerCase().includes('hold')) unit = 'seconds';
+          if (ex.name.toLowerCase().includes('push-up') || ex.name.toLowerCase().includes('pull-up') || ex.name.toLowerCase().includes('dip')) unit = 'bodyweight';
+
           return {
             id: generateUniqueId(),
             exerciseId: masterExerciseId,
             exerciseName: ex.name,
             sets: parseInt(ex.sets.split('-')[0]),
             reps: ex.reps,
-            unit: isBodyweight ? 'bodyweight' : 'reps',
+            unit: unit,
             supersetId: ex.supersetId,
           };
         })

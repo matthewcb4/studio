@@ -32,7 +32,7 @@ const ExerciseSchema = z.object({
   name: z.string().describe("Name of the exercise."),
   category: z.string().describe("The primary muscle group targeted by this exercise (e.g., Chest, Back, Legs, Shoulders, Arms, Core)."),
   sets: z.string().describe("Number of sets to perform, can be a range like '3-4'."),
-  reps: z.string().describe("Number of repetitions per set, can be a range like '8-12'."),
+  reps: z.string().describe("Number of repetitions per set (e.g., '8-12'), or duration in seconds for timed exercises (e.g., '30-60s')."),
   rest: z.string().describe("Rest time in seconds between sets."),
   supersetId: z.string().describe("Identifier to group exercises into a superset. Exercises with the same supersetId are performed back-to-back with no rest."),
 });
@@ -74,6 +74,8 @@ const prompt = ai.definePrompt({
 
   For each exercise, you MUST provide a 'category' from this specific list: Chest, Back, Shoulders, Legs, Arms, Core, Biceps, Triceps, Obliques.
   
+  For timed exercises like Planks or Holds, the 'reps' field should represent the duration in seconds (e.g., "45s" or "30-60s"). For all other exercises, it should be a rep range (e.g., "8-12").
+
   You MUST group exercises into supersets or individual groups. A superset consists of two exercises performed back-to-back with no rest in between. 
   To create a superset, assign the same 'supersetId' (e.g., "superset_1") to two exercises. 
   For exercises that are not in a superset, assign a unique 'supersetId' that is not shared with any other exercise (e.g., "group_1", "group_2"). 
