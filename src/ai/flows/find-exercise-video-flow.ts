@@ -8,26 +8,25 @@
  * - FindExerciseVideoOutput - The return type for the findExerciseVideo function.
  */
 
-import { z } from 'zod';
+import type { z } from 'zod';
 import type {YouTubeSearchListResponse, YouTubeSearchResult} from '@/lib/youtube-types';
 
-const FindExerciseVideoInputSchema = z.object({
-  exerciseName: z.string().describe("The name of the exercise to search for."),
-});
-export type FindExerciseVideoInput = z.infer<typeof FindExerciseVideoInputSchema>;
+const FindExerciseVideoInputSchema = {
+  exerciseName: ""
+};
+export type FindExerciseVideoInput = typeof FindExerciseVideoInputSchema;
 
 
-const VideoSchema = z.object({
-    videoId: z.string().describe("The 11-character YouTube video ID."),
-    title: z.string().describe("The title of the YouTube video."),
-    thumbnailUrl: z.string().describe("The URL of the video's thumbnail image."),
-});
-type Video = z.infer<typeof VideoSchema>;
+const VideoSchema = {
+    videoId: "",
+    title: "",
+    thumbnailUrl: "",
+};
 
-const FindExerciseVideoOutputSchema = z.object({
-  videos: z.array(VideoSchema).describe("An array of relevant YouTube videos."),
-});
-export type FindExerciseVideoOutput = z.infer<typeof FindExerciseVideoOutputSchema>;
+const FindExerciseVideoOutputSchema = {
+  videos: [VideoSchema],
+};
+export type FindExerciseVideoOutput = typeof FindExerciseVideoOutputSchema;
 
 
 export async function findExerciseVideo(input: FindExerciseVideoInput): Promise<FindExerciseVideoOutput> {
@@ -44,7 +43,7 @@ export async function findExerciseVideo(input: FindExerciseVideoInput): Promise<
         const data: YouTubeSearchListResponse = await response.json();
 
         if (data.items) {
-            const videos: Video[] = data.items.map((item: YouTubeSearchResult) => ({
+            const videos = data.items.map((item: YouTubeSearchResult) => ({
                 videoId: item.id.videoId,
                 title: item.snippet.title,
                 thumbnailUrl: item.snippet.thumbnails.high.url,
