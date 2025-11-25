@@ -41,6 +41,7 @@ import {
   DialogTitle,
   DialogClose,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown } from 'lucide-react';
 import type {
