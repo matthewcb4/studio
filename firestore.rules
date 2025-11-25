@@ -5,7 +5,7 @@
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for all user-generated data
  * (custom workouts, workout logs, equipment, profile, exercise preferences). The master exercise
- * data is publicly readable, but only authenticated users can add to it.
+ * data is publicly readable, but only authenticated users can add or modify it.
  *
  * Data Structure:
  * - /users/{userId}: Stores user identity. Only the authenticated user can read/write their own identity doc.
@@ -13,13 +13,13 @@
  * - /users/{userId}/equipment/{equipmentId}: Stores user's equipment list. Owner-only access.
  * - /users/{userId}/progressLogs/{progressLogId}: Stores user's progress data (e.g. weight). Owner-only access.
  * - /users/{userId}/exercisePreferences/{exerciseId}: Stores user-specific video links for exercises. Owner-only access.
- * - /exercises/{exerciseId}: Stores master exercise data. Publicly readable, but authenticated users can create new exercises.
+ * - /exercises/{exerciseId}: Stores master exercise data. Publicly readable, but authenticated users can create and update exercises.
  * - /users/{userId}/customWorkouts/{customWorkoutId}: Stores custom workouts. Only the owning user can read/write.
  * - /users/{userId}/workoutLogs/{workoutLogId}: Stores workout logs. Only the owning user can read/write.
  *
  * Key Security Decisions:
  * - User listing is disallowed to prevent unauthorized data access.
- * - The /exercises collection is read-only for all users, except for creation by authenticated users.
+ * - The /exercises collection is read-only for all users, except for creation and updates by authenticated users.
  * - Default security posture for ambiguous relationships is strict owner-only access.
  *
  * Denormalization for Authorization:
@@ -114,13 +114,13 @@ service cloud.firestore {
     
     /**
      * @description Manages the master exercise list. This collection is pre-populated and read-only for all users,
-     * but authenticated users can create new exercises.
+     * but authenticated users can create or update exercises.
      * @path /exercises/{exerciseId}
      */
     match /exercises/{exerciseId} {
       allow get, list: if true;
       allow create: if isSignedIn();
-      allow update: if false; // Disallow updates to the master list
+      allow update: if isSignedIn(); // Allow signed-in users to update
       allow delete: if false; // Disallow deletes from the master list
     }
   }
