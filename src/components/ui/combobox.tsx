@@ -54,10 +54,11 @@ export function Combobox({ options, value, onSelect, placeholder = "Select an op
                 {options.map((option) => (
                 <CommandItem
                     key={option.value}
-                    value={option.value}
-                    onSelect={(currentValue) => {
-                    onSelect(currentValue === value ? "" : currentValue)
-                    setOpen(false)
+                    value={option.label}
+                    onSelect={(currentLabel) => {
+                      const selectedValue = options.find(o => o.label.toLowerCase() === currentLabel.toLowerCase())?.value || "";
+                      onSelect(selectedValue === value ? "" : selectedValue)
+                      setOpen(false)
                     }}
                 >
                     <Check
