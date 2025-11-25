@@ -292,10 +292,7 @@ export default function DashboardPage() {
   return (
     <>
         <OnboardingModal isOpen={showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
-        <Dialog open={!!loggingExercise} onOpenChange={(open) => {if (!open) {setLoggingExercise(null); setSelectedExerciseId(null);}}}>
-            {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => {setLoggingExercise(null); setSelectedExerciseId(null);}} />}
-        </Dialog>
-
+        
         <div className="flex flex-col gap-4 md:gap-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -365,37 +362,40 @@ export default function DashboardPage() {
                 )}
             </div>
 
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Quick Log</CardTitle>
-                        <CardDescription>
-                        Log a single exercise on the fly.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col gap-4">
-                            <Select onValueChange={setSelectedExerciseId} value={selectedExerciseId || ""} disabled={isLoadingExercises}>
-                                <SelectTrigger>
-                                <SelectValue placeholder={isLoadingExercises ? "Loading..." : "Select an exercise"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                {masterExercises?.map((ex) => (
-                                    <SelectItem key={ex.id} value={ex.id}>
-                                    {ex.name}
-                                    </SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                            <DialogTrigger asChild>
-                                <Button disabled={!selectedExerciseId}>Log Exercise</Button>
-                            </DialogTrigger>
-                        </div>
-                    </CardContent>
-                </Card>
+             <Dialog open={!!loggingExercise} onOpenChange={(open) => {if (!open) {setLoggingExercise(null); setSelectedExerciseId(null);}}}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Quick Log</CardTitle>
+                            <CardDescription>
+                            Log a single exercise on the fly.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col gap-4">
+                                <Select onValueChange={setSelectedExerciseId} value={selectedExerciseId || ""} disabled={isLoadingExercises}>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder={isLoadingExercises ? "Loading..." : "Select an exercise"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    {masterExercises?.map((ex) => (
+                                        <SelectItem key={ex.id} value={ex.id}>
+                                        {ex.name}
+                                        </SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <DialogTrigger asChild>
+                                    <Button disabled={!selectedExerciseId}>Log Exercise</Button>
+                                </DialogTrigger>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                 <ProgressSummaryCard />
-             </div>
+                    <ProgressSummaryCard />
+                </div>
+                 {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => {setLoggingExercise(null); setSelectedExerciseId(null);}} />}
+            </Dialog>
 
 
             <div className="grid gap-4 sm:grid-cols-2">
