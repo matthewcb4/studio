@@ -8,13 +8,11 @@
  * - FindExerciseVideoOutput - The return type for the findExerciseVideo function.
  */
 
-import type { z } from 'zod';
 import type {YouTubeSearchListResponse, YouTubeSearchResult} from '@/lib/youtube-types';
 
-const FindExerciseVideoInputSchema = {
-  exerciseName: ""
+export type FindExerciseVideoInput = {
+  exerciseName: string;
 };
-export type FindExerciseVideoInput = typeof FindExerciseVideoInputSchema;
 
 
 const VideoSchema = {
@@ -23,10 +21,9 @@ const VideoSchema = {
     thumbnailUrl: "",
 };
 
-const FindExerciseVideoOutputSchema = {
-  videos: [VideoSchema],
+export type FindExerciseVideoOutput = {
+  videos: (typeof VideoSchema)[];
 };
-export type FindExerciseVideoOutput = typeof FindExerciseVideoOutputSchema;
 
 
 export async function findExerciseVideo(input: FindExerciseVideoInput): Promise<FindExerciseVideoOutput> {
