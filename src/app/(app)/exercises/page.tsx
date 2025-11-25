@@ -526,46 +526,48 @@ export default function ExercisesPage() {
                                     <p className="font-medium">{item.name}</p>
                                     <p className="text-xs text-muted-foreground">{item.category}</p>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <Button variant="default" size="sm" className="h-8" onClick={() => setLoggingExercise(item)}>Log</Button>
-                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setEditingExercise(item)}>
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                    {preference?.videoId && (
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" size="icon" className="h-8 w-8">
-                                                <Video className="h-4 w-4" />
-                                            </Button>
-                                        </DialogTrigger>
-                                    )}
-                                    <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => handleFindVideo(item.id, item.name)}
-                                    disabled={findingVideoFor === item.id}
-                                    >
-                                    {findingVideoFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
-                                    </Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete the exercise "{item.name}".
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
+                                <div className="flex flex-col items-end gap-2">
+                                    <Button variant="default" size="sm" className="h-8 w-20" onClick={() => setLoggingExercise(item)}>Log</Button>
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setEditingExercise(item)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        {preference?.videoId && (
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" size="icon" className="h-8 w-8">
+                                                    <Video className="h-4 w-4" />
+                                                </Button>
+                                            </DialogTrigger>
+                                        )}
+                                        <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleFindVideo(item.id, item.name)}
+                                        disabled={findingVideoFor === item.id}
+                                        >
+                                        {findingVideoFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the exercise "{item.name}".
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
                                 </div>
                             </div>
                             <DialogContent>
