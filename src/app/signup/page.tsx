@@ -21,9 +21,10 @@ import { Input } from "@/components/ui/input";
 import Logo from "@/components/logo";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, initiateEmailSignUp, initiateGoogleSignIn, useUser, setDocumentNonBlocking } from "@/firebase";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { Loader2 } from "lucide-react";
 
 
 const formSchema = z.object({
@@ -39,6 +40,7 @@ export default function SignupPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const loginImage = PlaceHolderImages.find((img) => img.id === "login-hero");
+  const [isAndroid, setIsAndroid] = useState<boolean | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,6 +50,11 @@ export default function SignupPage() {
       password: "",
     },
   });
+
+  useEffect(() => {
+    // This check runs only on the client-side
+    setIsAndroid(/android/i.test(navigator.userAgent));
+  }, []);
 
   useEffect(() => {
     if (!isUserLoading && user) {
@@ -76,6 +83,108 @@ export default function SignupPage() {
     initiateGoogleSignIn(auth);
   }
 
+  const renderContent = () => {
+    if (isAndroid === null) {
+        return (
+            <div className="flex flex-col items-center justify-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <p className="text-muted-foreground">Checking device...</p>
+            </div>
+        )
+    }
+    
+    if (isAndroid) {
+        return (
+            <>
+                <div className="grid gap-2 text-center">
+                    <h2 className="text-2xl font-bold">Create an account</h2>
+                    <p className="text-balance text-muted-foreground">
+                    Enter your information to get started
+                    </p>
+                </div>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                            <Input placeholder="m@example.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                            <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <Button type="submit" className="w-full">
+                        Create account
+                    </Button>
+                    <Button variant="outline" className="w-full" type="button" onClick={onGoogleSignIn}>
+                        <svg
+                        className="mr-2 h-4 w-4"
+                        aria-hidden="true"
+                        focusable="false"
+                        data-prefix="fab"
+                        data-icon="google"
+                        role="img"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 488 512"
+                        >
+                        <path
+                            fill="currentColor"
+                            d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-69.4 69.4c-24.5-23.4-58.6-37.9-97.9-37.9-86.3 0-156.5 70.2-156.5 156.5s70.2 156.5 156.5 156.5c97.2 0 133-57.2 138.8-88.5H248v-71.3h239.1c1.4 12.2 2.9 24.4 2.9 37.8z"
+                        ></path>
+                        </svg>
+                        Sign up with Google
+                    </Button>
+                    </form>
+                </Form>
+            </>
+        )
+    }
+
+    return (
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">Available on Android</h2>
+        <p className="text-balance text-muted-foreground mt-2">
+          To create an account, please download fRepo from the Google Play Store on your Android device.
+        </p>
+        <Button asChild className="mt-4">
+            <Link href="https://play.google.com/store/apps" target="_blank">
+                Go to Play Store
+            </Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
        <div className="hidden bg-muted lg:block">
@@ -92,80 +201,13 @@ export default function SignupPage() {
       </div>
       <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
-             <div className="flex justify-center items-center gap-2 mb-4">
-              <Logo className="h-8 w-8 text-primary" />
+          <div className="flex justify-center items-center gap-2 mb-4">
+              <Logo className="h-8 w-8" />
               <h1 className="text-3xl font-bold">fRepo</h1>
-            </div>
-            <h2 className="text-2xl font-bold">Create an account</h2>
-            <p className="text-balance text-muted-foreground">
-              Enter your information to get started
-            </p>
           </div>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="m@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full">
-                Create account
-              </Button>
-              <Button variant="outline" className="w-full" type="button" onClick={onGoogleSignIn}>
-                <svg
-                  className="mr-2 h-4 w-4"
-                  aria-hidden="true"
-                  focusable="false"
-                  data-prefix="fab"
-                  data-icon="google"
-                  role="img"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 488 512"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-69.4 69.4c-24.5-23.4-58.6-37.9-97.9-37.9-86.3 0-156.5 70.2-156.5 156.5s70.2 156.5 156.5 156.5c97.2 0 133-57.2 138.8-88.5H248v-71.3h239.1c1.4 12.2 2.9 24.4 2.9 37.8z"
-                  ></path>
-                </svg>
-                Sign up with Google
-              </Button>
-            </form>
-          </Form>
+          
+          {renderContent()}
+          
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
             <Link href="/" className="underline">
@@ -180,7 +222,7 @@ export default function SignupPage() {
             <Link href="/privacy" className="underline text-muted-foreground">
               Privacy Policy
             </Link>
-          </div>
+           </div>
         </div>
       </div>
     </div>

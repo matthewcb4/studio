@@ -1,9 +1,11 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.example.app",
-    "sha256_cert_fingerprints":
-    ["00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF"]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.frepo.twa",
+      "sha256_cert_fingerprints":
+        ["8B:96:32:CA:33:C8:F0:E3:18:E4:06:C1:BC:38:82:29:84:B8:48:A6:24:17:9D:34:73:F2:F9:87:55:8C:85:5E"]
+    }
   }
-}
+]
