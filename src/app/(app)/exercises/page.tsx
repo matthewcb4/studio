@@ -5,7 +5,6 @@ import React, { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -25,7 +24,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose
 } from '@/components/ui/dialog';
@@ -343,205 +341,202 @@ export default function ExercisesPage() {
           <p className="text-muted-foreground">Manage your exercise library and perform quick logs.</p>
         </div>
       </div>
-      <Card>
-        <CardHeader>
-            <CardTitle>Master Exercise List</CardTitle>
-            <CardDescription>
+      <div className="space-y-6">
+        <div>
+            <h2 className="text-2xl font-semibold">Master Exercise List</h2>
+            <p className="text-muted-foreground">
                 Add, remove, or link videos to exercises from the master list.
-            </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <Form {...exerciseForm}>
-                <form onSubmit={exerciseForm.handleSubmit(onExerciseSubmit)} className="space-y-4">
-                    <FormField
-                        control={exerciseForm.control}
-                        name="name"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Exercise Name</FormLabel>
-                            <FormControl>
-                            <Input placeholder="e.g., Barbell Curl" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={exerciseForm.control}
-                        name="category"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Category</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a category" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {exerciseCategories.map(cat => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <Button type="submit" disabled={isSubmittingExercise}>
-                        {isSubmittingExercise ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                        <PlusCircle className="h-4 w-4" />
-                        )}
-                        <span className="ml-2">Add Exercise</span>
-                    </Button>
-                </form>
-            </Form>
-
-            <Separator />
-             
-            <Dialog open={!!loggingExercise} onOpenChange={(open) => !open && setLoggingExercise(null)}>
-                {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => setLoggingExercise(null)} />}
-            </Dialog>
-
-
-             <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
-                <DialogContent className="sm:max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Select a Video</DialogTitle>
-                        <DialogDescription>
-                            Click a video on the right to preview it, then link it to this exercise.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            {selectedVideo ? (
-                                <>
-                                    <YouTubeEmbed videoId={selectedVideo.videoId} />
-                                    <h3 className="font-semibold">{selectedVideo.title}</h3>
-                                    <Button className="w-full" onClick={() => handleSelectVideo(videoResults.exerciseId, selectedVideo.videoId)}>
-                                        Link this Video
-                                    </Button>
-                                </>
-                            ) : (
-                                <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
-                                    <p className="text-muted-foreground">Select a video to preview</p>
-                                </div>
-                            )}
-                        </div>
-                        <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-                            {videoResults.videos.map(video => (
-                                <button key={video.videoId} onClick={() => setSelectedVideo(video)} className="w-full text-left space-y-2 hover:bg-secondary p-2 rounded-lg transition-colors">
-                                    <div className="flex gap-4">
-                                        <Image src={video.thumbnailUrl} alt={video.title} width={120} height={67} className="rounded-md bg-muted" />
-                                        <p className="text-sm font-medium line-clamp-3">{video.title}</p>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-
-            <div className="space-y-4">
-                <h4 className="font-medium mb-2">Exercise List</h4>
-                <Input 
-                  placeholder="Filter exercises..."
-                  value={exerciseFilter}
-                  onChange={(e) => setExerciseFilter(e.target.value)}
-                  className="mb-4"
-                />
-                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                    {isLoadingExercises && <p>Loading exercises...</p>}
-                    {filteredExercises && filteredExercises.length > 0 ? (
-                    filteredExercises.map((item) => {
-                      const preference = exercisePreferences?.find(p => p.id === item.id);
-                      return (
-                        <Dialog key={item.id}>
-                          <div className="p-3 bg-secondary rounded-md space-y-2">
-                              <div className="flex items-start justify-between">
-                                  <div>
-                                      <p className="font-medium">{item.name}</p>
-                                      <p className="text-xs text-muted-foreground">{item.category}</p>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                      <Button variant="default" size="sm" className="h-8" onClick={() => setLoggingExercise(item)}>Log</Button>
-                                      {preference?.videoId && (
-                                          <DialogTrigger asChild>
-                                              <Button variant="outline" size="icon" className="h-8 w-8">
-                                                  <Video className="h-4 w-4" />
-                                              </Button>
-                                          </DialogTrigger>
-                                      )}
-                                      <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => handleFindVideo(item.id, item.name)}
-                                        disabled={findingVideoFor === item.id}
-                                      >
-                                        {findingVideoFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
-                                      </Button>
-                                      <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                                  <Trash2 className="h-4 w-4" />
-                                              </Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                              <AlertDialogHeader>
-                                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                  <AlertDialogDescription>
-                                                      This action cannot be undone. This will permanently delete the exercise "{item.name}".
-                                                  </AlertDialogDescription>
-                                              </AlertDialogHeader>
-                                              <AlertDialogFooter>
-                                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                  <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
-                                              </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                      </AlertDialog>
-                                  </div>
-                              </div>
-                              <DialogContent>
-                                  <DialogHeader>
-                                      <DialogTitle>{item.name}</DialogTitle>
-                                  </DialogHeader>
-                                  {preference?.videoId ? <YouTubeEmbed videoId={preference.videoId}/> : <p>No video linked.</p>}
-                              </DialogContent>
-                          </div>
-                        </Dialog>
-                      );
-                    })
-                    ) : (
-                    !isLoadingExercises && !showSeedButton && <p className="text-sm text-muted-foreground text-center py-4">No exercises found.</p>
+            </p>
+        </div>
+        <Form {...exerciseForm}>
+            <form onSubmit={exerciseForm.handleSubmit(onExerciseSubmit)} className="space-y-4">
+                <FormField
+                    control={exerciseForm.control}
+                    name="name"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Exercise Name</FormLabel>
+                        <FormControl>
+                        <Input placeholder="e.g., Barbell Curl" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
                     )}
-                </div>
-            </div>
-            
-            {showSeedButton && (
-                <>
-                    <Separator className="my-6" />
-                    <div className="text-center p-4 border-2 border-dashed rounded-lg">
-                        <h4 className="font-medium mb-2">Your Exercise Library is Empty</h4>
-                        <p className="text-sm text-muted-foreground mb-4">
-                        Get started by populating your library with a starter set of common exercises.
-                        </p>
-                        <Button onClick={handleSeedDatabase} disabled={isSeeding}>
-                        {isSeeding ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Seeding...</>
-                        ) : (
-                            "Seed Exercise Database"
-                        )}
-                        </Button>
-                    </div>
-                </>
-            )}
+                />
+                <FormField
+                    control={exerciseForm.control}
+                    name="category"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {exerciseCategories.map(cat => (
+                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <Button type="submit" disabled={isSubmittingExercise}>
+                    {isSubmittingExercise ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                    <PlusCircle className="h-4 w-4" />
+                    )}
+                    <span className="ml-2">Add Exercise</span>
+                </Button>
+            </form>
+        </Form>
 
-        </CardContent>
-      </Card>
+        <Separator />
+            
+        <Dialog open={!!loggingExercise} onOpenChange={(open) => !open && setLoggingExercise(null)}>
+            {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => setLoggingExercise(null)} />}
+        </Dialog>
+
+
+            <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
+            <DialogContent className="sm:max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle>Select a Video</DialogTitle>
+                    <DialogDescription>
+                        Click a video on the right to preview it, then link it to this exercise.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        {selectedVideo ? (
+                            <>
+                                <YouTubeEmbed videoId={selectedVideo.videoId} />
+                                <h3 className="font-semibold">{selectedVideo.title}</h3>
+                                <Button className="w-full" onClick={() => handleSelectVideo(videoResults.exerciseId, selectedVideo.videoId)}>
+                                    Link this Video
+                                </Button>
+                            </>
+                        ) : (
+                            <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
+                                <p className="text-muted-foreground">Select a video to preview</p>
+                            </div>
+                        )}
+                    </div>
+                    <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                        {videoResults.videos.map(video => (
+                            <button key={video.videoId} onClick={() => setSelectedVideo(video)} className="w-full text-left space-y-2 hover:bg-secondary p-2 rounded-lg transition-colors">
+                                <div className="flex gap-4">
+                                    <Image src={video.thumbnailUrl} alt={video.title} width={120} height={67} className="rounded-md bg-muted" />
+                                    <p className="text-sm font-medium line-clamp-3">{video.title}</p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+
+
+        <div className="space-y-4">
+            <h4 className="font-medium mb-2">Exercise List</h4>
+            <Input 
+                placeholder="Filter exercises..."
+                value={exerciseFilter}
+                onChange={(e) => setExerciseFilter(e.target.value)}
+                className="mb-4"
+            />
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                {isLoadingExercises && <p>Loading exercises...</p>}
+                {filteredExercises && filteredExercises.length > 0 ? (
+                filteredExercises.map((item) => {
+                    const preference = exercisePreferences?.find(p => p.id === item.id);
+                    return (
+                    <Dialog key={item.id}>
+                        <div className="p-3 bg-secondary rounded-md space-y-2">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="font-medium">{item.name}</p>
+                                    <p className="text-xs text-muted-foreground">{item.category}</p>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Button variant="default" size="sm" className="h-8" onClick={() => setLoggingExercise(item)}>Log</Button>
+                                    {preference?.videoId && (
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" size="icon" className="h-8 w-8">
+                                                <Video className="h-4 w-4" />
+                                            </Button>
+                                        </DialogTrigger>
+                                    )}
+                                    <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleFindVideo(item.id, item.name)}
+                                    disabled={findingVideoFor === item.id}
+                                    >
+                                    {findingVideoFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
+                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete the exercise "{item.name}".
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteExercise(item.id)}>Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            </div>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>{item.name}</DialogTitle>
+                                </DialogHeader>
+                                {preference?.videoId ? <YouTubeEmbed videoId={preference.videoId}/> : <p>No video linked.</p>}
+                            </DialogContent>
+                        </div>
+                    </Dialog>
+                    );
+                })
+                ) : (
+                !isLoadingExercises && !showSeedButton && <p className="text-sm text-muted-foreground text-center py-4">No exercises found.</p>
+                )}
+            </div>
+        </div>
+        
+        {showSeedButton && (
+            <>
+                <Separator className="my-6" />
+                <div className="text-center p-4 border-2 border-dashed rounded-lg">
+                    <h4 className="font-medium mb-2">Your Exercise Library is Empty</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                    Get started by populating your library with a starter set of common exercises.
+                    </p>
+                    <Button onClick={handleSeedDatabase} disabled={isSeeding}>
+                    {isSeeding ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Seeding...</>
+                    ) : (
+                        "Seed Exercise Database"
+                    )}
+                    </Button>
+                </div>
+            </>
+        )}
+      </div>
     </div>
   );
 }
