@@ -385,12 +385,14 @@ export default function ExercisesPage() {
         <Separator />
             
         <Dialog open={!!loggingExercise} onOpenChange={(open) => !open && setLoggingExercise(null)}>
-            {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => setLoggingExercise(null)} />}
+            <DialogContent>
+                {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => setLoggingExercise(null)} />}
+            </DialogContent>
         </Dialog>
 
 
-            <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
-            <DialogContent className="sm:max-w-4xl">
+        <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
+            <DialogContent className="sm:max-w-lg w-full">
                 <DialogHeader>
                     <DialogTitle>Select a Video</DialogTitle>
                     <DialogDescription>

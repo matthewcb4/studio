@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format, isWithinInterval, subDays } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
@@ -319,7 +319,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <Card className="lg:col-span-2">
+                <Card className="lg:col-span-1">
                     <CardHeader>
                         <CardTitle>Start Workout</CardTitle>
                         <CardDescription>
@@ -348,17 +348,28 @@ export default function DashboardPage() {
                 </Card>
 
                 {hasData ? (
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle>Workouts</CardTitle>
-                            <CardDescription>{dateRangeLabel}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-4xl font-bold">{dashboardStats.workouts}</div>
-                        </CardContent>
-                    </Card>
+                    <>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle>Workouts</CardTitle>
+                                <CardDescription>{dateRangeLabel}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold">{dashboardStats.workouts}</div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle>Total Volume</CardTitle>
+                                <CardDescription>{dateRangeLabel}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
+                            </CardContent>
+                        </Card>
+                    </>
                 ) : (
-                    <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
+                    <Card className="lg:col-span-2 flex flex-col items-center justify-center p-6 text-center">
                         <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
                         <CardTitle className="mt-4">No Workout Data</CardTitle>
                         <CardDescription>
@@ -396,25 +407,15 @@ export default function DashboardPage() {
                     <ProgressSummaryCard />
                 </div>
                 <DialogContent>
-                 {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => {setLoggingExercise(null); setSelectedExerciseId(null);}} />}
+                    <DialogHeader>
+                        <DialogTitle>Quick Log: {loggingExercise?.name}</DialogTitle>
+                        <DialogDescription>
+                            Record your sets for this exercise. This will create a new entry in your workout history.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => {setLoggingExercise(null); setSelectedExerciseId(null);}} />}
                 </DialogContent>
             </Dialog>
-
-
-            <div className="grid gap-4 sm:grid-cols-2">
-                
-                {hasData && (
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle>Total Volume</CardTitle>
-                            <CardDescription>{dateRangeLabel}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
             
            <MuscleHeatmap 
               userProfile={userProfile} 

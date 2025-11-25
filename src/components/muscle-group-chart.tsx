@@ -140,7 +140,7 @@ export function MuscleGroupVolumeChart({
         );
       }
       return (
-        <CardContent className="px-2 sm:px-4">
+        <CardContent className="px-0 sm:px-4">
             <div className="h-[350px]">
             <ChartContainer config={chartConfig} className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
