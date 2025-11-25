@@ -30,7 +30,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent as VideoDialogContent, DialogDescription as VideoDialogDescription, DialogHeader as VideoDialogHeader, DialogTitle as VideoDialogTitle, DialogTrigger as VideoDialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent as VideoDialogContent, DialogDescription as VideoDialogDescription, DialogHeader as VideoDialogHeader, DialogTitle as VideoDialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { findExerciseVideo, FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
@@ -843,6 +843,8 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
 
     
 
