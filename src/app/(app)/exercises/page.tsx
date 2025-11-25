@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -107,6 +107,22 @@ function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: M
             defaultUnit: exercise?.defaultUnit || 'reps',
         },
     });
+
+    useEffect(() => {
+        if (exercise) {
+            form.reset({
+                name: exercise.name,
+                category: exercise.category,
+                defaultUnit: exercise.defaultUnit || 'reps',
+            });
+        } else {
+            form.reset({
+                name: '',
+                category: '',
+                defaultUnit: 'reps',
+            });
+        }
+    }, [exercise, form]);
 
     const onSubmit = (data: z.infer<typeof exerciseFormSchema>) => {
         setIsSubmitting(true);
@@ -607,5 +623,3 @@ export default function ExercisesPage() {
       </div>
   );
 }
-
-    
