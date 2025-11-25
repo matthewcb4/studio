@@ -8,10 +8,9 @@ import * as z from 'zod';
 import { PlusCircle, Trash2, Check, Loader2 } from 'lucide-react';
 
 import {
-  DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -169,7 +168,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
     };
     
     return (
-         <DialogContent>
+        <>
             <DialogHeader>
                 <DialogTitle>Quick Log: {exercise.name}</DialogTitle>
                 <DialogDescription>
@@ -207,6 +206,6 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                     </DialogFooter>
                 </form>
             </Form>
-        </DialogContent>
+        </>
     )
 }
