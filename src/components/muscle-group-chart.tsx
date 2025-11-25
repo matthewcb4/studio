@@ -3,8 +3,10 @@
 
 import React, { useMemo } from 'react';
 import {
+  Card,
   CardContent,
   CardDescription,
+  CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import {
@@ -55,6 +57,7 @@ interface MuscleGroupVolumeChartProps {
   filteredLogs: WorkoutLog[];
   masterExercises: Exercise[] | null;
   isLoading: boolean;
+  dateRangeLabel?: string;
   isTrigger?: boolean;
 }
 
@@ -62,6 +65,7 @@ export function MuscleGroupVolumeChart({
   filteredLogs,
   masterExercises,
   isLoading,
+  dateRangeLabel,
   isTrigger = false,
 }: MuscleGroupVolumeChartProps) {
   
@@ -111,82 +115,93 @@ export function MuscleGroupVolumeChart({
     }, {} as ChartConfig);
   }, []);
 
-  if (isTrigger) {
-    return (
-        <div>
-            <CardTitle>Muscle Group Volume</CardTitle>
-            <CardDescription className="mt-1.5 text-left">
-                Total volume (lbs) for each muscle group over time.
-            </CardDescription>
-        </div>
-    )
-  }
-
-  if (isLoading) {
-    return (
+  const renderChart = () => {
+     if (isLoading) {
+        return (
+             <CardContent>
+                <div className="h-[300px] flex items-center justify-center">
+                    <p className="text-muted-foreground">Loading chart...</p>
+                </div>
+            </CardContent>
+        );
+      }
+      if (chartData.length === 0) {
+        return (
+            <CardContent>
+                <p className="text-sm text-muted-foreground">No workout data available for this period to display the chart.</p>
+            </CardContent>
+        );
+      }
+      return (
         <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
-                <p className="text-muted-foreground">Loading data...</p>
+            <div className="h-[350px] -ml-4">
+            <ChartContainer config={chartConfig} className="w-full h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                            dataKey="date"
+                            tickFormatter={(value) => format(parseISO(value), 'MMM d')}
+                            tickLine={false}
+                            axisLine={false}
+                            padding={{ left: 20, right: 20 }}
+                        />
+                        <YAxis
+                            tickFormatter={(value) => `${value.toLocaleString()}`}
+                            axisLine={false}
+                            tickLine={false}
+                        />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent 
+                                formatter={(value, name) => (
+                                    <div className="flex flex-col">
+                                        <span className="font-bold" style={{color: chartColors[name as string]}}>{name}</span>
+                                        <span>{Number(value).toLocaleString()} lbs</span>
+                                    </div>
+                                )}
+                                labelFormatter={(label) => format(parseISO(label), 'PPP')}
+                            />}
+                        />
+                        <ChartLegend content={<ChartLegendContent nameKey="label" />} />
+                        {ALL_MUSCLE_GROUPS.map(group => (
+                            <Line
+                                key={group}
+                                dataKey={group}
+                                type="monotone"
+                                stroke={chartColors[group]}
+                                strokeWidth={2}
+                                dot={false}
+                                name={group}
+                            />
+                        ))}
+                    </LineChart>
+                </ResponsiveContainer>
+            </ChartContainer>
             </div>
         </CardContent>
-    );
+      );
   }
+  
+  const headerContent = (
+     <div>
+        <CardTitle>Muscle Group Volume</CardTitle>
+        <CardDescription className="mt-1 text-left">
+            { isTrigger ? 'Total volume (lbs) for each muscle group over time.' : `Breakdown for the ${dateRangeLabel?.toLowerCase()}`}
+        </CardDescription>
+    </div>
+  );
 
-  if (chartData.length === 0) {
-    return isTrigger ? null : (
-         <CardContent>
-            <p>No data to display for this period.</p>
-        </CardContent>
-    );
+  if (isTrigger) {
+    return headerContent;
   }
 
   return (
-    <CardContent className="p-0">
-        <div className="h-[350px]">
-          <ChartContainer config={chartConfig} className="w-full h-full">
-            <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                        dataKey="date"
-                        tickFormatter={(value) => format(parseISO(value), 'MMM d')}
-                        tickLine={false}
-                        axisLine={false}
-                        padding={{ left: 20, right: 20 }}
-                    />
-                    <YAxis
-                        tickFormatter={(value) => `${value.toLocaleString()}`}
-                        axisLine={false}
-                        tickLine={false}
-                    />
-                    <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent 
-                            formatter={(value, name) => (
-                                <div className="flex flex-col">
-                                    <span className="font-bold" style={{color: chartColors[name as string]}}>{name}</span>
-                                    <span>{Number(value).toLocaleString()} lbs</span>
-                                </div>
-                            )}
-                            labelFormatter={(label) => format(parseISO(label), 'PPP')}
-                        />}
-                    />
-                     <ChartLegend content={<ChartLegendContent />} />
-                     {ALL_MUSCLE_GROUPS.map(group => (
-                        <Line
-                            key={group}
-                            dataKey={group}
-                            type="monotone"
-                            stroke={chartColors[group]}
-                            strokeWidth={2}
-                            dot={false}
-                            name={group}
-                        />
-                     ))}
-                </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-    </CardContent>
-  );
+    <Card>
+        <CardHeader>
+            {headerContent}
+        </CardHeader>
+        {renderChart()}
+    </Card>
+  )
 }

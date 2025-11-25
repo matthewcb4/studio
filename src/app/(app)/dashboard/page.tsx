@@ -342,6 +342,7 @@ export default function DashboardPage() {
                 filteredLogs={filteredLogs}
                 masterExercises={masterExercises}
                 isLoading={isLoading}
+                dateRangeLabel={dateRangeLabel}
             />
 
             <Card>
