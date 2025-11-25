@@ -40,14 +40,14 @@ interface QuickLogFormProps {
 const getDefaultSetValues = (unit: string) => {
     switch (unit) {
         case 'seconds':
-            return { duration: '' };
+            return { duration: undefined };
         case 'reps-only':
-            return { reps: '' };
+            return { reps: undefined };
         case 'bodyweight':
-            return { weight: '', reps: '', includeBodyweight: false };
+            return { weight: undefined, reps: undefined, includeBodyweight: false };
         case 'reps':
         default:
-            return { weight: '', reps: '' };
+            return { weight: undefined, reps: undefined };
     }
 }
 
