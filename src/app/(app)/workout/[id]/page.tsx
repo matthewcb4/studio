@@ -13,7 +13,9 @@ import {
   Star,
   Loader2,
   SkipForward,
+  Youtube,
 } from 'lucide-react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -44,15 +46,24 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
   useDoc,
   useUser,
   useFirestore,
   useMemoFirebase,
   updateDocumentNonBlocking,
   useCollection,
+  setDocumentNonBlocking,
 } from '@/firebase';
 import { doc, collection, addDoc, query, orderBy, limit } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
+import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -124,7 +135,7 @@ export default function WorkoutSessionPage() {
   const exercisePreferencesQuery = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
   , [firestore, user]);
-  const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
+  const { data: exercisePreferences, isLoading: isLoadingPreferences, setData: setExercisePreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
   
   const progressLogsQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, `users/${user.uid}/progressLogs`), orderBy("date", "desc"), limit(1)) : null
@@ -146,6 +157,10 @@ export default function WorkoutSessionPage() {
   const [hoverRating, setHoverRating] = useState(0);
   const [currentRating, setCurrentRating] = useState(0);
   
+  const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
+  const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<FindExerciseVideoOutput['videos'][0] | null>(null);
+
   const exerciseGroups = useMemo(() => {
     if (!workout?.exercises) return [];
     return groupExercises(workout.exercises);
@@ -178,6 +193,44 @@ export default function WorkoutSessionPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, [isFinished]);
+  
+  const handleFindVideo = async (exerciseId: string, exerciseName: string) => {
+    if (!exerciseName) return;
+    setFindingVideoFor(exerciseId);
+    try {
+        const result = await findExerciseVideo({ exerciseName });
+        if (result.videos && result.videos.length > 0) {
+            setVideoResults({ exerciseId, videos: result.videos });
+            setSelectedVideo(result.videos[0]);
+        } else {
+            toast({ variant: "destructive", title: "No Videos Found", description: "The AI couldn't find any suitable videos for this exercise." });
+        }
+    } catch (error) {
+        console.error("Error finding video:", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Could not find videos at this time." });
+    } finally {
+        setFindingVideoFor(null);
+    }
+  };
+
+  const handleSelectVideo = (masterExerciseId: string, videoId: string) => {
+    if (!user) return;
+    const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
+    setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
+    
+    // Manually update the local state to show the new video instantly
+    const newPref = { id: masterExerciseId, userId: user.uid, videoId };
+    const existingPrefs = exercisePreferences ? exercisePreferences.filter(p => p.id !== masterExerciseId) : [];
+    setExercisePreferences([...existingPrefs, newPref]);
+
+    toast({
+        title: "Video Preference Saved",
+        description: `Video linked for this exercise.`
+    });
+    setVideoResults({ exerciseId: '', videos: [] }); // Close dialog
+    setSelectedVideo(null);
+  };
+
 
   if (isLoadingWorkout || isLoadingPreferences) {
     return <div>Loading workout...</div>;
@@ -388,6 +441,45 @@ export default function WorkoutSessionPage() {
   }
 
   return (
+    <>
+    <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
+        <DialogContent className="sm:max-w-lg w-full max-w-[95vw]">
+            <DialogHeader>
+                <DialogTitle>Select a Video</DialogTitle>
+                <DialogDescription>
+                    Click a video on the right to preview it, then link it to this exercise.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    {selectedVideo ? (
+                        <>
+                            <YouTubeEmbed videoId={selectedVideo.videoId} />
+                            <h3 className="font-semibold">{selectedVideo.title}</h3>
+                            <Button className="w-full" onClick={() => handleSelectVideo(videoResults.exerciseId, selectedVideo.videoId)}>
+                                Link this Video
+                            </Button>
+                        </>
+                    ) : (
+                        <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
+                            <p className="text-muted-foreground">Select a video to preview</p>
+                        </div>
+                    )}
+                </div>
+                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                    {videoResults.videos.map(video => (
+                        <button key={video.videoId} onClick={() => setSelectedVideo(video)} className="w-full text-left space-y-2 hover:bg-secondary p-2 rounded-lg transition-colors">
+                            <div className="flex gap-4">
+                                <Image src={video.thumbnailUrl} alt={video.title} width={120} height={67} className="rounded-md bg-muted" />
+                                <p className="text-sm font-medium line-clamp-3">{video.title}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </DialogContent>
+    </Dialog>
+
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex justify-between items-center">
         <AlertDialog>
@@ -526,21 +618,31 @@ export default function WorkoutSessionPage() {
                     </ul>
                 </CardContent>
              )}
-            {videoId && (
-              <CardContent className="pt-0">
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full">
-                        <Video className="mr-2 h-4 w-4"/>
-                        Show/Hide Video
+            <CardContent className="pt-0">
+              <Collapsible>
+                <div className="flex gap-2">
+                    {videoId && (
+                        <CollapsibleTrigger asChild>
+                            <Button variant="outline" size="sm" className="w-full">
+                                <Video className="mr-2 h-4 w-4"/>
+                                Show/Hide Video
+                            </Button>
+                        </CollapsibleTrigger>
+                    )}
+                    <Button 
+                        variant="outline" size="sm" className="w-full"
+                        onClick={() => handleFindVideo(exercise.exerciseId, exercise.exerciseName)}
+                        disabled={findingVideoFor === exercise.exerciseId}
+                    >
+                        {findingVideoFor === exercise.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
+                        <span className="ml-2">Find Video</span>
                     </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <YouTubeEmbed videoId={videoId} />
-                  </CollapsibleContent>
-                </Collapsible>
-              </CardContent>
-            )}
+                </div>
+                <CollapsibleContent>
+                  {videoId ? <YouTubeEmbed videoId={videoId} /> : <p className="text-sm text-muted-foreground text-center mt-4">No video linked. Use "Find Video" to add one.</p>}
+                </CollapsibleContent>
+              </Collapsible>
+            </CardContent>
           </Card>
         );
       })}
@@ -550,5 +652,9 @@ export default function WorkoutSessionPage() {
             <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
     </div>
+    </>
   );
 }
+
+
+    
