@@ -135,7 +135,7 @@ export default function WorkoutSessionPage() {
   const exercisePreferencesQuery = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
   , [firestore, user]);
-  const { data: exercisePreferences, isLoading: isLoadingPreferences, setData: setExercisePreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
+  const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
   
   const progressLogsQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, `users/${user.uid}/progressLogs`), orderBy("date", "desc"), limit(1)) : null
@@ -217,11 +217,6 @@ export default function WorkoutSessionPage() {
     if (!user) return;
     const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
     setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
-    
-    // Manually update the local state to show the new video instantly
-    const newPref = { id: masterExerciseId, userId: user.uid, videoId };
-    const existingPrefs = exercisePreferences ? exercisePreferences.filter(p => p.id !== masterExerciseId) : [];
-    setExercisePreferences([...existingPrefs, newPref]);
 
     toast({
         title: "Video Preference Saved",
@@ -537,88 +532,90 @@ export default function WorkoutSessionPage() {
                 Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
               </CardDescription>
             </CardHeader>
-            {!isExerciseComplete && (
-                 <CardContent className="space-y-4">
-                    {unit === 'reps' && (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor={`weight-${exercise.id}`} className="text-base">Weight (lbs)</Label>
-                                <Input id={`weight-${exercise.id}`} type="number" placeholder="135" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                                <Input id={`reps-${exercise.id}`} type="number" placeholder="8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
-                            </div>
-                        </div>
-                    )}
-                    {unit === 'reps-only' && (
-                        <div className="space-y-2">
-                            <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                            <Input id={`reps-${exercise.id}`} type="number" placeholder="15" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
-                        </div>
-                    )}
-                    {unit === 'bodyweight' && (
-                       <div className="space-y-4">
+            <CardContent className="space-y-4">
+                {!isExerciseComplete && (
+                    <>
+                        {unit === 'reps' && (
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor={`weight-${exercise.id}`} className="text-base">Additional Weight</Label>
-                                    <Input id={`weight-${exercise.id}`} type="number" placeholder="0" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
+                                    <Label htmlFor={`weight-${exercise.id}`} className="text-base">Weight (lbs)</Label>
+                                    <Input id={`weight-${exercise.id}`} type="number" placeholder="135" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                                    <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
+                                    <Input id={`reps-${exercise.id}`} type="number" placeholder="8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={`include-bodyweight-${exercise.id}`}
-                                    checked={state.includeBodyweight}
-                                    onCheckedChange={(checked) => setExerciseStates({...exerciseStates, [exercise.id]: {...state, includeBodyweight: !!checked}})}
-                                />
-                                <Label htmlFor={`include-bodyweight-${exercise.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Include Bodyweight ({latestWeight} lbs)
-                                </Label>
+                        )}
+                        {unit === 'reps-only' && (
+                            <div className="space-y-2">
+                                <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
+                                <Input id={`reps-${exercise.id}`} type="number" placeholder="15" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
                             </div>
-                       </div>
-                    )}
-                    {unit === 'seconds' && (
-                        <div className="space-y-2">
-                            <Label htmlFor={`duration-${exercise.id}`} className="text-base">Duration (seconds)</Label>
-                            <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, duration: e.target.value}})} className="h-14 text-2xl text-center" />
+                        )}
+                        {unit === 'bodyweight' && (
+                        <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`weight-${exercise.id}`} className="text-base">Additional Weight</Label>
+                                        <Input id={`weight-${exercise.id}`} type="number" placeholder="0" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
+                                        <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`include-bodyweight-${exercise.id}`}
+                                        checked={state.includeBodyweight}
+                                        onCheckedChange={(checked) => setExerciseStates({...exerciseStates, [exercise.id]: {...state, includeBodyweight: !!checked}})}
+                                    />
+                                    <Label htmlFor={`include-bodyweight-${exercise.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        Include Bodyweight ({latestWeight} lbs)
+                                    </Label>
+                                </div>
                         </div>
-                    )}
-                    <div className="flex gap-2">
-                         <Button onClick={() => handleLogSet(exercise)} className="w-full h-14 text-lg">
-                             Log Set
-                         </Button>
-                         <Button onClick={() => handleLogSet(exercise, true)} variant="outline" size="icon" className="h-14 w-14 flex-shrink-0">
-                            <SkipForward />
-                            <span className="sr-only">Skip Set</span>
-                         </Button>
+                        )}
+                        {unit === 'seconds' && (
+                            <div className="space-y-2">
+                                <Label htmlFor={`duration-${exercise.id}`} className="text-base">Duration (seconds)</Label>
+                                <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, duration: e.target.value}})} className="h-14 text-2xl text-center" />
+                            </div>
+                        )}
+                        <div className="flex gap-2">
+                            <Button onClick={() => handleLogSet(exercise)} className="w-full h-14 text-lg">
+                                Log Set
+                            </Button>
+                            <Button onClick={() => handleLogSet(exercise, true)} variant="outline" size="icon" className="h-14 w-14 flex-shrink-0">
+                                <SkipForward />
+                                <span className="sr-only">Skip Set</span>
+                            </Button>
+                        </div>
+                    </>
+                )}
+                 {state.logs.length > 0 && (
+                    <div className="mt-4">
+                        <p className="text-base font-medium mb-2">Logged Sets</p>
+                        <ul className="space-y-2">
+                            {state.logs.map((set, index) => (
+                                <li key={index} className="flex justify-between items-center text-base p-3 bg-secondary rounded-md">
+                                    <div className="flex items-center gap-3">
+                                        <Check className="h-5 w-5 text-green-500" />
+                                        <span className="font-medium text-secondary-foreground">Set {index + 1}</span>
+                                    </div>
+                                    {unit === 'seconds' ? (
+                                        <span className="text-muted-foreground">{set.duration} seconds</span>
+                                    ) : (
+                                        <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
-                 </CardContent>
-            )}
-             {state.logs.length > 0 && (
-                <CardContent>
-                    <p className="text-base font-medium mb-2">Logged Sets</p>
-                    <ul className="space-y-2">
-                        {state.logs.map((set, index) => (
-                            <li key={index} className="flex justify-between items-center text-base p-3 bg-secondary rounded-md">
-                                <div className="flex items-center gap-3">
-                                    <Check className="h-5 w-5 text-green-500" />
-                                    <span className="font-medium text-secondary-foreground">Set {index + 1}</span>
-                                </div>
-                                {unit === 'seconds' ? (
-                                    <span className="text-muted-foreground">{set.duration} seconds</span>
-                                ) : (
-                                    <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                </CardContent>
-             )}
-            <CardContent className="pt-0">
+                 )}
+            </CardContent>
+            <CardContent>
               <Collapsible>
                 <div className="flex gap-2">
                     {videoId && (
@@ -655,6 +652,5 @@ export default function WorkoutSessionPage() {
     </>
   );
 }
-
 
     
