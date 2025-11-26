@@ -527,7 +527,7 @@ export default function WorkoutSessionPage() {
                 </CardContent>
              )}
             {videoId && (
-              <CardContent>
+              <CardContent className="pt-0">
                 <Collapsible>
                   <CollapsibleTrigger asChild>
                     <Button variant="outline" size="sm" className="w-full">
