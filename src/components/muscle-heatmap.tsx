@@ -36,9 +36,9 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
     biceps: { top: '25%', left: '33%' },
     quads: { top: '58%', left: '44%' },
     // Back
-    traps: { top: '24%', left: '50%' },
+    traps: { top: '24%', left: '48%' },
     lats: { top: '35%', left: '45%' },
-    triceps: { top: '28%', left: '30%' },
+    triceps: { top: '29%', left: '35%' },
     glutes: { top: '50%', left: '50%' },
     hamstrings: { top: '60%', left: '49%' },
     calves: { top: '76%', left: '48%' },

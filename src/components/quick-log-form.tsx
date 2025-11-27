@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Check, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, Check, Loader2, Edit, Save } from 'lucide-react';
 
 import {
   DialogHeader,
@@ -18,7 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
-import type { Exercise as MasterExercise, LoggedSet } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Exercise as MasterExercise, LoggedSet, WorkoutExercise } from '@/lib/types';
 
 const quickLogSetSchema = z.object({
     weight: z.coerce.number().min(0, "Weight must be positive.").optional(),
@@ -53,7 +54,8 @@ const getDefaultSetValues = (unit: string) => {
 
 export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const unit = exercise.defaultUnit || 'reps';
+    const [isEditing, setIsEditing] = useState(false);
+    const [unit, setUnit] = useState<WorkoutExercise['unit']>(exercise.defaultUnit || 'reps');
 
     const form = useForm<z.infer<typeof quickLogSchema>>({
         resolver: zodResolver(quickLogSchema),
@@ -62,16 +64,21 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
         name: "sets",
     });
+    
+    const handleUnitChange = (newUnit: WorkoutExercise['unit']) => {
+        setUnit(newUnit);
+        // Reset the form fields to match the new unit structure
+        replace([getDefaultSetValues(newUnit)]);
+    };
 
     const onSubmit = (data: z.infer<typeof quickLogSchema>) => {
         setIsSubmitting(true);
         onLog(data.sets as LoggedSet[]);
-        setIsSubmitting(false);
-        onCancel();
+        // No need to set isSubmitting to false, as the component will unmount
     };
 
     const renderSetInputs = (index: number) => {
@@ -184,11 +191,36 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
     return (
         <>
             <DialogHeader>
-                <DialogTitle>Quick Log: {exercise.name}</DialogTitle>
-                <DialogDescription>
-                    Record your sets for this exercise. This will create a new entry in your workout history.
-                </DialogDescription>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <DialogTitle>Quick Log: {exercise.name}</DialogTitle>
+                        <DialogDescription>
+                            Record your sets for this exercise.
+                        </DialogDescription>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditing(prev => !prev)}>
+                        {isEditing ? <Save className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
+                    </Button>
+                </div>
             </DialogHeader>
+
+            {isEditing && (
+                <div className="space-y-2 py-4">
+                    <Label>Logging Method</Label>
+                    <Select value={unit} onValueChange={(newUnit) => handleUnitChange(newUnit as WorkoutExercise['unit'])}>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="reps">Weight & Reps</SelectItem>
+                            <SelectItem value="reps-only">Reps Only</SelectItem>
+                            <SelectItem value="seconds">Seconds</SelectItem>
+                            <SelectItem value="bodyweight">Bodyweight</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
