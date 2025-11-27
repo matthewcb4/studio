@@ -20,6 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Exercise as MasterExercise, LoggedSet, WorkoutExercise } from '@/lib/types';
+import { Label } from '@/components/ui/label';
 
 const quickLogSetSchema = z.object({
     weight: z.coerce.number().min(0, "Weight must be positive.").optional(),
