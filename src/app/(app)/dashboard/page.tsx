@@ -170,6 +170,7 @@ export default function DashboardPage() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
   const [dateRange, setDateRange] = useState('7');
+  const [filteredLogs, setFilteredLogs] = useState<WorkoutLog[]>([]);
 
   const customWorkoutsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -204,6 +205,20 @@ export default function DashboardPage() {
         return () => clearTimeout(timer);
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    if (allLogs) {
+      const now = new Date();
+      const days = parseInt(dateRange, 10);
+      const startDate = subDays(now, days);
+      
+      const logs = allLogs.filter(log => {
+          const logDate = new Date(log.date);
+          return isWithinInterval(logDate, { start: startDate, end: now });
+      });
+      setFilteredLogs(logs);
+    }
+  }, [allLogs, dateRange]);
   
   const loggingExercise = useMemo(() => {
     if (selectedExerciseId && masterExercises) {
@@ -249,18 +264,6 @@ export default function DashboardPage() {
     };
 
   const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
-
-  const filteredLogs = useMemo(() => {
-    if (!allLogs) return [];
-    const now = new Date();
-    const days = parseInt(dateRange, 10);
-    const startDate = subDays(now, days);
-    
-    return allLogs.filter(log => {
-        const logDate = new Date(log.date);
-        return isWithinInterval(logDate, { start: startDate, end: now });
-    });
-  }, [allLogs, dateRange]);
 
   const dashboardStats = useMemo(() => {
     const volume = filteredLogs.reduce((acc, log) => acc + (log.volume || 0), 0);
