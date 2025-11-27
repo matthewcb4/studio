@@ -43,11 +43,12 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown, Loader2, Video } from 'lucide-react';
 import type {
   CustomWorkout,
   WorkoutExercise,
   Exercise as MasterExercise,
+  UserExercisePreference,
 } from '@/lib/types';
 import {
   useCollection,
@@ -105,14 +106,33 @@ const groupExercises = (exercises: WorkoutExercise[] = []) => {
     });
 };
 
+
+function YouTubeEmbed({ videoId }: { videoId: string }) {
+  return (
+    <div className="aspect-video w-full rounded-lg overflow-hidden">
+      <iframe
+        src={`https://www.youtube.com/embed/${videoId}`}
+        title="YouTube video player"
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className="w-full h-full"
+      ></iframe>
+    </div>
+  );
+}
+
+
 function WorkoutForm({
   workout,
   masterExercises,
+  exercisePreferences,
   onSave,
   onCancel,
 }: {
   workout: CustomWorkout | null;
   masterExercises: MasterExercise[];
+  exercisePreferences: UserExercisePreference[] | null;
   onSave: (workout: Partial<CustomWorkout>, isNew: boolean) => void;
   onCancel: () => void;
 }) {
@@ -126,6 +146,8 @@ function WorkoutForm({
   const { toast } = useToast();
   const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
   const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<FindExerciseVideoOutput['videos'][0] | null>(null);
+  const [viewingVideoId, setViewingVideoId] = useState<string | null>(null);
 
 
   const addExerciseGroup = () => {
@@ -208,6 +230,7 @@ function WorkoutForm({
         description: `Video linked for this exercise.`
     });
     setVideoResults({ exerciseId: '', videos: [] }); // Close dialog
+    setSelectedVideo(null);
   };
 
   const handleFindVideo = async (exerciseId: string, exerciseName: string) => {
@@ -217,6 +240,7 @@ function WorkoutForm({
         const result = await findExerciseVideo({ exerciseName });
         if (result.videos && result.videos.length > 0) {
             setVideoResults({ exerciseId, videos: result.videos });
+            setSelectedVideo(result.videos[0]);
         } else {
             toast({ variant: "destructive", title: "No Videos Found", description: "The AI couldn't find any suitable videos for this exercise." });
         }
@@ -278,27 +302,53 @@ function WorkoutForm({
       </SheetHeader>
 
       <div className="flex-1 overflow-y-auto p-1 -mx-1">
-        <AlertDialog open={videoResults.videos.length > 0} onOpenChange={() => setVideoResults({ exerciseId: '', videos: [] })}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Select a Video</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Choose a video to link to this exercise.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
-                    {videoResults.videos.map(video => (
-                        <button key={video.videoId} onClick={() => handleSelectVideo(firestore, videoResults.exerciseId, video.videoId)} className="text-left space-y-2 hover:bg-secondary p-2 rounded-lg">
-                            <Image src={video.thumbnailUrl} alt={video.title} width={170} height={94} className="rounded-md w-full" />
-                            <p className="text-xs font-medium line-clamp-2">{video.title}</p>
-                        </button>
-                    ))}
+        <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
+            <DialogContent className="sm:max-w-lg w-full max-w-[95vw]">
+                <DialogHeader>
+                    <DialogTitle>Select a Video</DialogTitle>
+                    <DialogDescription>
+                        Click a video on the right to preview it, then link it to this exercise.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        {selectedVideo ? (
+                            <>
+                                <YouTubeEmbed videoId={selectedVideo.videoId} />
+                                <h3 className="font-semibold">{selectedVideo.title}</h3>
+                                <Button className="w-full" onClick={() => handleSelectVideo(firestore, videoResults.exerciseId, selectedVideo.videoId)}>
+                                    Link this Video
+                                </Button>
+                            </>
+                        ) : (
+                            <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
+                                <p className="text-muted-foreground">Select a video to preview</p>
+                            </div>
+                        )}
+                    </div>
+                    <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                        {videoResults.videos.map(video => (
+                            <button key={video.videoId} onClick={() => setSelectedVideo(video)} className="w-full text-left space-y-2 hover:bg-secondary p-2 rounded-lg transition-colors">
+                                <div className="flex gap-4">
+                                    <Image src={video.thumbnailUrl} alt={video.title} width={120} height={67} className="rounded-md bg-muted" />
+                                    <p className="text-sm font-medium line-clamp-3">{video.title}</p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={!!viewingVideoId} onOpenChange={() => setViewingVideoId(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Exercise Video</DialogTitle>
+                </DialogHeader>
+                {viewingVideoId && <YouTubeEmbed videoId={viewingVideoId} />}
+            </DialogContent>
+        </Dialog>
+
 
         <div className="grid gap-4 py-4 px-1">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -357,7 +407,8 @@ function WorkoutForm({
                 {group.map((ex, exIndex) => {
                   const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId);
                   const selectValue = matchedExercise ? matchedExercise.id : ex.exerciseId;
-                  
+                  const preference = exercisePreferences?.find(p => p.id === ex.exerciseId);
+
                   return (
                     <div
                       key={ex.id}
@@ -436,15 +487,20 @@ function WorkoutForm({
                         </div>
                        <div className="space-y-1">
                            <div className="flex items-center gap-2">
+                                {preference?.videoId && (
+                                    <Button variant="outline" size="sm" className="w-full" onClick={() => setViewingVideoId(preference.videoId!)}>
+                                        <Video className="h-4 w-4 mr-2" />
+                                        View Linked Video
+                                    </Button>
+                                )}
                                 <Button 
                                   variant="outline"
                                   size="sm"
                                   className="w-full"
                                   disabled={!ex.exerciseName || findingVideoFor === ex.id}
-                                  onClick={() => handleFindVideo(ex.id, ex.exerciseName)}
+                                  onClick={() => handleFindVideo(ex.exerciseId, ex.exerciseName)}
                                 >
-                                  {findingVideoFor === ex.id ? 'Searching...' : 'Find Video with AI'}
-                                  <Youtube className="h-4 w-4 ml-2" />
+                                  {findingVideoFor === ex.id ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Searching...</> : <><Youtube className="h-4 w-4 mr-2" /> Find Video</>}
                                 </Button>
                            </div>
                         </div>
@@ -504,6 +560,11 @@ function WorkoutsPageContent() {
       return query(collection(firestore, 'exercises'), orderBy('name', 'asc'));
   }, [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
+  
+  const exercisePreferencesQuery = useMemoFirebase(() =>
+    user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
+  , [firestore, user]);
+  const { data: exercisePreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
   
   const editingWorkout = useMemo(() => {
       if (!editingWorkoutId || !workouts) return null;
@@ -624,6 +685,7 @@ function WorkoutsPageContent() {
                     <WorkoutForm
                         workout={editingWorkout}
                         masterExercises={masterExercises || []}
+                        exercisePreferences={exercisePreferences || []}
                         onSave={handleSaveWorkout}
                         onCancel={() => handleSheetOpenChange(false)}
                     />
