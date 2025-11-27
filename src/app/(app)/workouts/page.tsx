@@ -68,7 +68,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { findExerciseVideo, FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
+import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import Image from 'next/image';
 import {
   AlertDialog,
@@ -812,3 +812,5 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
+
+    
