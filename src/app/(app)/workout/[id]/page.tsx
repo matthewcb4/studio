@@ -14,6 +14,8 @@ import {
   Loader2,
   SkipForward,
   Youtube,
+  Edit,
+  Save,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -52,6 +54,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   useDoc,
   useUser,
@@ -123,6 +132,9 @@ export default function WorkoutSessionPage() {
 
   const { user } = useUser();
   const firestore = useFirestore();
+  
+  const [sessionExercises, setSessionExercises] = useState<WorkoutExercise[]>([]);
+  const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
 
   const workoutDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -131,6 +143,13 @@ export default function WorkoutSessionPage() {
 
   const { data: workout, isLoading: isLoadingWorkout } =
     useDoc<CustomWorkout>(workoutDocRef);
+
+  useEffect(() => {
+    if (workout?.exercises) {
+      // Initialize session exercises when workout data loads
+      setSessionExercises(workout.exercises);
+    }
+  }, [workout]);
 
   const exercisePreferencesQuery = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
@@ -162,9 +181,9 @@ export default function WorkoutSessionPage() {
   const [selectedVideo, setSelectedVideo] = useState<FindExerciseVideoOutput['videos'][0] | null>(null);
 
   const exerciseGroups = useMemo(() => {
-    if (!workout?.exercises) return [];
-    return groupExercises(workout.exercises);
-  }, [workout]);
+    if (!sessionExercises) return [];
+    return groupExercises(sessionExercises);
+  }, [sessionExercises]);
 
   // Initialize/reset exercise states when workout or group changes
   useEffect(() => {
@@ -225,7 +244,14 @@ export default function WorkoutSessionPage() {
     setVideoResults({ exerciseId: '', videos: [] }); // Close dialog
     setSelectedVideo(null);
   };
-
+  
+  const handleUnitChange = (exerciseId: string, newUnit: WorkoutExercise['unit']) => {
+    setSessionExercises(prevExercises =>
+      prevExercises.map(ex =>
+        ex.id === exerciseId ? { ...ex, unit: newUnit } : ex
+      )
+    );
+  };
 
   if (isLoadingWorkout || isLoadingPreferences) {
     return <div>Loading workout...</div>;
@@ -515,10 +541,11 @@ export default function WorkoutSessionPage() {
         <Progress value={progressValue} className="h-2" />
       </div>
 
-      {currentGroup.map((exercise, index) => {
+      {currentGroup.map((exercise) => {
         const state = exerciseStates[exercise.id];
-        if (!state) return <div key={index}>Loading exercise...</div>;
+        if (!state) return <div key={exercise.id}>Loading exercise...</div>;
 
+        const isEditing = editingExerciseId === exercise.id;
         const isExerciseComplete = state.currentSet > exercise.sets;
         const unit = exercise.unit || 'reps';
         
@@ -527,13 +554,35 @@ export default function WorkoutSessionPage() {
         return (
           <Card key={exercise.id} className={isExerciseComplete ? 'opacity-50' : ''}>
             <CardHeader>
-              <CardTitle className="text-2xl">{exercise.exerciseName}</CardTitle>
-              <CardDescription>
-                Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
-              </CardDescription>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle className="text-2xl">{exercise.exerciseName}</CardTitle>
+                        <CardDescription>
+                            Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
+                        </CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setEditingExerciseId(isEditing ? null : exercise.id)}>
+                        {isEditing ? <Save className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                {!isExerciseComplete && (
+                {isEditing ? (
+                    <div className="p-4 bg-secondary/50 rounded-lg">
+                        <Label>Edit Logging Method</Label>
+                        <Select value={unit} onValueChange={(newUnit) => handleUnitChange(exercise.id, newUnit as WorkoutExercise['unit'])}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="reps">Weight & Reps</SelectItem>
+                                <SelectItem value="reps-only">Reps Only</SelectItem>
+                                <SelectItem value="seconds">Seconds</SelectItem>
+                                <SelectItem value="bodyweight">Bodyweight</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                ) : !isExerciseComplete && (
                     <>
                         {unit === 'reps' && (
                             <div className="grid grid-cols-2 gap-4">
@@ -615,7 +664,7 @@ export default function WorkoutSessionPage() {
                     </div>
                  )}
             </CardContent>
-            <CardContent>
+             <CardContent>
               <Collapsible>
                 <div className="flex gap-2">
                     {videoId && (
@@ -629,7 +678,7 @@ export default function WorkoutSessionPage() {
                     <Button 
                         variant="outline" size="sm" className="w-full"
                         onClick={() => handleFindVideo(exercise.exerciseId, exercise.exerciseName)}
-                        disabled={findingVideoFor === exercise.exerciseId}
+                        disabled={findingVideoFor === exercise.id}
                     >
                         {findingVideoFor === exercise.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
                         <span className="ml-2">Find Video</span>
@@ -652,5 +701,3 @@ export default function WorkoutSessionPage() {
     </>
   );
 }
-
-    
