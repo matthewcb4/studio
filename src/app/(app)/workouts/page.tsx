@@ -70,15 +70,6 @@ import {
 } from "@/components/ui/accordion";
 import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import Image from 'next/image';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 const generateUniqueId = (): string => {
     return `_${Math.random().toString(36).substr(2, 9)}`;
@@ -812,5 +803,3 @@ export default function WorkoutsPage() {
     </Suspense>
   )
 }
-
-    
