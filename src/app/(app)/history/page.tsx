@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { format, parseISO } from "date-fns";
 import {
   Card,
@@ -37,14 +36,14 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import type { WorkoutLog, LoggedSet } from "@/lib/types";
-import { useCollection, useUser, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
+import type { WorkoutLog, LoggedSet, UserProfile } from "@/lib/types";
+import { useCollection, useUser, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking, useDoc } from "@/firebase";
 import { collection, query, orderBy, doc } from "firebase/firestore";
-import { Trash2, Star, Edit, Loader2 } from "lucide-react";
+import { Trash2, Star, Edit, Loader2, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
+import { ShareWorkoutDialog } from "@/components/share-workout-dialog";
 
 function StarRating({ rating }: { rating: number }) {
     if (rating < 1) return null;
@@ -213,6 +212,7 @@ function EditWorkoutLog({ log, onSave, onCancel }: { log: WorkoutLog, onSave: (u
 export default function HistoryPage() {
   const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
   const [editingLog, setEditingLog] = useState<WorkoutLog | null>(null);
+  const [sharingLog, setSharingLog] = useState<WorkoutLog | null>(null);
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -223,6 +223,11 @@ export default function HistoryPage() {
   }, [firestore, user]);
   
   const { data: workoutLogs, isLoading } = useCollection<WorkoutLog>(workoutLogsQuery);
+
+  const userProfileRef = useMemoFirebase(() =>
+    user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+  , [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
   const handleDeleteLog = (logId: string) => {
     if (!user) return;
@@ -253,6 +258,15 @@ export default function HistoryPage() {
           Review your past training sessions.
         </p>
       </div>
+
+       {sharingLog && userProfile && (
+            <ShareWorkoutDialog
+                log={sharingLog}
+                userProfile={userProfile}
+                isOpen={!!sharingLog}
+                onOpenChange={(isOpen) => { if (!isOpen) setSharingLog(null) }}
+            />
+        )}
 
       <Sheet onOpenChange={(isOpen) => !isOpen && setSelectedLog(null)}>
         <Card>
@@ -295,6 +309,9 @@ export default function HistoryPage() {
                           </SheetTrigger>
                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setEditingLog(log)}>
                                 <Edit className="h-4 w-4" />
+                           </Button>
+                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setSharingLog(log)}>
+                                <Share2 className="h-4 w-4" />
                            </Button>
                           <AlertDialog>
                               <AlertDialogTrigger asChild>
