@@ -287,8 +287,7 @@ export function MuscleHeatmap({
                 size = '10%'; 
                 }
                 
-                const zIndex = group === 'chest' ? 11 : 10;
-                return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} zIndex={zIndex} bodyType={bodyType} view={view} />;
+                return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} bodyType={bodyType} view={view} />;
             })}
             </div>
             {/* Layer 3: Main body outline PNG */}
