@@ -163,12 +163,13 @@ export default function SettingsPage() {
             description: "Your account and all associated data have been deleted."
         });
         router.push('/');
-    } catch (error: any) {
-        console.error("Error deleting account:", error);
+    } catch (error: unknown) {
+        const firebaseError = error as { code?: string; message: string; };
+        console.error("Error deleting account:", firebaseError);
         toast({
             variant: "destructive",
             title: "Deletion Failed",
-            description: error.message || "An error occurred. You may need to sign in again to delete your account.",
+            description: firebaseError.message || "An error occurred. You may need to sign in again to delete your account.",
         });
     } finally {
         setIsDeletingAccount(false);
@@ -184,12 +185,13 @@ export default function SettingsPage() {
                 description: "Your Facebook account has been successfully linked.",
             });
             // Force a re-render or state update if needed to reflect the change
-        } catch (error: any) {
-            console.error("Facebook linking error:", error);
+        } catch (error: unknown) {
+            const firebaseError = error as { code?: string; message: string; };
+            console.error("Facebook linking error:", firebaseError);
             let description = "An unknown error occurred.";
-            if (error.code === 'auth/credential-already-in-use') {
+            if (firebaseError.code === 'auth/credential-already-in-use') {
                 description = "This Facebook account is already linked to another user.";
-            } else if (error.code === 'auth/popup-closed-by-user') {
+            } else if (firebaseError.code === 'auth/popup-closed-by-user') {
                 description = "The sign-in window was closed before linking was complete.";
             }
             toast({
@@ -549,3 +551,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
