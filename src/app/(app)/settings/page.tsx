@@ -163,7 +163,7 @@ export default function SettingsPage() {
             description: "Your account and all associated data have been deleted."
         });
         router.push('/');
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
         console.error("Error deleting account:", error);
         toast({
             variant: "destructive",
