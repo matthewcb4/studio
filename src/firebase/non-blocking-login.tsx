@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Auth, // Import Auth type for type hinting
@@ -6,6 +7,7 @@ import {
   signInWithEmailAndPassword,
   signInWithRedirect,
   GoogleAuthProvider,
+  FacebookAuthProvider,
   // Assume getAuth and app are initialized elsewhere
 } from 'firebase/auth';
 
@@ -37,3 +39,13 @@ export function initiateGoogleSignIn(authInstance: Auth): void {
   signInWithRedirect(authInstance, provider);
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
+
+/** Initiate Facebook sign-in with a redirect (non-blocking). */
+export function initiateFacebookSignIn(authInstance: Auth): void {
+  const provider = new FacebookAuthProvider();
+  // CRITICAL: Call signInWithRedirect directly. Do NOT use 'await signInWithRedirect(...)'.
+  signInWithRedirect(authInstance, provider);
+  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+}
+
+    
