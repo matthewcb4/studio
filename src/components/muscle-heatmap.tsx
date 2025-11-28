@@ -1,12 +1,11 @@
 
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import Image from 'next/image';
 import type { UserProfile, WorkoutLog, Exercise } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { differenceInDays } from 'date-fns';
 
@@ -30,13 +29,14 @@ const categoryToMuscleGroup: Record<string, string[]> = {
 const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
     // Front
-    shoulders: { top: '25.5%', left: '40%' },
+    shoulders_front: { top: '25.5%', left: '40%' },
     chest: { top: '28%', left: '49.5%' },
     abs: { top: '42%', left: '49.5%' },
     biceps: { top: '25%', left: '33%' },
     quads: { top: '58%', left: '44%' },
     // Back
     traps: { top: '24%', left: '48%' },
+    shoulders_back: { top: '25.5%', left: '40%' },
     lats: { top: '35%', left: '45%' },
     triceps: { top: '29%', left: '35%' },
     glutes: { top: '50%', left: '50%' },
@@ -46,13 +46,14 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
   Female: {
     // Front - Refined coordinates
-    shoulders: { top: '25.5%', left: '41%' },
+    shoulders_front: { top: '25.5%', left: '41%' },
     chest: { top: '29%', left: '50%' },
     abs: { top: '41%', left: '50%' },
     biceps: { top: '27%', left: '31%' },
     quads: { top: '60%', left: '46%' },
     // Back
     traps: { top: '25%', left: '50%' },
+    shoulders_back: { top: '25.5%', left: '40%' },
     lats: { top: '34%', left: '50%' },
     triceps: { top: '30%', left: '66%' },
     glutes: { top: '51%', left: '50%' },
@@ -62,10 +63,19 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
 };
 
-const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType }: { intensity: number; size: string; coords: { top: string, left: string }, zIndex?: number, bodyType: 'Male' | 'Female' }) => {
-  // Mirrored for shoulders, arms (biceps/triceps), and legs (quads/calves/hamstrings on front view)
-  const isMirrored = ['shoulders', 'biceps', 'triceps', 'quads', 'calves', 'hamstrings'].includes(Object.keys(heatmapCoordinates[bodyType]).find(key => heatmapCoordinates[bodyType][key] === coords) || '');
+const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType, view }: { intensity: number; size: string; coords: { top: string, left: string }, zIndex?: number, bodyType: 'Male' | 'Female', view: 'front' | 'back' }) => {
+  const muscle = Object.keys(heatmapCoordinates[bodyType]).find(key => heatmapCoordinates[bodyType][key] === coords);
+  
+  const frontMirrored = ['shoulders_front', 'biceps', 'quads'];
+  const backMirrored = ['traps', 'shoulders_back', 'lats', 'triceps', 'glutes', 'hamstrings', 'calves'];
 
+  let isMirrored = false;
+  if (view === 'front' && muscle && frontMirrored.includes(muscle)) {
+      isMirrored = true;
+  } else if (view === 'back' && muscle && backMirrored.includes(muscle)) {
+      isMirrored = true;
+  }
+  
   // Gradient: Blue (0%, hue 240) -> Green (50%, hue 100) -> Red (100%, hue 0)
   const hue = intensity <= 0.5
     ? 240 - (intensity * 2 * 140) // Transition from Blue (240) to deeper Green (100)
@@ -125,7 +135,6 @@ interface MuscleHeatmapProps {
 
 export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRangeLabel, isCard = true }: MuscleHeatmapProps) {
   const firestore = useFirestore();
-  const [view, setView] = useState<'front' | 'back'>('front');
 
   const exercisesQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'exercises')) : null,
@@ -138,7 +147,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
       chest: 0, back: 0, shoulders: 0, legs: 0, arms: 0, core: 0,
       quads: 0, hamstrings: 0, glutes: 0, calves: 0,
       lats: 0, traps: 0, back_lower: 0,
-      biceps: 0, triceps: 0, abs: 0
+      biceps: 0, triceps: 0, abs: 0, shoulders_front: 0, shoulders_back: 0,
     };
 
     if (!thisWeeksLogs || !masterExercises) return muscleGroupEffort;
@@ -169,6 +178,10 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
 
             muscleGroups.forEach(group => {
                 muscleGroupEffort[group] = (muscleGroupEffort[group] || 0) + decayedEffort;
+                if (group === 'shoulders') {
+                    muscleGroupEffort['shoulders_front'] += decayedEffort;
+                    muscleGroupEffort['shoulders_back'] += decayedEffort;
+                }
             });
           }
         }
@@ -203,72 +216,72 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     Male: "/Male_Back.png",
     Female: "/Female_Back.png"
   };
-  
-  const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
     
   if (isLoading || isLoadingExercises) {
     return <div className="text-center p-8">Loading heatmap...</div>;
   }
   
-  const frontMuscleGroups = ['shoulders', 'chest', 'abs', 'biceps', 'quads', 'calves'];
-  const backMuscleGroups = ['traps', 'shoulders', 'lats', 'back_lower', 'triceps', 'glutes', 'hamstrings', 'calves'];
+  const frontMuscleGroups = ['shoulders_front', 'chest', 'abs', 'biceps', 'quads'];
+  const backMuscleGroups = ['traps', 'shoulders_back', 'lats', 'back_lower', 'triceps', 'glutes', 'hamstrings', 'calves'];
 
-  const muscleGroupsToShow = view === 'front' ? frontMuscleGroups : backMuscleGroups;
-  
+  const renderBodyView = (view: 'front' | 'back') => {
+    const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
+    const muscleGroupsToShow = view === 'front' ? frontMuscleGroups : backMuscleGroups;
+    
+    return (
+        <div className="relative w-full mx-auto">
+            {/* This image is invisible but sets the container's aspect ratio */}
+            <Image
+            src={bodyImageUrl}
+            alt=""
+            width={200}
+            height={355}
+            className="relative object-contain w-full h-auto invisible"
+            unoptimized
+            aria-hidden="true"
+            />
+            {/* Layer 1: White Background */}
+            <div className="absolute inset-0 bg-white z-0"></div>
+            {/* Layer 2: Heatmap Glows */}
+            <div className="absolute inset-0 z-10">
+            {muscleGroupsToShow.map((group) => {
+                const coords = heatmapCoordinates[bodyType]?.[group];
+                if (!coords) return null;
+                
+                const intensity = muscleGroupIntensities[group] || 0;
+                if (intensity === 0) return null;
+                
+                let size = '18%';
+                if (group === 'glutes' || group === 'quads') {
+                size = '25%';
+                } else if (group === 'lats' || group === 'abs') {
+                size = '45%';
+                } else if (group === 'shoulders_front' || group === 'shoulders_back') {
+                size = '10%'; 
+                }
+                
+                const zIndex = group === 'chest' ? 11 : 10;
+                return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} zIndex={zIndex} bodyType={bodyType} view={view} />;
+            })}
+            </div>
+            {/* Layer 3: Main body outline PNG */}
+            <Image
+            src={bodyImageUrl}
+            alt={`${bodyType} body ${view} view`}
+            width={200}
+            height={355}
+            className="absolute inset-0 object-contain z-20 w-full h-auto"
+            unoptimized
+            />
+        </div>
+    );
+  }
+
   const content = (
-    <>
-      <div className="flex flex-col items-center gap-4 mb-4">
-        <div className="flex items-center gap-2">
-          <Button variant={view === 'front' ? 'default' : 'outline'} size="sm" onClick={() => setView('front')}>Front</Button>
-          <Button variant={view === 'back' ? 'default' : 'outline'} size="sm" onClick={() => setView('back')}>Back</Button>
-        </div>
-      </div>
-      <div className="relative w-full max-w-xs mx-auto">
-        {/* This image is invisible but sets the container's aspect ratio */}
-        <Image
-          src={bodyImageUrl}
-          alt=""
-          width={400}
-          height={711}
-          className="relative object-contain w-full h-auto invisible"
-          unoptimized
-          aria-hidden="true"
-        />
-        {/* Layer 1: White Background */}
-        <div className="absolute inset-0 bg-white z-0"></div>
-        {/* Layer 2: Heatmap Glows */}
-        <div className="absolute inset-0 z-10">
-          {muscleGroupsToShow.map((group) => {
-            const coords = heatmapCoordinates[bodyType]?.[group];
-            if (!coords) return null;
-            
-            const intensity = muscleGroupIntensities[group] || 0;
-            if (intensity === 0) return null;
-            
-            let size = '18%';
-            if (group === 'glutes' || group === 'quads') {
-              size = '25%';
-            } else if (group === 'lats' || group === 'abs') {
-              size = '45%';
-            } else if (group === 'shoulders') {
-              size = '10%'; 
-            }
-            
-            const zIndex = group === 'chest' ? 11 : 10;
-            return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} zIndex={zIndex} bodyType={bodyType} />;
-          })}
-        </div>
-        {/* Layer 3: Main body outline PNG */}
-        <Image
-          src={bodyImageUrl}
-          alt={`${bodyType} body ${view} view`}
-          width={400}
-          height={711}
-          className="absolute inset-0 object-contain z-20 w-full h-auto"
-          unoptimized
-        />
-      </div>
-    </>
+    <div className="flex justify-center items-start gap-2">
+        {renderBodyView('front')}
+        {renderBodyView('back')}
+    </div>
   );
 
   if (!isCard) {

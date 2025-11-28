@@ -100,9 +100,7 @@ function ShareableSummaryCard({ log, userProfile, thisWeeksLogs }: { log: Workou
                </div>
            </div>
            
-           <div className="w-full max-w-[200px] mx-auto">
-               <MuscleHeatmap userProfile={userProfile} thisWeeksLogs={thisWeeksLogs} isLoading={false} dateRangeLabel="this workout" isCard={false} />
-           </div>
+           <MuscleHeatmap userProfile={userProfile} thisWeeksLogs={thisWeeksLogs} isLoading={false} dateRangeLabel="this workout" isCard={false} />
         </div>
     );
 }
