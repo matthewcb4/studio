@@ -65,8 +65,6 @@ export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, us
                 unoptimized
                 aria-hidden="true"
             />
-            {/* Layer 1: White Background */}
-            <div className="absolute inset-0 bg-white z-0"></div>
             {/* Layer 2: Heatmap Glows */}
             <div className="absolute inset-0 z-10">
                 {relevantMuscleGroups.map((group) => {
@@ -78,7 +76,7 @@ export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, us
                     
                     let size = '18%';
                     if (group === 'glutes' || group === 'quads') size = '25%';
-                    else if (group === 'lats' || group === 'abs') size = '45%';
+                    else if (group === 'lats' || group === 'abs' || group === 'chest') size = '45%';
                     else if (group.includes('shoulders')) size = '10%';
                     
                     return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} bodyType={bodyType} view={view} />;
@@ -100,7 +98,7 @@ export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, us
                     const intensity = intensities[group] || 0;
                     if (!coords || intensity === 0) return null;
 
-                    const isMirrored = (view === 'front' && ['shoulders_front', 'biceps', 'quads'].includes(group)) || (view === 'back' && ['traps', 'shoulders_back', 'lats', 'triceps', 'glutes', 'hamstrings', 'calves'].includes(group));
+                    const isMirrored = (view === 'front' && ['shoulders_front', 'biceps', 'quads', 'chest'].includes(group)) || (view === 'back' && ['traps', 'shoulders_back', 'lats', 'triceps', 'glutes', 'hamstrings', 'calves'].includes(group));
 
                     return (
                         <React.Fragment key={`text-${group}`}>

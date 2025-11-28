@@ -66,7 +66,7 @@ export const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top:
 export const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType, view }: { intensity: number; size: string; coords: { top: string, left: string }, zIndex?: number, bodyType: 'Male' | 'Female', view: 'front' | 'back' }) => {
   const muscle = Object.keys(heatmapCoordinates[bodyType]).find(key => heatmapCoordinates[bodyType][key] === coords);
   
-  const frontMirrored = ['shoulders_front', 'biceps', 'quads'];
+  const frontMirrored = ['shoulders_front', 'biceps', 'quads', 'chest'];
   const backMirrored = ['traps', 'shoulders_back', 'lats', 'triceps', 'glutes', 'hamstrings', 'calves'];
 
   let isMirrored = false;
@@ -96,7 +96,6 @@ export const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType, view
           transform: 'translate(-50%, -50%)',
           opacity: Math.max(0.8, intensity * 0.9),
           filter: `blur(10px)`,
-          zIndex: zIndex,
         }}
       />
     ];
@@ -114,7 +113,6 @@ export const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType, view
             transform: 'translate(-50%, -50%)',
             opacity: Math.max(0.8, intensity * 0.9),
             filter: `blur(10px)`,
-            zIndex: zIndex,
           }}
         />
       );
@@ -267,8 +265,6 @@ export function MuscleHeatmap({
             unoptimized
             aria-hidden="true"
             />
-            {/* Layer 1: White Background */}
-            <div className="absolute inset-0 bg-white z-0"></div>
             {/* Layer 2: Heatmap Glows */}
             <div className="absolute inset-0 z-10">
             {muscleGroupsToShow.map((group) => {
@@ -281,7 +277,7 @@ export function MuscleHeatmap({
                 let size = '18%';
                 if (group === 'glutes' || group === 'quads') {
                 size = '25%';
-                } else if (group === 'lats' || group === 'abs') {
+                } else if (group === 'lats' || group === 'abs' || group === 'chest') {
                 size = '45%';
                 } else if (group === 'shoulders_front' || group === 'shoulders_back') {
                 size = '10%'; 
