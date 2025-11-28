@@ -105,7 +105,7 @@ export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, us
                     return (
                         <React.Fragment key={`text-${group}`}>
                             <div
-                                className="absolute p-1 rounded-md text-white bg-black/50 text-xs font-bold"
+                                className="absolute p-1 rounded-md text-white bg-black/75 text-[10px] font-bold"
                                 style={{
                                     top: coords.top,
                                     left: coords.left,
@@ -118,7 +118,7 @@ export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, us
                             </div>
                             {isMirrored && (
                                 <div
-                                    className="absolute p-1 rounded-md text-white bg-black/50 text-xs font-bold"
+                                    className="absolute p-1 rounded-md text-white bg-black/75 text-[10px] font-bold"
                                     style={{
                                         top: coords.top,
                                         left: `calc(100% - ${coords.left})`,
