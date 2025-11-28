@@ -211,7 +211,7 @@ export default function WorkoutSessionPage() {
   const [sessionLog, setSessionLog] = useState<Record<string, LoggedSet[]>>({});
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isFinishing, setIsFinishing] = useState(false);
-  const [isFinished, setIsFinished] = useState(isFinished);
+  const [isFinished, setIsFinished] = useState(false);
   const [finishedLog, setFinishedLog] = useState<WorkoutLog | null>(null);
   const [hoverRating, setHoverRating] = useState(0);
   const [currentRating, setCurrentRating] = useState(0);
@@ -796,5 +796,3 @@ export default function WorkoutSessionPage() {
     </>
   );
 }
-
-    
