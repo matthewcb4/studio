@@ -7,12 +7,12 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Loader2, Settings, Target, User as UserIcon, Dumbbell, FileText, Palette } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Settings, Target, User as UserIcon, Dumbbell, FileText, Palette, Link as LinkIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
-import { useCollection, useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteUser } from '@/firebase';
+import { useCollection, useUser, useFirestore, useAuth, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteUser, linkFacebookAccount } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { UserEquipment, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,8 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ThemeSelector } from '@/components/theme-selector';
+import { Facebook } from 'lucide-react';
+
 
 const equipmentFormSchema = z.object({
   name: z.string().min(2, { message: 'Equipment name must be at least 2 characters.' }),
@@ -45,6 +47,7 @@ const goalsFormSchema = z.object({
 
 export default function SettingsPage() {
   const { user } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -171,6 +174,33 @@ export default function SettingsPage() {
         setIsDeletingAccount(false);
     }
   };
+  
+    const handleLinkFacebook = async () => {
+        if (!auth) return;
+        try {
+            await linkFacebookAccount(auth);
+            toast({
+                title: "Account Linked!",
+                description: "Your Facebook account has been successfully linked.",
+            });
+            // Force a re-render or state update if needed to reflect the change
+        } catch (error: any) {
+            console.error("Facebook linking error:", error);
+            let description = "An unknown error occurred.";
+            if (error.code === 'auth/credential-already-in-use') {
+                description = "This Facebook account is already linked to another user.";
+            } else if (error.code === 'auth/popup-closed-by-user') {
+                description = "The sign-in window was closed before linking was complete.";
+            }
+            toast({
+                variant: "destructive",
+                title: "Linking Failed",
+                description: description,
+            });
+        }
+    };
+    
+    const isFacebookLinked = user?.providerData.some(p => p.providerId === 'facebook.com');
 
 
   return (
@@ -412,6 +442,38 @@ export default function SettingsPage() {
                 </div>
                 </CardContent>
             </AccordionContent>
+            </Card>
+        </AccordionItem>
+        <AccordionItem value="account-linking" className="border-none">
+            <Card>
+                <AccordionTrigger className="p-6 text-left">
+                    <div className="flex items-center gap-3">
+                        <LinkIcon className="w-6 h-6 text-primary" />
+                        <div>
+                            <CardTitle>Account Linking</CardTitle>
+                            <CardDescription className="mt-1.5 text-left">
+                                Connect other sign-in methods to your account.
+                            </CardDescription>
+                        </div>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <CardContent>
+                        <Button onClick={handleLinkFacebook} disabled={isFacebookLinked} className="w-full">
+                            {isFacebookLinked ? (
+                                <>
+                                    <Facebook className="mr-2 h-4 w-4" />
+                                    Facebook Account Linked
+                                </>
+                            ) : (
+                                <>
+                                    <Facebook className="mr-2 h-4 w-4" />
+                                    Link Facebook Account
+                                </>
+                            )}
+                        </Button>
+                    </CardContent>
+                </AccordionContent>
             </Card>
         </AccordionItem>
         <AccordionItem value="account" className="border-none">

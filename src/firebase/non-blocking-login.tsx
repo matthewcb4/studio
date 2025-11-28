@@ -8,6 +8,7 @@ import {
   signInWithRedirect,
   GoogleAuthProvider,
   FacebookAuthProvider,
+  linkWithPopup,
   // Assume getAuth and app are initialized elsewhere
 } from 'firebase/auth';
 
@@ -48,4 +49,12 @@ export function initiateFacebookSignIn(authInstance: Auth): void {
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
 
-    
+/** Link the current user with a Facebook account. */
+export async function linkFacebookAccount(authInstance: Auth): Promise<void> {
+  if (!authInstance.currentUser) {
+    throw new Error("No user is currently signed in.");
+  }
+  const provider = new FacebookAuthProvider();
+  // We use linkWithPopup here as it provides a better UX for account linking.
+  await linkWithPopup(authInstance.currentUser, provider);
+}
