@@ -255,16 +255,9 @@ export function MuscleHeatmap({
     const isClickable = !!onViewClick;
     const viewContainer = (
         <div className="relative w-full mx-auto">
-            {/* This image is invisible but sets the container's aspect ratio */}
-            <Image
-            src={bodyImageUrl}
-            alt=""
-            width={200}
-            height={355}
-            className="relative object-contain w-full h-auto invisible"
-            unoptimized
-            aria-hidden="true"
-            />
+            {/* Layer 1: Background Color */}
+            <div className="absolute inset-0 bg-white z-0"></div>
+            
             {/* Layer 2: Heatmap Glows */}
             <div className="absolute inset-0 z-10">
             {muscleGroupsToShow.map((group) => {
@@ -294,7 +287,7 @@ export function MuscleHeatmap({
             alt={`${bodyType} body ${view} view`}
             width={200}
             height={355}
-            className="absolute inset-0 object-contain z-20 w-full h-auto"
+            className="relative object-contain z-20 w-full h-auto"
             unoptimized
             />
         </div>

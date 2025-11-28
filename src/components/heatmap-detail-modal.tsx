@@ -55,16 +55,9 @@ export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, us
           <DialogTitle className="text-center">{view === 'front' ? 'Front View' : 'Back View'} Muscle Intensity</DialogTitle>
         </DialogHeader>
         <div className="relative w-full max-w-xs mx-auto mt-4">
-            {/* This image is invisible but sets the container's aspect ratio */}
-            <Image
-                src={imageUrl}
-                alt=""
-                width={300}
-                height={533}
-                className="relative object-contain w-full h-auto invisible"
-                unoptimized
-                aria-hidden="true"
-            />
+            {/* Layer 1: Background Color */}
+            <div className="absolute inset-0 bg-white z-0"></div>
+
             {/* Layer 2: Heatmap Glows */}
             <div className="absolute inset-0 z-10">
                 {relevantMuscleGroups.map((group) => {
@@ -94,7 +87,7 @@ export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, us
                 alt={`${bodyType} body ${view} view`}
                 width={300}
                 height={533}
-                className="absolute inset-0 object-contain z-20 w-full h-auto"
+                className="relative object-contain z-20 w-full h-auto"
                 unoptimized
             />
             {/* Layer 4: Text Labels */}
