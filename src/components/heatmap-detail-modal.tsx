@@ -11,7 +11,6 @@ import {
 import { HeatPoint, heatmapCoordinates, type MuscleGroupIntensities } from './muscle-heatmap';
 import type { UserProfile } from '@/lib/types';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 
 interface HeatmapDetailModalProps {
   isOpen: boolean;
