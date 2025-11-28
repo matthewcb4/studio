@@ -404,9 +404,9 @@ export default function WorkoutSessionPage() {
   const handleShareToFacebook = () => {
     if (!finishedLog) return;
     const shareUrl = "https://www.facebook.com/sharer/sharer.php";
-    // Use the public URL of your app
-    const appUrl = "https://frepo.app";
-    const quote = `I just crushed the '${finishedLog.workoutName}' workout on fRepo, lifting a total of ${finishedLog.volume.toLocaleString()} lbs! Come join me!`;
+    // Point to the app's public Play Store listing.
+    const appUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
+    const quote = `I just crushed the '${finishedLog.workoutName}' workout on fRepo, lifting a total of ${finishedLog.volume.toLocaleString()} lbs! Come join me and track your own progress!`;
     const fullUrl = `${shareUrl}?u=${encodeURIComponent(appUrl)}&quote=${encodeURIComponent(quote)}`;
     window.open(fullUrl, '_blank', 'width=600,height=400');
   };
