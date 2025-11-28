@@ -401,31 +401,26 @@ export default function WorkoutSessionPage() {
     });
   }
 
-  const handleShareToFacebook = () => {
+  const handleShareToFacebook = async () => {
     if (!finishedLog) return;
 
     const playStoreUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
     const shareText = `I just crushed the '${finishedLog.workoutName}' workout on fRepo, lifting a total of ${finishedLog.volume.toLocaleString()} lbs! Come join me and track your own progress!`;
 
-    // Try to use the modern Web Share API first
     if (navigator.share) {
       try {
-        // We don't await this, as we want the function to complete. 
-        // The share dialog is a native UI element.
-        navigator.share({
+        await navigator.share({
           title: 'My fRepo Workout',
           text: shareText,
           url: playStoreUrl,
         });
-        toast({ title: "Sharing..."});
+        toast({ title: "Shared successfully!"});
       } catch (error) {
-        // Fallback to the direct Facebook URL if Web Share fails
         console.error('Web Share API failed, falling back to URL:', error);
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
         window.open(facebookShareUrl, '_blank', 'width=600,height=400');
       }
     } else {
-      // Fallback for browsers that don't support Web Share API at all
       const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
       window.open(facebookShareUrl, '_blank', 'width=600,height=400');
     }
