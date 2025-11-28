@@ -78,5 +78,3 @@ export type ProgressLog = {
   date: string; // ISO string
   weight: number;
 };
-
-    
