@@ -405,7 +405,7 @@ export default function WorkoutSessionPage() {
     if (!finishedLog) return;
     const shareUrl = "https://www.facebook.com/sharer/sharer.php";
     // Use the public URL of your app
-    const appUrl = "https://studio-8653444803-84660.web.app"; 
+    const appUrl = "https://frepo.app";
     const quote = `I just crushed the '${finishedLog.workoutName}' workout on fRepo, lifting a total of ${finishedLog.volume.toLocaleString()} lbs! Come join me!`;
     const fullUrl = `${shareUrl}?u=${encodeURIComponent(appUrl)}&quote=${encodeURIComponent(quote)}`;
     window.open(fullUrl, '_blank', 'width=600,height=400');
