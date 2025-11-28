@@ -211,7 +211,7 @@ export default function WorkoutSessionPage() {
   const [sessionLog, setSessionLog] = useState<Record<string, LoggedSet[]>>({});
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isFinishing, setIsFinishing] = useState(false);
-  const [isFinished, setIsFinished] = useState(false);
+  const [isFinished, setIsFinished] = useState(isFinished);
   const [finishedLog, setFinishedLog] = useState<WorkoutLog | null>(null);
   const [hoverRating, setHoverRating] = useState(0);
   const [currentRating, setCurrentRating] = useState(0);
@@ -302,7 +302,7 @@ export default function WorkoutSessionPage() {
     try {
         const canvas = await html2canvas(shareCardRef.current, {
             useCORS: true,
-            backgroundColor: null, // Use transparent background
+            backgroundColor: null,
         });
         const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
 
@@ -312,19 +312,18 @@ export default function WorkoutSessionPage() {
                 await navigator.share({
                     title: 'My fRepo Workout',
                     text: shareText,
+                    url: playStoreUrl,
                     files: [file],
                 });
-                return; // Exit if share is successful
+                return;
             }
         }
         
-        // Fallback if file sharing is not supported or fails
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
         window.open(facebookShareUrl, '_blank', 'width=600,height=400');
     
     } catch (error) {
         console.error("Sharing failed:", error);
-        // Fallback for any error during canvas creation or sharing
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
         window.open(facebookShareUrl, '_blank', 'width=600,height=400');
     }
@@ -797,3 +796,5 @@ export default function WorkoutSessionPage() {
     </>
   );
 }
+
+    
