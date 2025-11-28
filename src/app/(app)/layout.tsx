@@ -161,7 +161,7 @@ function MobileNav() {
                     <span className="sr-only">Toggle navigation menu</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col bg-sidebar text-sidebar-foreground p-0">
+            <SheetContent side="left" className="flex flex-col bg-sidebar text-sidebar-foreground p-0 max-w-64">
                 <SheetHeader className="p-2 border-b">
                     <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                     <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2" onClick={() => setIsOpen(false)}>
