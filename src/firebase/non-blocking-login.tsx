@@ -44,6 +44,8 @@ export function initiateGoogleSignIn(authInstance: Auth): void {
 /** Initiate Facebook sign-in with a popup (non-blocking). */
 export function initiateFacebookSignIn(authInstance: Auth): void {
   const provider = new FacebookAuthProvider();
+  // Add the 'email' scope to request the user's email address
+  provider.addScope('email');
   // Use signInWithPopup for environments where redirects may be problematic.
   signInWithPopup(authInstance, provider);
 }
@@ -54,6 +56,7 @@ export async function linkFacebookAccount(authInstance: Auth): Promise<void> {
     throw new Error("No user is currently signed in.");
   }
   const provider = new FacebookAuthProvider();
+  provider.addScope('email');
   // We use linkWithPopup here as it provides a better UX for account linking.
   await linkWithPopup(authInstance.currentUser, provider);
 }
