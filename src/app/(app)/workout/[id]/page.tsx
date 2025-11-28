@@ -16,6 +16,7 @@ import {
   Youtube,
   Edit,
   Save,
+  Facebook,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -172,7 +173,7 @@ export default function WorkoutSessionPage() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isFinishing, setIsFinishing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-  const [finishedLogId, setFinishedLogId] = useState<string | null>(null);
+  const [finishedLog, setFinishedLog] = useState<WorkoutLog | null>(null);
   const [hoverRating, setHoverRating] = useState(0);
   const [currentRating, setCurrentRating] = useState(0);
   
@@ -359,7 +360,7 @@ export default function WorkoutSessionPage() {
       0
     );
 
-    const workoutLog: Omit<WorkoutLog, 'id'> = {
+    const newWorkoutLog: Omit<WorkoutLog, 'id'> = {
       userId: user.uid,
       workoutName: workout.name,
       date: new Date().toISOString(),
@@ -370,8 +371,8 @@ export default function WorkoutSessionPage() {
     };
 
     try {
-        const newLogRef = await addDoc(logsCollection, workoutLog);
-        setFinishedLogId(newLogRef.id);
+        const newLogRef = await addDoc(logsCollection, newWorkoutLog);
+        setFinishedLog({ ...newWorkoutLog, id: newLogRef.id });
         setIsFinished(true); // Move to summary screen
         toast({
             title: 'Workout Complete!',
@@ -390,9 +391,9 @@ export default function WorkoutSessionPage() {
   };
 
   const handleRatingSubmit = (rating: number) => {
-    if (!user || !finishedLogId) return;
+    if (!user || !finishedLog) return;
     setCurrentRating(rating);
-    const logDocRef = doc(firestore, `users/${user.uid}/workoutLogs`, finishedLogId);
+    const logDocRef = doc(firestore, `users/${user.uid}/workoutLogs`, finishedLog.id);
     updateDocumentNonBlocking(logDocRef, { rating });
     toast({
         title: 'Rating Saved!',
@@ -400,9 +401,18 @@ export default function WorkoutSessionPage() {
     });
   }
 
+  const handleShareToFacebook = () => {
+    if (!finishedLog) return;
+    const shareUrl = "https://www.facebook.com/sharer/sharer.php";
+    const appUrl = window.location.origin;
+    const quote = `I just crushed the '${finishedLog.workoutName}' workout on fRepo, lifting a total of ${finishedLog.volume.toLocaleString()} lbs! Come join me!`;
+    const fullUrl = `${shareUrl}?u=${encodeURIComponent(appUrl)}&quote=${encodeURIComponent(quote)}`;
+    window.open(fullUrl, '_blank', 'width=600,height=400');
+  };
+
   const progressValue = totalGroups > 0 ? ((currentGroupIndex) / totalGroups) * 100 : 0;
   
-  if (isFinished) {
+  if (isFinished && finishedLog) {
     return (
       <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center">
         <CheckCircle className="w-24 h-24 text-green-500 mb-4" />
@@ -425,28 +435,33 @@ export default function WorkoutSessionPage() {
         </div>
         <Card className="w-full text-left">
           <CardHeader>
-            <CardTitle>{workout.name}</CardTitle>
+            <CardTitle>{finishedLog.workoutName}</CardTitle>
             <CardDescription>Session Summary</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Total Time</span>
               <span className="font-bold text-primary">
-                {formatTime(elapsedTime)}
+                {finishedLog.duration}
+              </span>
+            </div>
+             <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Total Volume</span>
+              <span className="font-bold text-primary">
+                {finishedLog.volume.toLocaleString()} lbs
               </span>
             </div>
             <div className="space-y-2">
-              {Object.entries(sessionLog).map(([exerciseId, sets]) => {
-                const exercise = workout.exercises.find((e) => e.id === exerciseId);
-                const totalVolume = sets.reduce(
+              {finishedLog.exercises.map((exercise) => {
+                const totalVolume = exercise.sets.reduce(
                   (acc, set) => acc + (set.weight || 0) * (set.reps || 0),
                   0
                 );
                 return (
-                  <div key={exerciseId} className="text-sm">
-                    <p className="font-medium">{exercise?.exerciseName}</p>
+                  <div key={exercise.exerciseId} className="text-sm">
+                    <p className="font-medium">{exercise.exerciseName}</p>
                     <p className="text-muted-foreground">
-                      {sets.length} sets, Total Volume: {totalVolume.toLocaleString()} lbs
+                      {exercise.sets.length} sets, Total Volume: {totalVolume.toLocaleString()} lbs
                     </p>
                   </div>
                 );
@@ -454,9 +469,14 @@ export default function WorkoutSessionPage() {
             </div>
           </CardContent>
         </Card>
-        <Button onClick={() => router.push('/history')} className="w-full mt-6">
-          View in History
-        </Button>
+        <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Button onClick={() => router.push('/history')} className="w-full">
+            View in History
+            </Button>
+            <Button onClick={handleShareToFacebook} className="w-full" variant="outline">
+                <Facebook className="mr-2 h-4 w-4" /> Share to Facebook
+            </Button>
+        </div>
       </div>
     );
   }
@@ -701,3 +721,5 @@ export default function WorkoutSessionPage() {
     </>
   );
 }
+
+    
