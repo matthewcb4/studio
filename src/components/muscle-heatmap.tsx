@@ -63,7 +63,7 @@ export const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top:
   },
 };
 
-export const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType, view }: { intensity: number; size: string; coords: { top: string, left: string }, zIndex?: number, bodyType: 'Male' | 'Female', view: 'front' | 'back' }) => {
+export const HeatPoint = ({ intensity, size, coords, bodyType, view }: { intensity: number; size: string; coords: { top: string, left: string }, bodyType: 'Male' | 'Female', view: 'front' | 'back' }) => {
   const muscle = Object.keys(heatmapCoordinates[bodyType]).find(key => heatmapCoordinates[bodyType][key] === coords);
   
   const frontMirrored = ['shoulders_front', 'biceps', 'quads', 'chest'];
@@ -276,11 +276,13 @@ export function MuscleHeatmap({
                 
                 let size = '18%';
                 if (group === 'glutes' || group === 'quads') {
-                size = '25%';
-                } else if (group === 'lats' || group === 'abs' || group === 'chest') {
-                size = '45%';
+                    size = '25%';
+                } else if (group === 'lats' || group === 'abs') {
+                    size = '45%';
+                } else if (group === 'chest') {
+                    size = '30%';
                 } else if (group === 'shoulders_front' || group === 'shoulders_back') {
-                size = '10%'; 
+                    size = '10%'; 
                 }
                 
                 return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} bodyType={bodyType} view={view} />;

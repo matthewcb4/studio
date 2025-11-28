@@ -75,9 +75,15 @@ export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, us
                     if (intensity === 0) return null;
                     
                     let size = '18%';
-                    if (group === 'glutes' || group === 'quads') size = '25%';
-                    else if (group === 'lats' || group === 'abs' || group === 'chest') size = '45%';
-                    else if (group.includes('shoulders')) size = '10%';
+                    if (group === 'glutes' || group === 'quads') {
+                        size = '25%';
+                    } else if (group === 'lats' || group === 'abs') {
+                        size = '45%';
+                    } else if (group === 'chest') {
+                        size = '30%';
+                    } else if (group.includes('shoulders')) {
+                        size = '10%';
+                    }
                     
                     return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} bodyType={bodyType} view={view} />;
                 })}
