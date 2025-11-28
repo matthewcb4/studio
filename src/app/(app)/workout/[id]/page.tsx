@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   CheckCircle,
@@ -20,6 +20,7 @@ import {
   Share2,
 } from 'lucide-react';
 import Image from 'next/image';
+import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -55,7 +56,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -80,56 +80,31 @@ import { MuscleHeatmap } from '@/components/muscle-heatmap';
 import Logo from '@/components/logo';
 
 function ShareableSummaryCard({ log, userProfile, thisWeeksLogs }: { log: WorkoutLog, userProfile: UserProfile | null, thisWeeksLogs: WorkoutLog[] }) {
-    const { toast } = useToast();
-    const handleShare = () => {
-        const playStoreUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
-        const shareText = `I just crushed the '${log.workoutName}' workout on fRepo, lifting a total of ${log.volume.toLocaleString()} lbs! Come join me and track your own progress!`;
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
-        window.open(facebookShareUrl, '_blank', 'width=600,height=400');
-    };
-
     return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Share Your Workout</DialogTitle>
-                <DialogDescription>
-                    Take a screenshot of the card below and share it with your friends!
-                </DialogDescription>
-            </DialogHeader>
-            
-            <div className="p-4 bg-secondary rounded-lg" id="share-card">
-                 <div className="bg-background rounded-lg p-6">
-                    <div className="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 className="text-2xl font-bold text-primary">{log.workoutName}</h3>
-                            <p className="text-sm text-muted-foreground">Workout Complete!</p>
-                        </div>
-                        <Logo className="h-10 w-10" />
-                    </div>
+        <div className="bg-background rounded-lg p-6 w-[400px]">
+           <div className="flex justify-between items-start mb-4">
+               <div>
+                   <h3 className="text-2xl font-bold text-primary">{log.workoutName}</h3>
+                   <p className="text-sm text-muted-foreground">Workout Complete!</p>
+               </div>
+               <Logo className="h-10 w-10" />
+           </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-center mb-6">
-                        <div>
-                            <p className="text-xs text-muted-foreground">Time</p>
-                            <p className="text-2xl font-bold">{log.duration}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">Volume</p>
-                            <p className="text-2xl font-bold">{log.volume.toLocaleString()} lbs</p>
-                        </div>
-                    </div>
-                    
-                    <div className="w-full max-w-[200px] mx-auto">
-                        <MuscleHeatmap userProfile={userProfile} thisWeeksLogs={thisWeeksLogs} isLoading={false} dateRangeLabel="this workout" isCard={false} />
-                    </div>
-                 </div>
-            </div>
-
-            <DialogFooter className="sm:justify-between gap-2">
-                 <Button onClick={handleShare} className="w-full">
-                    <Facebook className="mr-2 h-4 w-4" /> Share to Facebook
-                </Button>
-            </DialogFooter>
-        </DialogContent>
+           <div className="grid grid-cols-2 gap-4 text-center mb-6">
+               <div>
+                   <p className="text-xs text-muted-foreground">Time</p>
+                   <p className="text-2xl font-bold">{log.duration}</p>
+               </div>
+               <div>
+                   <p className="text-xs text-muted-foreground">Volume</p>
+                   <p className="text-2xl font-bold">{log.volume.toLocaleString()} lbs</p>
+               </div>
+           </div>
+           
+           <div className="w-full max-w-[200px] mx-auto">
+               <MuscleHeatmap userProfile={userProfile} thisWeeksLogs={thisWeeksLogs} isLoading={false} dateRangeLabel="this workout" isCard={false} />
+           </div>
+        </div>
     );
 }
 
@@ -195,7 +170,7 @@ export default function WorkoutSessionPage() {
   
   const [sessionExercises, setSessionExercises] = useState<WorkoutExercise[]>([]);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   const workoutDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -317,6 +292,43 @@ export default function WorkoutSessionPage() {
         ex.id === exerciseId ? { ...ex, unit: newUnit } : ex
       )
     );
+  };
+
+  const handleShare = async () => {
+    if (!shareCardRef.current || !finishedLog) return;
+
+    const playStoreUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
+    const shareText = `I just crushed the '${finishedLog.workoutName}' workout on fRepo, lifting a total of ${finishedLog.volume.toLocaleString()} lbs! Come join me and track your own progress!`;
+
+    try {
+        const canvas = await html2canvas(shareCardRef.current, {
+            useCORS: true,
+            backgroundColor: null, // Use transparent background
+        });
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+
+        if (blob && navigator.share) {
+            const file = new File([blob], 'workout.png', { type: 'image/png' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: 'My fRepo Workout',
+                    text: shareText,
+                    files: [file],
+                });
+                return; // Exit if share is successful
+            }
+        }
+        
+        // Fallback if file sharing is not supported or fails
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
+        window.open(facebookShareUrl, '_blank', 'width=600,height=400');
+    
+    } catch (error) {
+        console.error("Sharing failed:", error);
+        // Fallback for any error during canvas creation or sharing
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
+        window.open(facebookShareUrl, '_blank', 'width=600,height=400');
+    }
   };
 
   if (isLoadingWorkout || isLoadingPreferences) {
@@ -471,9 +483,12 @@ export default function WorkoutSessionPage() {
   if (isFinished && finishedLog) {
     return (
       <>
-        <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-          <ShareableSummaryCard log={finishedLog} userProfile={userProfile || null} thisWeeksLogs={[finishedLog]}/>
-        </Dialog>
+        {/* Off-screen element for capturing */}
+        <div style={{ position: 'fixed', top: '-9999px', left: '-9999px' }} >
+          <div ref={shareCardRef}>
+            <ShareableSummaryCard log={finishedLog} userProfile={userProfile || null} thisWeeksLogs={[finishedLog]}/>
+          </div>
+        </div>
 
         <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center">
             <CheckCircle className="w-24 h-24 text-green-500 mb-4" />
@@ -534,7 +549,7 @@ export default function WorkoutSessionPage() {
                 <Button onClick={() => router.push('/history')} className="w-full">
                 View in History
                 </Button>
-                <Button onClick={() => setIsShareDialogOpen(true)} className="w-full" variant="outline">
+                <Button onClick={handleShare} className="w-full" variant="outline">
                     <Share2 className="mr-2 h-4 w-4" /> Share Workout
                 </Button>
             </div>
