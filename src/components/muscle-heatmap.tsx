@@ -120,9 +120,10 @@ interface MuscleHeatmapProps {
   thisWeeksLogs: WorkoutLog[];
   isLoading: boolean;
   dateRangeLabel: string;
+  isCard?: boolean;
 }
 
-export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRangeLabel }: MuscleHeatmapProps) {
+export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRangeLabel, isCard = true }: MuscleHeatmapProps) {
   const firestore = useFirestore();
   const [view, setView] = useState<'front' | 'back'>('front');
 
@@ -214,69 +215,75 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
 
   const muscleGroupsToShow = view === 'front' ? frontMuscleGroups : backMuscleGroups;
   
+  const content = (
+    <>
+      <div className="flex flex-col items-center gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <Button variant={view === 'front' ? 'default' : 'outline'} size="sm" onClick={() => setView('front')}>Front</Button>
+          <Button variant={view === 'back' ? 'default' : 'outline'} size="sm" onClick={() => setView('back')}>Back</Button>
+        </div>
+      </div>
+      <div className="relative w-full max-w-xs mx-auto">
+        {/* This image is invisible but sets the container's aspect ratio */}
+        <Image
+          src={bodyImageUrl}
+          alt=""
+          width={400}
+          height={711}
+          className="relative object-contain w-full h-auto invisible"
+          unoptimized
+          aria-hidden="true"
+        />
+        {/* Layer 1: White Background */}
+        <div className="absolute inset-0 bg-white z-0"></div>
+        {/* Layer 2: Heatmap Glows */}
+        <div className="absolute inset-0 z-10">
+          {muscleGroupsToShow.map((group) => {
+            const coords = heatmapCoordinates[bodyType]?.[group];
+            if (!coords) return null;
+            
+            const intensity = muscleGroupIntensities[group] || 0;
+            if (intensity === 0) return null;
+            
+            let size = '18%';
+            if (group === 'glutes' || group === 'quads') {
+              size = '25%';
+            } else if (group === 'lats' || group === 'abs') {
+              size = '45%';
+            } else if (group === 'shoulders') {
+              size = '10%'; 
+            }
+            
+            const zIndex = group === 'chest' ? 11 : 10;
+            return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} zIndex={zIndex} bodyType={bodyType} />;
+          })}
+        </div>
+        {/* Layer 3: Main body outline PNG */}
+        <Image
+          src={bodyImageUrl}
+          alt={`${bodyType} body ${view} view`}
+          width={400}
+          height={711}
+          className="absolute inset-0 object-contain z-20 w-full h-auto"
+          unoptimized
+        />
+      </div>
+    </>
+  );
+
+  if (!isCard) {
+    return content;
+  }
+
   return (
     <Card>
-        <CardHeader>
-            <CardTitle>Muscle Heatmap</CardTitle>
-            <CardDescription>Muscles worked in the {dateRangeLabel.toLowerCase()}.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="flex flex-col items-center gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                  <Button variant={view === 'front' ? 'default' : 'outline'} size="sm" onClick={() => setView('front')}>Front</Button>
-                  <Button variant={view === 'back' ? 'default' : 'outline'} size="sm" onClick={() => setView('back')}>Back</Button>
-              </div>
-            </div>
-
-            <div className="relative w-full max-w-xs mx-auto">
-              {/* This image is invisible but sets the container's aspect ratio */}
-              <Image
-                src={bodyImageUrl}
-                alt=""
-                width={400}
-                height={711}
-                className="relative object-contain w-full h-auto invisible"
-                unoptimized
-                aria-hidden="true"
-              />
-
-              {/* Layer 1: White Background */}
-              <div className="absolute inset-0 bg-white z-0"></div>
-
-               {/* Layer 2: Heatmap Glows */}
-              <div className="absolute inset-0 z-10">
-                {muscleGroupsToShow.map((group) => {
-                  const coords = heatmapCoordinates[bodyType]?.[group];
-                  if (!coords) return null;
-                  
-                  const intensity = muscleGroupIntensities[group] || 0;
-                  if (intensity === 0) return null;
-                  
-                  let size = '18%';
-                  if (group === 'glutes' || group === 'quads') {
-                      size = '25%';
-                  } else if (group === 'lats' || group === 'abs') {
-                      size = '45%';
-                  } else if (group === 'shoulders') {
-                      size = '10%'; 
-                  }
-                  
-                  const zIndex = group === 'chest' ? 11 : 10;
-
-                  return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} zIndex={zIndex} bodyType={bodyType} />;
-                })}
-              </div>
-              {/* Layer 3: Main body outline PNG */}
-              <Image
-                src={bodyImageUrl}
-                alt={`${bodyType} body ${view} view`}
-                width={400}
-                height={711}
-                className="absolute inset-0 object-contain z-20 w-full h-auto"
-                unoptimized
-              />
-            </div>
-        </CardContent>
+      <CardHeader>
+        <CardTitle>Muscle Heatmap</CardTitle>
+        <CardDescription>Muscles worked in the {dateRangeLabel.toLowerCase()}.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {content}
+      </CardContent>
     </Card>
   );
 }

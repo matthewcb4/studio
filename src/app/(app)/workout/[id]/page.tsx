@@ -17,6 +17,7 @@ import {
   Edit,
   Save,
   Facebook,
+  Share2,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog, LoggedExercise, WorkoutLog } from '@/lib/types';
+import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog, LoggedExercise, WorkoutLog, UserProfile, Exercise } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -54,6 +55,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -74,6 +76,63 @@ import {
 import { doc, collection, addDoc, query, orderBy, limit } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
 import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
+import { MuscleHeatmap } from '@/components/muscle-heatmap';
+import Logo from '@/components/logo';
+
+function ShareableSummaryCard({ log, userProfile, thisWeeksLogs }: { log: WorkoutLog, userProfile: UserProfile | null, thisWeeksLogs: WorkoutLog[] }) {
+    const { toast } = useToast();
+    const handleShare = () => {
+        const playStoreUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
+        const shareText = `I just crushed the '${log.workoutName}' workout on fRepo, lifting a total of ${log.volume.toLocaleString()} lbs! Come join me and track your own progress!`;
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
+        window.open(facebookShareUrl, '_blank', 'width=600,height=400');
+    };
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Share Your Workout</DialogTitle>
+                <DialogDescription>
+                    Take a screenshot of the card below and share it with your friends!
+                </DialogDescription>
+            </DialogHeader>
+            
+            <div className="p-4 bg-secondary rounded-lg" id="share-card">
+                 <div className="bg-background rounded-lg p-6">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 className="text-2xl font-bold text-primary">{log.workoutName}</h3>
+                            <p className="text-sm text-muted-foreground">Workout Complete!</p>
+                        </div>
+                        <Logo className="h-10 w-10" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-center mb-6">
+                        <div>
+                            <p className="text-xs text-muted-foreground">Time</p>
+                            <p className="text-2xl font-bold">{log.duration}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">Volume</p>
+                            <p className="text-2xl font-bold">{log.volume.toLocaleString()} lbs</p>
+                        </div>
+                    </div>
+                    
+                    <div className="w-full max-w-[200px] mx-auto">
+                        <MuscleHeatmap userProfile={userProfile} thisWeeksLogs={thisWeeksLogs} isLoading={false} dateRangeLabel="this workout" isCard={false} />
+                    </div>
+                 </div>
+            </div>
+
+            <DialogFooter className="sm:justify-between gap-2">
+                 <Button onClick={handleShare} className="w-full">
+                    <Facebook className="mr-2 h-4 w-4" /> Share to Facebook
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    );
+}
+
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -136,6 +195,7 @@ export default function WorkoutSessionPage() {
   
   const [sessionExercises, setSessionExercises] = useState<WorkoutExercise[]>([]);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const workoutDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -162,6 +222,11 @@ export default function WorkoutSessionPage() {
   , [firestore, user]);
   const { data: latestProgress } = useCollection<ProgressLog>(progressLogsQuery);
   const latestWeight = latestProgress?.[0]?.weight || 150;
+  
+  const userProfileRef = useMemoFirebase(() =>
+    user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+  , [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
 
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
@@ -401,84 +466,80 @@ export default function WorkoutSessionPage() {
     });
   }
 
-  const handleShareToFacebook = () => {
-    if (!finishedLog) return;
-
-    const playStoreUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
-    const shareText = `I just crushed the '${finishedLog.workoutName}' workout on fRepo, lifting a total of ${finishedLog.volume.toLocaleString()} lbs! Come join me and track your own progress!`;
-
-    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
-    window.open(facebookShareUrl, '_blank', 'width=600,height=400');
-  };
-
   const progressValue = totalGroups > 0 ? ((currentGroupIndex) / totalGroups) * 100 : 0;
   
   if (isFinished && finishedLog) {
     return (
-      <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center">
-        <CheckCircle className="w-24 h-24 text-green-500 mb-4" />
-        <h1 className="text-4xl font-bold mb-2">Workout Logged!</h1>
-        <p className="text-muted-foreground text-lg mb-6">
-          Great job finishing your workout. How would you rate it?
-        </p>
-        <div className="flex items-center gap-2 mb-6">
-            {[1,2,3,4,5].map(star => (
-                <Star
-                    key={star}
-                    className="w-10 h-10 cursor-pointer transition-colors"
-                    fill={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'transparent'}
-                    stroke={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'currentColor'}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => handleRatingSubmit(star)}
-                />
-            ))}
+      <>
+        <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+          <ShareableSummaryCard log={finishedLog} userProfile={userProfile || null} thisWeeksLogs={[finishedLog]}/>
+        </Dialog>
+
+        <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center">
+            <CheckCircle className="w-24 h-24 text-green-500 mb-4" />
+            <h1 className="text-4xl font-bold mb-2">Workout Logged!</h1>
+            <p className="text-muted-foreground text-lg mb-6">
+            Great job finishing your workout. How would you rate it?
+            </p>
+            <div className="flex items-center gap-2 mb-6">
+                {[1,2,3,4,5].map(star => (
+                    <Star
+                        key={star}
+                        className="w-10 h-10 cursor-pointer transition-colors"
+                        fill={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'transparent'}
+                        stroke={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'currentColor'}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => handleRatingSubmit(star)}
+                    />
+                ))}
+            </div>
+            <Card className="w-full text-left">
+            <CardHeader>
+                <CardTitle>{finishedLog.workoutName}</CardTitle>
+                <CardDescription>Session Summary</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Total Time</span>
+                <span className="font-bold text-primary">
+                    {finishedLog.duration}
+                </span>
+                </div>
+                <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Total Volume</span>
+                <span className="font-bold text-primary">
+                    {finishedLog.volume.toLocaleString()} lbs
+                </span>
+                </div>
+                <div className="space-y-2">
+                {finishedLog.exercises.map((exercise) => {
+                    const totalVolume = exercise.sets.reduce(
+                    (acc, set) => acc + (set.weight || 0) * (set.reps || 0),
+                    0
+                    );
+                    return (
+                    <div key={exercise.exerciseId} className="text-sm">
+                        <p className="font-medium">{exercise.exerciseName}</p>
+                        <p className="text-muted-foreground">
+                        {exercise.sets.length} sets, Total Volume: {totalVolume.toLocaleString()} lbs
+                        </p>
+                    </div>
+                    );
+                })}
+                </div>
+            </CardContent>
+            </Card>
+            <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button onClick={() => router.push('/history')} className="w-full">
+                View in History
+                </Button>
+                <Button onClick={() => setIsShareDialogOpen(true)} className="w-full" variant="outline">
+                    <Share2 className="mr-2 h-4 w-4" /> Share Workout
+                </Button>
+            </div>
         </div>
-        <Card className="w-full text-left">
-          <CardHeader>
-            <CardTitle>{finishedLog.workoutName}</CardTitle>
-            <CardDescription>Session Summary</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Total Time</span>
-              <span className="font-bold text-primary">
-                {finishedLog.duration}
-              </span>
-            </div>
-             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Total Volume</span>
-              <span className="font-bold text-primary">
-                {finishedLog.volume.toLocaleString()} lbs
-              </span>
-            </div>
-            <div className="space-y-2">
-              {finishedLog.exercises.map((exercise) => {
-                const totalVolume = exercise.sets.reduce(
-                  (acc, set) => acc + (set.weight || 0) * (set.reps || 0),
-                  0
-                );
-                return (
-                  <div key={exercise.exerciseId} className="text-sm">
-                    <p className="font-medium">{exercise.exerciseName}</p>
-                    <p className="text-muted-foreground">
-                      {exercise.sets.length} sets, Total Volume: {totalVolume.toLocaleString()} lbs
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-        <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Button onClick={() => router.push('/history')} className="w-full">
-            View in History
-            </Button>
-            <Button onClick={handleShareToFacebook} className="w-full" variant="outline">
-                <Facebook className="mr-2 h-4 w-4" /> Share to Facebook
-            </Button>
-        </div>
-      </div>
+      </>
     );
   }
 

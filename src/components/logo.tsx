@@ -10,7 +10,7 @@ const Logo = (props: ComponentProps<'div'>) => (
       alt="fRepo Logo"
       width={40}
       height={40}
-      className={cn('object-contain', props.className)}
+      className={cn('object-contain dark:invert', props.className)}
     />
   </div>
 );
