@@ -33,7 +33,8 @@ import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocum
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise, LoggedSet } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp, Star } from "lucide-react";
-import { MuscleHeatmap } from "@/components/muscle-heatmap";
+import { MuscleHeatmap, type MuscleGroupIntensities } from "@/components/muscle-heatmap";
+import { HeatmapDetailModal } from "@/components/heatmap-detail-modal";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { MuscleGroupVolumeChart } from "@/components/muscle-group-chart";
 import { QuickLogForm } from "@/components/quick-log-form";
@@ -171,6 +172,10 @@ export default function DashboardPage() {
   const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
   const [dateRange, setDateRange] = useState('7');
   
+  const [heatmapModalOpen, setHeatmapModalOpen] = useState(false);
+  const [selectedHeatmapView, setSelectedHeatmapView] = useState<'front' | 'back' | null>(null);
+  const [muscleIntensities, setMuscleIntensities] = useState<MuscleGroupIntensities>({});
+
   const customWorkoutsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return collection(firestore, `users/${user.uid}/customWorkouts`);
@@ -226,6 +231,10 @@ export default function DashboardPage() {
     return null;
   }, [selectedExerciseId, masterExercises]);
 
+  const handleHeatmapView = (view: 'front' | 'back') => {
+    setSelectedHeatmapView(view);
+    setHeatmapModalOpen(true);
+  };
 
   const handleOnboardingComplete = () => {
     if (userProfileRef) {
@@ -297,6 +306,16 @@ export default function DashboardPage() {
     <>
         <OnboardingModal isOpen={showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
         
+        {selectedHeatmapView && (
+            <HeatmapDetailModal
+                isOpen={heatmapModalOpen}
+                onOpenChange={setHeatmapModalOpen}
+                view={selectedHeatmapView}
+                intensities={muscleIntensities}
+                userProfile={userProfile}
+            />
+        )}
+
         <div className="flex flex-col gap-4 md:gap-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -414,6 +433,8 @@ export default function DashboardPage() {
               thisWeeksLogs={filteredLogs} 
               isLoading={isLoading}
               dateRangeLabel={dateRangeLabel}
+              onIntensitiesChange={setMuscleIntensities}
+              onViewClick={handleHeatmapView}
             />
 
             <MuscleGroupVolumeChart
@@ -465,6 +486,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-
-    

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import type { UserProfile, WorkoutLog, Exercise } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -26,7 +26,7 @@ const categoryToMuscleGroup: Record<string, string[]> = {
 
 // Simplified coordinate system for heatmap points on the body outline
 // Values are percentages for top and left positioning.
-const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
+export const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
   Male: {
     // Front
     shoulders_front: { top: '25.5%', left: '40%' },
@@ -63,7 +63,7 @@ const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string
   },
 };
 
-const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType, view }: { intensity: number; size: string; coords: { top: string, left: string }, zIndex?: number, bodyType: 'Male' | 'Female', view: 'front' | 'back' }) => {
+export const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType, view }: { intensity: number; size: string; coords: { top: string, left: string }, zIndex?: number, bodyType: 'Male' | 'Female', view: 'front' | 'back' }) => {
   const muscle = Object.keys(heatmapCoordinates[bodyType]).find(key => heatmapCoordinates[bodyType][key] === coords);
   
   const frontMirrored = ['shoulders_front', 'biceps', 'quads'];
@@ -125,16 +125,29 @@ const HeatPoint = ({ intensity, size, coords, zIndex = 10, bodyType, view }: { i
   return <>{renderPoints()}</>;
 };
 
+export type MuscleGroupIntensities = Record<string, number>;
+
 interface MuscleHeatmapProps {
   userProfile?: UserProfile | null;
   thisWeeksLogs: WorkoutLog[];
   isLoading: boolean;
   dateRangeLabel: string;
   isCard?: boolean;
-  isSingleWorkout?: boolean; // New prop
+  isSingleWorkout?: boolean;
+  onIntensitiesChange?: (intensities: MuscleGroupIntensities) => void;
+  onViewClick?: (view: 'front' | 'back') => void;
 }
 
-export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRangeLabel, isCard = true, isSingleWorkout = false }: MuscleHeatmapProps) {
+export function MuscleHeatmap({ 
+  userProfile, 
+  thisWeeksLogs, 
+  isLoading, 
+  dateRangeLabel, 
+  isCard = true, 
+  isSingleWorkout = false,
+  onIntensitiesChange,
+  onViewClick,
+}: MuscleHeatmapProps) {
   const firestore = useFirestore();
 
   const exercisesQuery = useMemoFirebase(() =>
@@ -205,7 +218,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     }
 
 
-    const intensities: Record<string, number> = {};
+    const intensities: MuscleGroupIntensities = {};
     for (const group in muscleGroupEffort) {
         intensities[group] = target > 0 
             ? Math.min(muscleGroupEffort[group] / target, 1)
@@ -214,6 +227,12 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     
     return intensities;
   }, [thisWeeksLogs, masterExercises, userProfile, isSingleWorkout]);
+
+  useEffect(() => {
+    if (onIntensitiesChange) {
+      onIntensitiesChange(muscleGroupIntensities);
+    }
+  }, [muscleGroupIntensities, onIntensitiesChange]);
 
   const bodyType = userProfile?.biologicalSex || 'Male';
   const frontViewImages = {
@@ -235,8 +254,8 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
   const renderBodyView = (view: 'front' | 'back') => {
     const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
     const muscleGroupsToShow = view === 'front' ? frontMuscleGroups : backMuscleGroups;
-    
-    return (
+    const isClickable = !!onViewClick;
+    const viewContainer = (
         <div className="relative w-full mx-auto">
             {/* This image is invisible but sets the container's aspect ratio */}
             <Image
@@ -283,6 +302,17 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
             />
         </div>
     );
+     if (isClickable) {
+      return (
+        <button
+          onClick={() => onViewClick(view)}
+          className="transition-transform hover:scale-105"
+        >
+          {viewContainer}
+        </button>
+      );
+    }
+    return viewContainer;
   }
 
   const content = (
@@ -300,7 +330,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
     <Card>
       <CardHeader>
         <CardTitle>Muscle Heatmap</CardTitle>
-        <CardDescription>Muscles worked in the {dateRangeLabel.toLowerCase()}.</CardDescription>
+        <CardDescription>Muscles worked in the {dateRangeLabel.toLowerCase()}. Click a view for details.</CardDescription>
       </CardHeader>
       <CardContent>
         {content}
