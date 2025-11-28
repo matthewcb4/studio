@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef } from 'react';
@@ -16,7 +17,7 @@ import Logo from '@/components/logo';
 import type { WorkoutLog, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
-function ShareableSummaryCard({ log, userProfile, thisWeeksLogs, isVisible }: { log: WorkoutLog, userProfile: UserProfile, thisWeeksLogs: WorkoutLog[], isVisible?: boolean }) {
+function ShareableSummaryCard({ log, userProfile, isVisible }: { log: WorkoutLog, userProfile: UserProfile, isVisible?: boolean }) {
     return (
         <div className={`bg-background rounded-lg p-6 w-[400px] ${isVisible ? '' : 'absolute -left-[9999px] top-0'}`}>
            <div className="flex justify-between items-start mb-4">
@@ -38,7 +39,7 @@ function ShareableSummaryCard({ log, userProfile, thisWeeksLogs, isVisible }: { 
                </div>
            </div>
            
-           <MuscleHeatmap userProfile={userProfile} thisWeeksLogs={thisWeeksLogs} isLoading={false} dateRangeLabel="this workout" isCard={false} />
+           <MuscleHeatmap userProfile={userProfile} thisWeeksLogs={[log]} isLoading={false} dateRangeLabel="this workout" isCard={false} isSingleWorkout={true} />
         </div>
     );
 }
@@ -100,7 +101,7 @@ export function ShareWorkoutDialog({ log, userProfile, isOpen, onOpenChange }: S
   return (
     <>
       <div ref={shareCardRef}>
-        <ShareableSummaryCard log={log} userProfile={userProfile} thisWeeksLogs={[log]} isVisible={false}/>
+        <ShareableSummaryCard log={log} userProfile={userProfile} isVisible={false}/>
       </div>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent>
@@ -111,7 +112,7 @@ export function ShareWorkoutDialog({ log, userProfile, isOpen, onOpenChange }: S
                 </DialogDescription>
             </DialogHeader>
             
-            <ShareableSummaryCard log={log} userProfile={userProfile} thisWeeksLogs={[log]} isVisible={true}/>
+            <ShareableSummaryCard log={log} userProfile={userProfile} isVisible={true}/>
 
             <DialogFooter>
                 <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

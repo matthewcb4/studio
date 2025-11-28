@@ -131,9 +131,10 @@ interface MuscleHeatmapProps {
   isLoading: boolean;
   dateRangeLabel: string;
   isCard?: boolean;
+  isSingleWorkout?: boolean; // New prop
 }
 
-export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRangeLabel, isCard = true }: MuscleHeatmapProps) {
+export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRangeLabel, isCard = true, isSingleWorkout = false }: MuscleHeatmapProps) {
   const firestore = useFirestore();
 
   const exercisesQuery = useMemoFirebase(() =>
@@ -158,7 +159,7 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
       const logDate = new Date(log.date);
       const daysSince = differenceInDays(now, logDate);
       // Decay factor: fresher workouts have higher impact. 1 for today, 0.5 for yesterday, etc.
-      const decayFactor = 1 / (daysSince + 1);
+      const decayFactor = isSingleWorkout ? 1 : 1 / (daysSince + 1);
 
       log.exercises.forEach(loggedEx => {
         const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
@@ -188,24 +189,31 @@ export function MuscleHeatmap({ userProfile, thisWeeksLogs, isLoading, dateRange
       });
     });
     
-    const baselineWeeklyReps = 150;
-    let weeklyRepTarget = baselineWeeklyReps;
-
-    if (userProfile?.fatLossGoal === 'reduce_body_fat' || userProfile?.strengthGoal === 'improve_endurance') {
-      weeklyRepTarget *= 1.5;
-    } else if (userProfile?.muscleGoal === 'gain_overall_mass' || userProfile?.strengthGoal === 'increase_max_lift') {
-      weeklyRepTarget *= 0.75;
+    let target = 0;
+    if (isSingleWorkout) {
+        // For a single workout, the target is the max effort of any single muscle group in that workout.
+        target = Math.max(...Object.values(muscleGroupEffort));
+    } else {
+        // For multiple workouts (dashboard), use the weekly rep target.
+        const baselineWeeklyReps = 150;
+        target = baselineWeeklyReps;
+        if (userProfile?.fatLossGoal === 'reduce_body_fat' || userProfile?.strengthGoal === 'improve_endurance') {
+            target *= 1.5;
+        } else if (userProfile?.muscleGoal === 'gain_overall_mass' || userProfile?.strengthGoal === 'increase_max_lift') {
+            target *= 0.75;
+        }
     }
+
 
     const intensities: Record<string, number> = {};
     for (const group in muscleGroupEffort) {
-        intensities[group] = weeklyRepTarget > 0 
-            ? Math.min(muscleGroupEffort[group] / weeklyRepTarget, 1)
+        intensities[group] = target > 0 
+            ? Math.min(muscleGroupEffort[group] / target, 1)
             : 0;
     }
     
     return intensities;
-  }, [thisWeeksLogs, masterExercises, userProfile]);
+  }, [thisWeeksLogs, masterExercises, userProfile, isSingleWorkout]);
 
   const bodyType = userProfile?.biologicalSex || 'Male';
   const frontViewImages = {
