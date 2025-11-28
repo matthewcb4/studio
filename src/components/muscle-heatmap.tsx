@@ -280,7 +280,7 @@ export function MuscleHeatmap({
                 } else if (group === 'lats' || group === 'abs') {
                     size = '45%';
                 } else if (group === 'chest') {
-                    size = '30%';
+                    size = '20%';
                 } else if (group === 'shoulders_front' || group === 'shoulders_back') {
                     size = '10%'; 
                 }

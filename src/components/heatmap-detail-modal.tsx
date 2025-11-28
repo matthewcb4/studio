@@ -80,7 +80,7 @@ export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, us
                     } else if (group === 'lats' || group === 'abs') {
                         size = '45%';
                     } else if (group === 'chest') {
-                        size = '30%';
+                        size = '20%';
                     } else if (group.includes('shoulders')) {
                         size = '10%';
                     }
