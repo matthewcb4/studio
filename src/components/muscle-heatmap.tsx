@@ -66,7 +66,7 @@ export const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top:
 export const HeatPoint = ({ intensity, size, coords, bodyType, view }: { intensity: number; size: string; coords: { top: string, left: string }, bodyType: 'Male' | 'Female', view: 'front' | 'back' }) => {
   const muscle = Object.keys(heatmapCoordinates[bodyType]).find(key => heatmapCoordinates[bodyType][key] === coords);
   
-  const frontMirrored = ['shoulders_front', 'biceps', 'quads', 'chest'];
+  const frontMirrored = ['chest', 'shoulders_front', 'biceps', 'quads'];
   const backMirrored = ['traps', 'shoulders_back', 'lats', 'triceps', 'glutes', 'hamstrings', 'calves'];
 
   let isMirrored = false;
@@ -278,8 +278,10 @@ export function MuscleHeatmap({
     return <div className="text-center p-8">Loading heatmap...</div>;
   }
   
-  const frontMuscleGroups = ['shoulders_front', 'chest', 'abs', 'biceps', 'quads'];
-  const backMuscleGroups = ['traps', 'shoulders_back', 'lats', 'back_lower', 'triceps', 'glutes', 'hamstrings', 'calves'];
+  // Reordered to render largest areas first
+  const frontMuscleGroups = ['abs', 'quads', 'chest', 'shoulders_front', 'biceps'];
+  const backMuscleGroups = ['lats', 'glutes', 'hamstrings', 'traps', 'back_lower', 'shoulders_back', 'triceps', 'calves'];
+
 
   const renderBodyView = (view: 'front' | 'back') => {
     const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
