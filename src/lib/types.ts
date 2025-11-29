@@ -70,7 +70,7 @@ export type UserProfile = {
     lastAiWorkoutDate?: string; // ISO string
     hasCompletedOnboarding?: boolean;
     todaysAiWorkout?: object;
-    dailySuggestionsCount?: number;
+    todaysSuggestion?: object;
 }
 
 export type ProgressLog = {
@@ -80,3 +80,4 @@ export type ProgressLog = {
   weight: number;
 };
 
+    
