@@ -43,7 +43,7 @@ export type SuggestWorkoutSetupInput = z.infer<typeof SuggestWorkoutSetupInputSc
 
 export const SuggestWorkoutSetupOutputSchema = z.object({
   summary: z.string().describe("A short (2-3 sentences), encouraging summary of the user's recent performance and a recommendation for today's focus."),
-  focusArea: z.array(z.string()).describe("The suggested primary muscle group(s) to focus on for the next workout."),
+  focusArea: z.array(z.string()).describe("The suggested primary muscle group(s) to focus on for the next workout. Use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'."),
   supersetStrategy: z.enum(['focused', 'mixed']).describe("The suggested superset strategy."),
   workoutDuration: z.number().describe("The suggested workout duration in minutes."),
 });
@@ -114,7 +114,7 @@ export default function GuidePage() {
   const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
   , [firestore, user]);
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userProfileRef);
 
   const allWorkoutLogsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -149,7 +149,11 @@ export default function GuidePage() {
   const suggestionLimitReached = dailySuggestionsCount >= 3;
 
   const fetchWorkoutSuggestion = async () => {
-      if (!allWorkoutLogs || !masterExercises || !userProfile || suggestionLimitReached || !userProfileRef) {
+      // Re-fetch the latest profile data before generating a suggestion
+      const latestProfile = await refetchUserProfile();
+      const currentCount = latestProfile?.dailySuggestionsCount || 0;
+
+      if (!allWorkoutLogs || !masterExercises || !latestProfile || currentCount >= 3 || !userProfileRef) {
         setIsLoadingSuggestion(false);
         return;
       };
@@ -175,7 +179,7 @@ export default function GuidePage() {
           }
       });
 
-      const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
+      const goals = [latestProfile?.strengthGoal, latestProfile?.muscleGoal, latestProfile?.fatLossGoal].filter(Boolean) as string[];
 
       try {
         const suggestion = await suggestWorkoutSetup({
@@ -183,7 +187,6 @@ export default function GuidePage() {
           workoutHistory: history,
         });
         setWorkoutSuggestions(prev => [...prev, suggestion]);
-        const currentCount = userProfile.dailySuggestionsCount || 0;
         setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount + 1 }, { merge: true });
       } catch(error) {
           console.error("Failed to get workout suggestion:", error);
@@ -196,7 +199,6 @@ export default function GuidePage() {
 
   useEffect(() => {
     if (userProfile) {
-        // Reset daily count if last generation was not today
       if (userProfile.lastAiWorkoutDate && !isToday(parseISO(userProfile.lastAiWorkoutDate))) {
           if (userProfileRef) {
             setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: 0 }, { merge: true });
@@ -212,14 +214,16 @@ export default function GuidePage() {
       } else {
         setHasUsedAiToday(false);
         setGeneratedWorkout(null);
-        // Only fetch initial suggestion if none exist yet
-        if (workoutSuggestions.length === 0) {
+        // Only fetch the very first suggestion automatically.
+        if (workoutSuggestions.length === 0 && !sessionStorage.getItem('initialSuggestionFetched')) {
+            sessionStorage.setItem('initialSuggestionFetched', 'true');
             fetchWorkoutSuggestion();
         } else {
             setIsLoadingSuggestion(false);
         }
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, allWorkoutLogs, masterExercises]);
   
     useEffect(() => {
@@ -228,6 +232,13 @@ export default function GuidePage() {
       form.setValue('availableEquipment', defaultEquipment);
     }
   }, [userEquipment, form]);
+
+  useEffect(() => {
+    // Clear session storage on component unmount
+    return () => {
+        sessionStorage.removeItem('initialSuggestionFetched');
+    }
+  }, []);
 
   const handleFocusAreaChange = (group: string, checked: boolean) => {
     const currentValues = form.getValues('focusArea');
@@ -263,10 +274,12 @@ export default function GuidePage() {
       const suggestedAreas = suggestion.focusArea.map(area => area === 'Legs' ? 'Lower Body' : area);
       
       suggestedAreas.forEach(area => {
-        newFocusArea.push(area);
-        const children = muscleGroupHierarchy[area as keyof typeof muscleGroupHierarchy];
-        if (children) {
-          newFocusArea.push(...children);
+        if(topLevelGroups.includes(area)){
+            newFocusArea.push(area);
+            const children = muscleGroupHierarchy[area as keyof typeof muscleGroupHierarchy];
+            if (children) {
+                newFocusArea.push(...children);
+            }
         }
       });
       
