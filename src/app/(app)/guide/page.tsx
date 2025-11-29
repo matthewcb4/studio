@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Bot, Wand2, Loader2, Dumbbell, PlusCircle, Sparkles } from 'lucide-react';
+import { Bot, Wand2, Loader2, Dumbbell, PlusCircle, Sparkles, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { isToday, parseISO, subDays } from 'date-fns';
 
@@ -99,7 +99,7 @@ export default function GuidePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
-  const [workoutSuggestion, setWorkoutSuggestion] = useState<SuggestWorkoutSetupOutput | null>(null);
+  const [workoutSuggestions, setWorkoutSuggestions] = useState<SuggestWorkoutSetupOutput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(true);
@@ -130,7 +130,7 @@ export default function GuidePage() {
   
   const categoryToMuscleGroup: Record<string, string[]> = {
     'Chest': ['Chest'], 'Back': ['Back'], 'Shoulders': ['Shoulders'],
-    'Legs': ['Legs'], 'Arms': ['Arms'], 'Biceps': ['Arms'],
+    'Legs': ['Lower Body'], 'Arms': ['Arms'], 'Biceps': ['Arms'],
     'Triceps': ['Arms'], 'Core': ['Core'],
   };
 
@@ -148,8 +148,61 @@ export default function GuidePage() {
   const dailySuggestionsCount = userProfile?.dailySuggestionsCount || 0;
   const suggestionLimitReached = dailySuggestionsCount >= 3;
 
+  const fetchWorkoutSuggestion = async () => {
+      if (!allWorkoutLogs || !masterExercises || !userProfile || suggestionLimitReached || !userProfileRef) {
+        setIsLoadingSuggestion(false);
+        return;
+      };
+      setIsLoadingSuggestion(true);
+      
+      const sevenDaysAgo = subDays(new Date(), 7);
+      const recentLogs = allWorkoutLogs.filter(log => isWithinInterval(parseISO(log.date), { start: sevenDaysAgo, end: new Date() }));
+      
+      const history = recentLogs.map(log => {
+          const muscleGroups = new Set<string>();
+          log.exercises.forEach(ex => {
+              const masterEx = masterExercises.find(me => me.id === ex.exerciseId);
+              if(masterEx?.category) {
+                  const groups = categoryToMuscleGroup[masterEx.category] || [];
+                  groups.forEach(g => muscleGroups.add(g));
+              }
+          });
+          return {
+              date: format(parseISO(log.date), 'PPP'),
+              name: log.workoutName,
+              volume: log.volume,
+              muscleGroups: Array.from(muscleGroups)
+          }
+      });
+
+      const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
+
+      try {
+        const suggestion = await suggestWorkoutSetup({
+          fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
+          workoutHistory: history,
+        });
+        setWorkoutSuggestions(prev => [...prev, suggestion]);
+        const currentCount = userProfile.dailySuggestionsCount || 0;
+        setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount + 1 }, { merge: true });
+      } catch(error) {
+          console.error("Failed to get workout suggestion:", error);
+          toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
+      } finally {
+        setIsLoadingSuggestion(false);
+      }
+    };
+
+
   useEffect(() => {
     if (userProfile) {
+        // Reset daily count if last generation was not today
+      if (userProfile.lastAiWorkoutDate && !isToday(parseISO(userProfile.lastAiWorkoutDate))) {
+          if (userProfileRef) {
+            setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: 0 }, { merge: true });
+          }
+      }
+
       if (userProfile.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate))) {
         setHasUsedAiToday(true);
         if (userProfile.todaysAiWorkout) {
@@ -159,59 +212,15 @@ export default function GuidePage() {
       } else {
         setHasUsedAiToday(false);
         setGeneratedWorkout(null);
-
-        const fetchSuggestion = async () => {
-          if (!allWorkoutLogs || !masterExercises || !userProfile || suggestionLimitReached) {
+        // Only fetch initial suggestion if none exist yet
+        if (workoutSuggestions.length === 0) {
+            fetchWorkoutSuggestion();
+        } else {
             setIsLoadingSuggestion(false);
-            return;
-          };
-          setIsLoadingSuggestion(true);
-          
-          const sevenDaysAgo = subDays(new Date(), 7);
-          const recentLogs = allWorkoutLogs.filter(log => isWithinInterval(parseISO(log.date), { start: sevenDaysAgo, end: new Date() }));
-          
-          const history = recentLogs.map(log => {
-              const muscleGroups = new Set<string>();
-              log.exercises.forEach(ex => {
-                  const masterEx = masterExercises.find(me => me.id === ex.exerciseId);
-                  if(masterEx?.category) {
-                      const groups = categoryToMuscleGroup[masterEx.category] || [];
-                      groups.forEach(g => muscleGroups.add(g));
-                  }
-              });
-              return {
-                  date: format(parseISO(log.date), 'PPP'),
-                  name: log.workoutName,
-                  volume: log.volume,
-                  muscleGroups: Array.from(muscleGroups)
-              }
-          });
-
-          const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
-
-          try {
-            const suggestion = await suggestWorkoutSetup({
-              fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
-              workoutHistory: history,
-            });
-            setWorkoutSuggestion(suggestion);
-
-            if(userProfileRef) {
-                const currentCount = userProfile.dailySuggestionsCount || 0;
-                setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount + 1 }, { merge: true });
-            }
-
-          } catch(error) {
-              console.error("Failed to get workout suggestion:", error);
-          } finally {
-            setIsLoadingSuggestion(false);
-          }
-        };
-
-        fetchSuggestion();
+        }
       }
     }
-  }, [userProfile, allWorkoutLogs, masterExercises, suggestionLimitReached, userProfileRef]);
+  }, [userProfile, allWorkoutLogs, masterExercises]);
   
     useEffect(() => {
     if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
@@ -226,7 +235,7 @@ export default function GuidePage() {
 
     const getChildren = (parent: string): string[] => {
         let children: string[] = [];
-        const directChildren = (muscleGroupHierarchy)[parent];
+        const directChildren = (muscleGroupHierarchy)[parent as keyof typeof muscleGroupHierarchy];
         if (directChildren) {
             children.push(...directChildren);
             directChildren.forEach((child: string) => {
@@ -247,11 +256,11 @@ export default function GuidePage() {
     form.setValue('focusArea', [...new Set(newValues)]);
   };
 
-  const applySuggestion = () => {
-      if (!workoutSuggestion) return;
+  const applySuggestion = (suggestion: SuggestWorkoutSetupOutput) => {
+      if (!suggestion) return;
       
       const newFocusArea: string[] = [];
-      const suggestedAreas = workoutSuggestion.focusArea.map(area => area === 'Legs' ? 'Lower Body' : area);
+      const suggestedAreas = suggestion.focusArea.map(area => area === 'Legs' ? 'Lower Body' : area);
       
       suggestedAreas.forEach(area => {
         newFocusArea.push(area);
@@ -262,8 +271,8 @@ export default function GuidePage() {
       });
       
       form.setValue('focusArea', [...new Set(newFocusArea)]);
-      form.setValue('supersetStrategy', workoutSuggestion.supersetStrategy);
-      form.setValue('workoutDuration', workoutSuggestion.workoutDuration);
+      form.setValue('supersetStrategy', suggestion.supersetStrategy);
+      form.setValue('workoutDuration', suggestion.workoutDuration);
       toast({
           title: "Suggestions Applied!",
           description: "Workout preferences have been updated."
@@ -391,12 +400,11 @@ export default function GuidePage() {
   }, [generatedWorkout]);
 
   const displayWorkout = hasUsedAiToday && generatedWorkout;
-  const showSuggestion = !hasUsedAiToday && workoutSuggestion && !suggestionLimitReached;
 
   const renderCheckboxes = (groupNames: string[], isSubGroup = false) => (
-    <div className={isSubGroup ? "space-y-3 pl-6" : "space-y-3"}>
+    <div className={isSubGroup ? "space-y-3 pl-6" : "spacey-y-3"}>
       {groupNames.map(group => {
-        const subGroupItems = (subGroups)[group];
+        const subGroupItems = (subGroups)[group as keyof typeof subGroups];
         const currentFocusArea = form.watch('focusArea');
         const isParentChecked = currentFocusArea?.includes(group);
 
@@ -438,48 +446,66 @@ export default function GuidePage() {
         </div>
       </div>
       
-      {isLoadingSuggestion && !hasUsedAiToday && !suggestionLimitReached &&(
-        <Card className="lg:col-span-3">
-          <CardContent className="p-6 flex items-center justify-center gap-4">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-muted-foreground">fRepo Coach is analyzing your progress...</p>
-          </CardContent>
-        </Card>
+      {!hasUsedAiToday && (
+          <div className="space-y-4">
+            {isLoadingSuggestion && workoutSuggestions.length === 0 && (
+                <Card className="lg:col-span-3">
+                    <CardContent className="p-6 flex items-center justify-center gap-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <p className="text-muted-foreground">fRepo Coach is analyzing your progress...</p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {workoutSuggestions.map((suggestion, index) => (
+                 <Card key={index} className="border-primary/50 bg-primary/5">
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <Sparkles className="w-6 h-6 text-primary" />
+                            <CardTitle>Coach's Suggestion #{index + 1}</CardTitle>
+                        </div>
+                        <CardDescription>{suggestion.summary}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-lg bg-background p-4">
+                        <div className="flex flex-wrap gap-x-6 gap-y-2">
+                            <div>
+                                <p className="text-xs text-muted-foreground">Focus</p>
+                                <p className="font-medium">{suggestion.focusArea.join(', ')}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground">Duration</p>
+                                <p className="font-medium">{suggestion.workoutDuration} min</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground">Strategy</p>
+                                <p className="font-medium capitalize">{suggestion.supersetStrategy}</p>
+                            </div>
+                        </div>
+                        <Button onClick={() => applySuggestion(suggestion)} className="w-full sm:w-auto">Apply Suggestion</Button>
+                    </CardContent>
+                </Card>
+            ))}
+
+            {!suggestionLimitReached && (
+                 <Button onClick={fetchWorkoutSuggestion} disabled={isLoadingSuggestion} className="w-full">
+                    {isLoadingSuggestion ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    Generate New Suggestion ({3 - dailySuggestionsCount} left)
+                </Button>
+            )}
+             {suggestionLimitReached && workoutSuggestions.length > 0 &&(
+                <Card className="text-center p-4">
+                    <CardDescription>
+                        You have reached your daily limit of 3 suggestions.
+                    </CardDescription>
+                </Card>
+            )}
+          </div>
       )}
 
-      {showSuggestion && (
-        <Card className="lg:col-span-3 border-primary/50 bg-primary/5">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Sparkles className="w-6 h-6 text-primary" />
-                    <CardTitle>Coach's Corner</CardTitle>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                    {3-dailySuggestionsCount} suggestions left today
-                </div>
-            </div>
-            <CardDescription>{workoutSuggestion.summary}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-lg bg-background p-4">
-            <div className="flex flex-wrap gap-x-6 gap-y-2">
-                <div>
-                    <p className="text-xs text-muted-foreground">Focus</p>
-                    <p className="font-medium">{workoutSuggestion.focusArea.join(', ')}</p>
-                </div>
-                <div>
-                    <p className="text-xs text-muted-foreground">Duration</p>
-                    <p className="font-medium">{workoutSuggestion.workoutDuration} min</p>
-                </div>
-                <div>
-                    <p className="text-xs text-muted-foreground">Strategy</p>
-                    <p className="font-medium capitalize">{workoutSuggestion.supersetStrategy}</p>
-                </div>
-            </div>
-            <Button onClick={applySuggestion} className="w-full sm:w-auto">Apply Suggestions</Button>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {!displayWorkout && !isLoading && (
@@ -740,3 +766,4 @@ export default function GuidePage() {
   );
 }
 
+    
