@@ -178,16 +178,18 @@ export default function GuidePage() {
       const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
 
       try {
+        // The `useDoc` hook will update userProfile automatically, which will in turn update dailySuggestionsCount
+        setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount + 1 }, { merge: true });
         const suggestion = await suggestWorkoutSetup({
           fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
           workoutHistory: history,
         });
         setWorkoutSuggestions(prev => [...prev, suggestion]);
-        // The `useDoc` hook will update userProfile automatically, which will in turn update dailySuggestionsCount
-        setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount + 1 }, { merge: true });
       } catch(error) {
           console.error("Failed to get workout suggestion:", error);
           toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
+          // Decrement count if suggestion fails
+          setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount }, { merge: true });
       } finally {
         setIsLoadingSuggestion(false);
       }
@@ -198,6 +200,7 @@ export default function GuidePage() {
     if (isLoadingProfile) return; // Wait for profile to load
 
     if (userProfile) {
+      // Reset daily count if it's a new day
       if (userProfile.lastAiWorkoutDate && !isToday(parseISO(userProfile.lastAiWorkoutDate))) {
           if (userProfileRef) {
             setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: 0 }, { merge: true });
@@ -423,14 +426,14 @@ export default function GuidePage() {
   const displayWorkout = hasUsedAiToday && generatedWorkout;
 
   const renderCheckboxes = (groupNames: string[], isSubGroup = false) => (
-    <div className={isSubGroup ? "space-y-3 pl-6" : "spacey-y-3"}>
+    <div className={isSubGroup ? "space-y-2 pl-6" : "space-y-4"}>
       {groupNames.map(group => {
         const subGroupItems = (subGroups)[group as keyof typeof subGroups];
         const currentFocusArea = form.watch('focusArea');
         const isParentChecked = currentFocusArea?.includes(group);
 
         return (
-          <div key={group} className="space-y-3">
+          <div key={group} className="space-y-2">
             <FormField
               control={form.control}
               name="focusArea"
@@ -786,3 +789,4 @@ export default function GuidePage() {
     </div>
   );
 }
+
