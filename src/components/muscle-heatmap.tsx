@@ -30,7 +30,7 @@ export const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top:
   Male: {
     // Front
     shoulders_front: { top: '25.5%', left: '40%' },
-    chest: { top: '28%', left: '49.5%' },
+    chest: { top: '28%', left: '48%' },
     abs: { top: '42%', left: '49.5%' },
     biceps: { top: '25%', left: '33%' },
     quads: { top: '58%', left: '44%' },
@@ -55,7 +55,7 @@ export const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top:
     traps: { top: '25%', left: '50%' },
     shoulders_back: { top: '25.5%', left: '40%' },
     lats: { top: '34%', left: '50%' },
-    triceps: { top: '30%', left: '66%' },
+    triceps: { top: '30%', left: '35%' },
     glutes: { top: '51%', left: '50%' },
     hamstrings: { top: '68%', left: '50%' },
     calves: { top: '78%', left: '45%' },
