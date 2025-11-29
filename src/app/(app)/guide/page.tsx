@@ -145,6 +145,9 @@ export default function GuidePage() {
     },
   });
 
+  const dailySuggestionsCount = userProfile?.dailySuggestionsCount || 0;
+  const suggestionLimitReached = dailySuggestionsCount >= 3;
+
   useEffect(() => {
     if (userProfile) {
       if (userProfile.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate))) {
@@ -152,13 +155,16 @@ export default function GuidePage() {
         if (userProfile.todaysAiWorkout) {
           setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
         }
-        setIsLoadingSuggestion(false); // No need to load new suggestion if one has been generated
+        setIsLoadingSuggestion(false);
       } else {
         setHasUsedAiToday(false);
         setGeneratedWorkout(null);
-        // Fetch new suggestion if it's a new day
+
         const fetchSuggestion = async () => {
-          if (!allWorkoutLogs || !masterExercises || !userProfile) return;
+          if (!allWorkoutLogs || !masterExercises || !userProfile || suggestionLimitReached) {
+            setIsLoadingSuggestion(false);
+            return;
+          };
           setIsLoadingSuggestion(true);
           
           const sevenDaysAgo = subDays(new Date(), 7);
@@ -189,9 +195,14 @@ export default function GuidePage() {
               workoutHistory: history,
             });
             setWorkoutSuggestion(suggestion);
+
+            if(userProfileRef) {
+                const currentCount = userProfile.dailySuggestionsCount || 0;
+                setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount + 1 }, { merge: true });
+            }
+
           } catch(error) {
               console.error("Failed to get workout suggestion:", error);
-              // Silently fail, don't show toast for this.
           } finally {
             setIsLoadingSuggestion(false);
           }
@@ -200,7 +211,7 @@ export default function GuidePage() {
         fetchSuggestion();
       }
     }
-  }, [userProfile, allWorkoutLogs, masterExercises]);
+  }, [userProfile, allWorkoutLogs, masterExercises, suggestionLimitReached, userProfileRef]);
   
     useEffect(() => {
     if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
@@ -238,7 +249,19 @@ export default function GuidePage() {
 
   const applySuggestion = () => {
       if (!workoutSuggestion) return;
-      form.setValue('focusArea', workoutSuggestion.focusArea);
+      
+      const newFocusArea: string[] = [];
+      const suggestedAreas = workoutSuggestion.focusArea.map(area => area === 'Legs' ? 'Lower Body' : area);
+      
+      suggestedAreas.forEach(area => {
+        newFocusArea.push(area);
+        const children = muscleGroupHierarchy[area as keyof typeof muscleGroupHierarchy];
+        if (children) {
+          newFocusArea.push(...children);
+        }
+      });
+      
+      form.setValue('focusArea', [...new Set(newFocusArea)]);
       form.setValue('supersetStrategy', workoutSuggestion.supersetStrategy);
       form.setValue('workoutDuration', workoutSuggestion.workoutDuration);
       toast({
@@ -368,7 +391,7 @@ export default function GuidePage() {
   }, [generatedWorkout]);
 
   const displayWorkout = hasUsedAiToday && generatedWorkout;
-  const showSuggestion = !hasUsedAiToday && workoutSuggestion;
+  const showSuggestion = !hasUsedAiToday && workoutSuggestion && !suggestionLimitReached;
 
   const renderCheckboxes = (groupNames: string[], isSubGroup = false) => (
     <div className={isSubGroup ? "space-y-3 pl-6" : "space-y-3"}>
@@ -415,7 +438,7 @@ export default function GuidePage() {
         </div>
       </div>
       
-      {isLoadingSuggestion && !hasUsedAiToday && (
+      {isLoadingSuggestion && !hasUsedAiToday && !suggestionLimitReached &&(
         <Card className="lg:col-span-3">
           <CardContent className="p-6 flex items-center justify-center gap-4">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -427,9 +450,14 @@ export default function GuidePage() {
       {showSuggestion && (
         <Card className="lg:col-span-3 border-primary/50 bg-primary/5">
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-6 h-6 text-primary" />
-              <CardTitle>Coach's Corner</CardTitle>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Sparkles className="w-6 h-6 text-primary" />
+                    <CardTitle>Coach's Corner</CardTitle>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                    {3-dailySuggestionsCount} suggestions left today
+                </div>
             </div>
             <CardDescription>{workoutSuggestion.summary}</CardDescription>
           </CardHeader>
@@ -711,3 +739,4 @@ export default function GuidePage() {
     </div>
   );
 }
+
