@@ -20,12 +20,32 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { suggestWorkoutSetup, type SuggestWorkoutSetupInput, type SuggestWorkoutSetupOutput } from '@/ai/flows/suggest-workout-flow';
+import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise } from '@/lib/types';
 import { format, isWithinInterval } from 'date-fns';
+
+const PastWorkoutSchema = z.object({
+  date: z.string().describe("The date of the workout."),
+  name: z.string().describe("The name of the workout."),
+  volume: z.number().describe("The total volume in lbs for the workout."),
+  muscleGroups: z.array(z.string()).describe("A list of primary muscle groups hit in this workout."),
+});
+
+export type SuggestWorkoutSetupInput = {
+  fitnessGoals: string[];
+  workoutHistory: z.infer<typeof PastWorkoutSchema>[];
+};
+
+export type SuggestWorkoutSetupOutput = {
+  summary: string;
+  focusArea: string[];
+  supersetStrategy: 'focused' | 'mixed';
+  workoutDuration: number;
+};
+
 
 const muscleGroupHierarchy: Record<string, string[]> = {
   "Full Body": ["Upper Body", "Lower Body", "Core"],
@@ -91,7 +111,7 @@ export default function GuidePage() {
   const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
   , [firestore, user]);
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
 
   const allWorkoutLogsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -126,8 +146,9 @@ export default function GuidePage() {
   const suggestionLimitReached = dailySuggestionsCount >= 3;
 
   const fetchWorkoutSuggestion = async () => {
+      // Use the live userProfile from the hook
       const currentCount = userProfile?.dailySuggestionsCount || 0;
-
+      
       if (!allWorkoutLogs || !masterExercises || !userProfile || currentCount >= 3 || !userProfileRef) {
         setIsLoadingSuggestion(false);
         return;
@@ -162,6 +183,7 @@ export default function GuidePage() {
           workoutHistory: history,
         });
         setWorkoutSuggestions(prev => [...prev, suggestion]);
+        // The `useDoc` hook will update userProfile automatically, which will in turn update dailySuggestionsCount
         setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount + 1 }, { merge: true });
       } catch(error) {
           console.error("Failed to get workout suggestion:", error);
@@ -173,6 +195,8 @@ export default function GuidePage() {
 
 
   useEffect(() => {
+    if (isLoadingProfile) return; // Wait for profile to load
+
     if (userProfile) {
       if (userProfile.lastAiWorkoutDate && !isToday(parseISO(userProfile.lastAiWorkoutDate))) {
           if (userProfileRef) {
@@ -199,7 +223,7 @@ export default function GuidePage() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, allWorkoutLogs, masterExercises]);
+  }, [userProfile, isLoadingProfile, allWorkoutLogs, masterExercises]);
   
     useEffect(() => {
     if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
@@ -251,10 +275,19 @@ export default function GuidePage() {
       suggestedAreas.forEach(area => {
         if(topLevelGroups.includes(area)){
             newFocusArea.push(area);
-            const children = muscleGroupHierarchy[area as keyof typeof muscleGroupHierarchy];
-            if (children) {
-                newFocusArea.push(...children);
-            }
+            // Also add all children of the top-level group
+            const getChildrenAndGrandchildren = (parent: string): string[] => {
+                let allChildren: string[] = [];
+                const directChildren = muscleGroupHierarchy[parent as keyof typeof muscleGroupHierarchy];
+                if (directChildren) {
+                    allChildren.push(...directChildren);
+                    directChildren.forEach(child => {
+                        allChildren.push(...getChildrenAndGrandchildren(child));
+                    });
+                }
+                return allChildren;
+            };
+            newFocusArea.push(...getChildrenAndGrandchildren(area));
         }
       });
       
@@ -397,7 +430,7 @@ export default function GuidePage() {
         const isParentChecked = currentFocusArea?.includes(group);
 
         return (
-          <div key={group} className="space-y-2">
+          <div key={group} className="space-y-3">
             <FormField
               control={form.control}
               name="focusArea"
