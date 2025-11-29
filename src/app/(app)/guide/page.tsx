@@ -142,67 +142,75 @@ export default function GuidePage() {
   useEffect(() => {
     // This effect's sole job is to decide whether to fetch a new suggestion or use an existing one.
     const runSuggestionLogic = async () => {
-        // Step 1: Wait until all necessary data is loaded.
-        if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !userProfileRef) {
-            return;
-        }
-        
-        setIsLoadingSuggestion(true);
-
-        const hasTodaysSuggestion = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysSuggestion;
-
-        if (hasTodaysSuggestion) {
-            // Step 2: A valid suggestion for today already exists. Display it.
-            setWorkoutSuggestion(userProfile.todaysSuggestion as SuggestWorkoutSetupOutput);
-            if (userProfile.todaysAiWorkout) {
-                setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
-            }
-        } else {
-            // Step 3: No suggestion for today. Generate one.
-            const history: SuggestWorkoutSetupInput['workoutHistory'] = (recentLogs || []).map(log => {
-                const muscleGroups = new Set<string>();
-                log.exercises.forEach(ex => {
-                    const masterEx = masterExercises?.find(me => me.id === ex.exerciseId);
-                    if(masterEx?.category) {
-                        const groups = categoryToMuscleGroup[masterEx.category] || [];
-                        groups.forEach(g => muscleGroups.add(g));
-                    }
-                });
-                return {
-                    date: format(parseISO(log.date), 'PPP'),
-                    name: log.workoutName,
-                    volume: log.volume,
-                    muscleGroups: Array.from(muscleGroups)
-                }
-            });
-
-            const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
-
-            try {
-                const suggestion = await suggestWorkoutSetup({
-                    fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
-                    workoutHistory: history,
-                });
-                
-                // Save the new suggestion and reset the AI workout for the day.
-                await setDocumentNonBlocking(userProfileRef, { 
-                    todaysSuggestion: suggestion,
-                    lastAiWorkoutDate: new Date().toISOString(),
-                    todaysAiWorkout: null, // Clear any previously generated workout
-                }, { merge: true });
-                
-                setWorkoutSuggestion(suggestion);
-            } catch (error) {
-                console.error("Failed to get workout suggestion:", error);
-                toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
-            }
+      // Step 1: Wait until all necessary data is loaded.
+      if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !user) {
+        return;
+      }
+  
+      // This ensures we don't do anything until the profile is confirmed loaded.
+      if (userProfile === undefined) {
+        return;
+      }
+      
+      setIsLoadingSuggestion(true);
+  
+      const hasTodaysSuggestion = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysSuggestion;
+  
+      if (hasTodaysSuggestion) {
+        // Step 2: A valid suggestion for today already exists. Display it.
+        setWorkoutSuggestion(userProfile.todaysSuggestion as SuggestWorkoutSetupOutput);
+        if (userProfile.todaysAiWorkout) {
+          setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
         }
         setIsLoadingSuggestion(false);
+      } else {
+        // Step 3: No suggestion for today. Generate one.
+        const history: SuggestWorkoutSetupInput['workoutHistory'] = (recentLogs || []).map(log => {
+          const muscleGroups = new Set<string>();
+          log.exercises.forEach(ex => {
+            const masterEx = masterExercises?.find(me => me.id === ex.exerciseId);
+            if (masterEx?.category) {
+              const groups = categoryToMuscleGroup[masterEx.category] || [];
+              groups.forEach(g => muscleGroups.add(g));
+            }
+          });
+          return {
+            date: format(parseISO(log.date), 'PPP'),
+            name: log.workoutName,
+            volume: log.volume,
+            muscleGroups: Array.from(muscleGroups),
+          };
+        });
+  
+        const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
+  
+        try {
+          const suggestion = await suggestWorkoutSetup({
+            fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
+            workoutHistory: history,
+          });
+          
+          if (userProfileRef) {
+            await setDocumentNonBlocking(userProfileRef, { 
+              todaysSuggestion: suggestion,
+              lastAiWorkoutDate: new Date().toISOString(),
+              todaysAiWorkout: null, // Clear any previously generated workout
+            }, { merge: true });
+          }
+          
+          setWorkoutSuggestion(suggestion);
+        } catch (error) {
+          console.error("Failed to get workout suggestion:", error);
+          toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
+        } finally {
+          setIsLoadingSuggestion(false);
+        }
+      }
     };
-
+  
     runSuggestionLogic();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, recentLogs, masterExercises, isLoadingProfile, isLoadingLogs, isLoadingExercises, userProfileRef]);
+  }, [user, userProfile, recentLogs, masterExercises, isLoadingProfile, isLoadingLogs, isLoadingExercises]);
   
     useEffect(() => {
     if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
@@ -565,7 +573,7 @@ export default function GuidePage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Superset Strategy</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a strategy" />
@@ -613,7 +621,7 @@ export default function GuidePage() {
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Duration (min)</FormLabel>
-                                <Select onValueChange={(val) => field.onChange(Number(val))} defaultValue={String(field.value)}>
+                                <Select onValueChange={(val) => field.onChange(Number(val))} value={String(field.value)}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select duration" />
