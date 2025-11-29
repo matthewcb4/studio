@@ -83,28 +83,26 @@ export const HeatPoint = ({ intensity, size, coords, bodyType, view }: { intensi
   const color = `hsl(${hue}, 100%, 50%)`;
 
   const renderPoints = () => {
-    const points = [
-      <div
-        key="main"
-        className="absolute rounded-full"
-        style={{
-          top: coords.top,
-          left: coords.left,
-          width: size,
-          height: size,
-          background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-          transform: 'translate(-50%, -50%)',
-          opacity: Math.max(0.8, intensity * 0.9),
-          filter: `blur(10px)`,
-        }}
-      />
-    ];
-    if (isMirrored) {
-      points.push(
+    const mainPoint = (
         <div
-          key="mirrored"
-          className="absolute rounded-full"
-          style={{
+            className="absolute rounded-full"
+            style={{
+            top: coords.top,
+            left: coords.left,
+            width: size,
+            height: size,
+            background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+            transform: 'translate(-50%, -50%)',
+            opacity: Math.max(0.8, intensity * 0.9),
+            filter: `blur(10px)`,
+            }}
+        />
+    );
+
+    const mirroredPoint = isMirrored ? (
+        <div
+            className="absolute rounded-full"
+            style={{
             top: coords.top,
             left: `calc(100% - ${coords.left})`,
             width: size,
@@ -113,11 +111,49 @@ export const HeatPoint = ({ intensity, size, coords, bodyType, view }: { intensi
             transform: 'translate(-50%, -50%)',
             opacity: Math.max(0.8, intensity * 0.9),
             filter: `blur(10px)`,
-          }}
+            }}
         />
-      );
+    ) : null;
+
+    if (view === 'front') {
+        // Double the layer for the front view to increase vibrancy
+        return (
+            <>
+                {mainPoint}
+                {mirroredPoint}
+                <div
+                    className="absolute rounded-full"
+                    style={{
+                        top: coords.top,
+                        left: coords.left,
+                        width: `calc(${size} * 1.2)`, // Larger ambient glow
+                        height: `calc(${size} * 1.2)`,
+                        background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+                        transform: 'translate(-50%, -50%)',
+                        opacity: Math.max(0.6, intensity * 0.7),
+                        filter: `blur(15px)`,
+                    }}
+                />
+                 {isMirrored && (
+                    <div
+                        className="absolute rounded-full"
+                        style={{
+                            top: coords.top,
+                            left: `calc(100% - ${coords.left})`,
+                            width: `calc(${size} * 1.2)`,
+                            height: `calc(${size} * 1.2)`,
+                            background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+                            transform: 'translate(-50%, -50%)',
+                            opacity: Math.max(0.6, intensity * 0.7),
+                            filter: `blur(15px)`,
+                        }}
+                    />
+                )}
+            </>
+        );
     }
-    return points;
+    
+    return <>{mainPoint}{mirroredPoint}</>;
   };
 
   return <>{renderPoints()}</>;
