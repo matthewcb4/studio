@@ -11,16 +11,16 @@ import { differenceInDays } from 'date-fns';
 
 // Mapping from exercise category to a simpler muscle group
 const categoryToMuscleGroup: Record<string, string[]> = {
-  'Chest': ['chest', 'shoulders', 'triceps'],
+  'Chest': ['chest', 'shoulders_front', 'triceps'],
   'Back': ['lats', 'traps', 'biceps', 'back_lower'],
-  'Shoulders': ['shoulders', 'triceps'],
+  'Shoulders': ['shoulders_front', 'shoulders_back', 'triceps'],
   'Legs': ['quads', 'glutes', 'hamstrings', 'calves'],
-  'Arms': ['biceps', 'triceps', 'shoulders'],
+  'Arms': ['biceps', 'triceps'],
   'Biceps': ['biceps'],
   'Triceps': ['triceps'],
   'Core': ['abs'],
-  'Full Body': ['chest', 'lats', 'traps', 'shoulders', 'quads', 'glutes', 'hamstrings', 'biceps', 'triceps', 'abs'],
-  'Upper Body': ['chest', 'lats', 'traps', 'shoulders', 'biceps', 'triceps'],
+  'Full Body': ['chest', 'lats', 'traps', 'shoulders_front', 'shoulders_back', 'quads', 'glutes', 'hamstrings', 'biceps', 'triceps', 'abs'],
+  'Upper Body': ['chest', 'lats', 'traps', 'shoulders_front', 'shoulders_back', 'biceps', 'triceps'],
   'Lower Body': ['quads', 'glutes', 'hamstrings', 'calves', 'abs'],
 };
 
@@ -38,10 +38,10 @@ export const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top:
     traps: { top: '24%', left: '48%' },
     shoulders_back: { top: '25.5%', left: '40%' },
     lats: { top: '35%', left: '45%' },
-    triceps: { top: '29%', left: '35%' },
+    triceps: { top: '26%', left: '30%' },
     glutes: { top: '50%', left: '50%' },
-    hamstrings: { top: '60%', left: '49%' },
-    calves: { top: '76%', left: '48%' },
+    hamstrings: { top: '60%', left: '45%' },
+    calves: { top: '76%', left: '45%' },
     back_lower: { top: '42%', left: '50%'},
   },
   Female: {
@@ -190,10 +190,6 @@ export function MuscleHeatmap({
 
             muscleGroups.forEach(group => {
                 muscleGroupEffort[group] = (muscleGroupEffort[group] || 0) + decayedEffort;
-                if (group === 'shoulders') {
-                    muscleGroupEffort['shoulders_front'] += decayedEffort;
-                    muscleGroupEffort['shoulders_back'] += decayedEffort;
-                }
             });
           }
         }

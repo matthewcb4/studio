@@ -33,13 +33,10 @@ const categoryToMuscleGroup: Record<string, string[]> = {
   'Back': ['Back'],
   'Shoulders': ['Shoulders'],
   'Legs': ['Legs'],
-  'Arms': ['Arms', 'Biceps', 'Triceps'],
-  'Biceps': ['Biceps'],
-  'Triceps': ['Triceps'],
+  'Arms': ['Arms'],
+  'Biceps': ['Arms'],
+  'Triceps': ['Arms'],
   'Core': ['Core'],
-  'Full Body': ['Chest', 'Back', 'Shoulders', 'Legs', 'Arms', 'Core'],
-  'Upper Body': ['Chest', 'Back', 'Shoulders', 'Arms'],
-  'Lower Body': ['Legs', 'Core'],
 };
 
 const ALL_MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
