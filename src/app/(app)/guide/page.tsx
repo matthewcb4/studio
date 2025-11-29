@@ -140,23 +140,25 @@ export default function GuidePage() {
   };
 
   useEffect(() => {
-    const fetchAndSetSuggestion = async () => {
+    // This effect's sole job is to decide whether to fetch a new suggestion or use an existing one.
+    const runSuggestionLogic = async () => {
+        // Step 1: Wait until all necessary data is loaded.
         if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !userProfileRef) {
-            // Still waiting for necessary data to load.
             return;
         }
+        
+        setIsLoadingSuggestion(true);
 
         const hasTodaysSuggestion = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysSuggestion;
 
         if (hasTodaysSuggestion) {
+            // Step 2: A valid suggestion for today already exists. Display it.
             setWorkoutSuggestion(userProfile.todaysSuggestion as SuggestWorkoutSetupOutput);
             if (userProfile.todaysAiWorkout) {
                 setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
             }
-            setIsLoadingSuggestion(false);
         } else {
-            // No suggestion for today exists, generate a new one.
-            setIsLoadingSuggestion(true);
+            // Step 3: No suggestion for today. Generate one.
             const history: SuggestWorkoutSetupInput['workoutHistory'] = (recentLogs || []).map(log => {
                 const muscleGroups = new Set<string>();
                 log.exercises.forEach(ex => {
@@ -182,25 +184,25 @@ export default function GuidePage() {
                     workoutHistory: history,
                 });
                 
+                // Save the new suggestion and reset the AI workout for the day.
                 await setDocumentNonBlocking(userProfileRef, { 
                     todaysSuggestion: suggestion,
                     lastAiWorkoutDate: new Date().toISOString(),
-                    todaysAiWorkout: null,
+                    todaysAiWorkout: null, // Clear any previously generated workout
                 }, { merge: true });
                 
                 setWorkoutSuggestion(suggestion);
             } catch (error) {
                 console.error("Failed to get workout suggestion:", error);
                 toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
-            } finally {
-                setIsLoadingSuggestion(false);
             }
         }
+        setIsLoadingSuggestion(false);
     };
 
-    fetchAndSetSuggestion();
+    runSuggestionLogic();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, recentLogs, masterExercises, isLoadingProfile, isLoadingLogs, isLoadingExercises]);
+  }, [userProfile, recentLogs, masterExercises, isLoadingProfile, isLoadingLogs, isLoadingExercises, userProfileRef]);
   
     useEffect(() => {
     if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
@@ -245,7 +247,6 @@ export default function GuidePage() {
       suggestedAreas.forEach(area => {
         if(topLevelGroups.includes(area)){
             newFocusArea.push(area);
-            // Also add all children of the top-level group
             const getChildrenAndGrandchildren = (parent: string): string[] => {
                 let allChildren: string[] = [];
                 const directChildren = muscleGroupHierarchy[parent as keyof typeof muscleGroupHierarchy];
@@ -264,6 +265,7 @@ export default function GuidePage() {
       form.setValue('focusArea', [...new Set(newFocusArea)]);
       form.setValue('supersetStrategy', suggestion.supersetStrategy);
       form.setValue('workoutDuration', suggestion.workoutDuration);
+
       toast({
           title: "Suggestions Applied!",
           description: "Workout preferences have been updated."
