@@ -64,7 +64,7 @@ function StarRating({ rating }: { rating: number }) {
 
 function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
   return (
-    <SheetContent className="sm:max-w-lg w-full">
+    <SheetContent className="sm:max-w-lg w-full flex flex-col">
       <SheetHeader>
         <SheetTitle>{log.workoutName}</SheetTitle>
         <SheetDescription>
@@ -87,21 +87,23 @@ function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
             </div>
           )}
       </div>
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Logged Exercises</h3>
-        {log.exercises.map((ex, index) => (
-          <div key={index} className="p-4 border rounded-lg">
-            <h4 className="font-semibold">{ex.exerciseName}</h4>
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              {ex.sets.map((set, setIndex) => (
-                <li key={setIndex} className="flex justify-between">
-                  <span>Set {setIndex + 1}</span>
-                  <span>{set.weight} lbs x {set.reps} reps</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+      <div className="flex-1 overflow-y-auto -mx-1 pr-1">
+        <div className="space-y-4 px-1">
+            <h3 className="font-semibold text-lg">Logged Exercises</h3>
+            {log.exercises.map((ex, index) => (
+            <div key={index} className="p-4 border rounded-lg">
+                <h4 className="font-semibold">{ex.exerciseName}</h4>
+                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                {ex.sets.map((set, setIndex) => (
+                    <li key={setIndex} className="flex justify-between">
+                    <span>Set {setIndex + 1}</span>
+                    <span>{set.weight} lbs x {set.reps} reps</span>
+                    </li>
+                ))}
+                </ul>
+            </div>
+            ))}
+        </div>
       </div>
     </SheetContent>
   )
