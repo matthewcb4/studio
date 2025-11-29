@@ -4,8 +4,6 @@
  * @fileOverview An AI agent that suggests a workout setup based on recent history and goals.
  *
  * - suggestWorkoutSetup - A function that suggests a workout plan.
- * - SuggestWorkoutSetupInput - The input type for the suggestWorkoutSetup function.
- * - SuggestWorkoutSetupOutput - The return type for the suggestWorkoutSetup function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -85,4 +83,3 @@ const suggestWorkoutFlow = ai.defineFlow(
     return output!;
   }
 );
-

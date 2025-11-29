@@ -20,12 +20,30 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { suggestWorkoutSetup, type SuggestWorkoutSetupInput, type SuggestWorkoutSetupOutput } from '@/ai/flows/suggest-workout-flow';
+import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise } from '@/lib/types';
 import { format, subDays } from 'date-fns';
+
+export type SuggestWorkoutSetupInput = {
+  fitnessGoals: string[];
+  workoutHistory: {
+    date: string;
+    name: string;
+    volume: number;
+    muscleGroups: string[];
+  }[];
+};
+
+export type SuggestWorkoutSetupOutput = {
+  summary: string;
+  focusArea: string[];
+  supersetStrategy: 'focused' | 'mixed';
+  workoutDuration: number;
+};
+
 
 const formSchema = z.object({
   availableEquipment: z.array(z.string()).refine((value) => value.some((item) => item), {
@@ -122,73 +140,67 @@ export default function GuidePage() {
   };
 
   useEffect(() => {
-    // This effect handles fetching or displaying the daily AI suggestion.
-    const manageSuggestion = async () => {
-      // 1. Exit early if any required data is still loading.
-      if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !userProfileRef) {
-        return;
-      }
-      
-      // 2. Check if a suggestion for today already exists in the profile.
-      const hasSuggestionForToday = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysSuggestion;
-
-      if (hasSuggestionForToday) {
-        // 3a. If a suggestion exists, display it and any saved workout.
-        setWorkoutSuggestion(userProfile.todaysSuggestion as SuggestWorkoutSetupOutput);
-        if (userProfile.todaysAiWorkout) {
-          setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
+    const fetchAndSetSuggestion = async () => {
+        if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !userProfileRef) {
+            // Still waiting for necessary data to load.
+            return;
         }
-        setIsLoadingSuggestion(false);
-      } else {
-        // 3b. If no suggestion for today exists, generate a new one.
-        setIsLoadingSuggestion(true);
-        const history: SuggestWorkoutSetupInput['workoutHistory'] = (recentLogs || []).map(log => {
-          const muscleGroups = new Set<string>();
-          log.exercises.forEach(ex => {
-            const masterEx = masterExercises?.find(me => me.id === ex.exerciseId);
-            if(masterEx?.category) {
-              const groups = categoryToMuscleGroup[masterEx.category] || [];
-              groups.forEach(g => muscleGroups.add(g));
+
+        const hasTodaysSuggestion = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysSuggestion;
+
+        if (hasTodaysSuggestion) {
+            setWorkoutSuggestion(userProfile.todaysSuggestion as SuggestWorkoutSetupOutput);
+            if (userProfile.todaysAiWorkout) {
+                setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
             }
-          });
-          return {
-            date: format(parseISO(log.date), 'PPP'),
-            name: log.workoutName,
-            volume: log.volume,
-            muscleGroups: Array.from(muscleGroups)
-          }
-        });
+            setIsLoadingSuggestion(false);
+        } else {
+            // No suggestion for today exists, generate a new one.
+            setIsLoadingSuggestion(true);
+            const history: SuggestWorkoutSetupInput['workoutHistory'] = (recentLogs || []).map(log => {
+                const muscleGroups = new Set<string>();
+                log.exercises.forEach(ex => {
+                    const masterEx = masterExercises?.find(me => me.id === ex.exerciseId);
+                    if(masterEx?.category) {
+                        const groups = categoryToMuscleGroup[masterEx.category] || [];
+                        groups.forEach(g => muscleGroups.add(g));
+                    }
+                });
+                return {
+                    date: format(parseISO(log.date), 'PPP'),
+                    name: log.workoutName,
+                    volume: log.volume,
+                    muscleGroups: Array.from(muscleGroups)
+                }
+            });
 
-        const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
+            const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
 
-        try {
-          const suggestion = await suggestWorkoutSetup({
-            fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
-            workoutHistory: history,
-          });
-          
-          // Save the new suggestion and date to Firestore.
-          await setDocumentNonBlocking(userProfileRef, { 
-            todaysSuggestion: suggestion,
-            lastAiWorkoutDate: new Date().toISOString(),
-            todaysAiWorkout: null, // Clear any workout from a previous day.
-          }, { merge: true });
-          
-          setWorkoutSuggestion(suggestion);
-        } catch (error) {
-          console.error("Failed to get workout suggestion:", error);
-          toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
-        } finally {
-          setIsLoadingSuggestion(false);
+            try {
+                const suggestion = await suggestWorkoutSetup({
+                    fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
+                    workoutHistory: history,
+                });
+                
+                await setDocumentNonBlocking(userProfileRef, { 
+                    todaysSuggestion: suggestion,
+                    lastAiWorkoutDate: new Date().toISOString(),
+                    todaysAiWorkout: null,
+                }, { merge: true });
+                
+                setWorkoutSuggestion(suggestion);
+            } catch (error) {
+                console.error("Failed to get workout suggestion:", error);
+                toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
+            } finally {
+                setIsLoadingSuggestion(false);
+            }
         }
-      }
     };
 
-    manageSuggestion();
-  // We only want to re-run this entire logic block if the core data dependencies change.
+    fetchAndSetSuggestion();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, isLoadingProfile, recentLogs, isLoadingLogs, masterExercises, isLoadingExercises]);
-
+  }, [userProfile, recentLogs, masterExercises, isLoadingProfile, isLoadingLogs, isLoadingExercises]);
   
     useEffect(() => {
     if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
@@ -724,5 +736,3 @@ export default function GuidePage() {
     </div>
   );
 }
-
-    
