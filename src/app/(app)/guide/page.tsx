@@ -20,12 +20,35 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
-import { suggestWorkoutSetup, type SuggestWorkoutSetupOutput } from '@/ai/flows/suggest-workout-flow';
+import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise } from '@/lib/types';
 import { format, isWithinInterval } from 'date-fns';
+
+
+const PastWorkoutSchema = z.object({
+  date: z.string().describe("The date of the workout."),
+  name: z.string().describe("The name of the workout."),
+  volume: z.number().describe("The total volume in lbs for the workout."),
+  muscleGroups: z.array(z.string()).describe("A list of primary muscle groups hit in this workout."),
+});
+
+export const SuggestWorkoutSetupInputSchema = z.object({
+  fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals."),
+  workoutHistory: z.array(PastWorkoutSchema).describe("The user's workout history for the last 7 days."),
+});
+export type SuggestWorkoutSetupInput = z.infer<typeof SuggestWorkoutSetupInputSchema>;
+
+export const SuggestWorkoutSetupOutputSchema = z.object({
+  summary: z.string().describe("A short (2-3 sentences), encouraging summary of the user's recent performance and a recommendation for today's focus."),
+  focusArea: z.array(z.string()).describe("The suggested primary muscle group(s) to focus on for the next workout."),
+  supersetStrategy: z.enum(['focused', 'mixed']).describe("The suggested superset strategy."),
+  workoutDuration: z.number().describe("The suggested workout duration in minutes."),
+});
+export type SuggestWorkoutSetupOutput = z.infer<typeof SuggestWorkoutSetupOutputSchema>;
+
 
 const muscleGroupHierarchy: Record<string, string[]> = {
   "Full Body": ["Upper Body", "Lower Body", "Core"],
