@@ -101,6 +101,7 @@ export default function GuidePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(true);
   const [hasUsedAiToday, setHasUsedAiToday] = useState(false);
+  const [hasFetchedInitial, setHasFetchedInitial] = useState(false);
 
   const equipmentCollection = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -146,87 +147,88 @@ export default function GuidePage() {
   const suggestionLimitReached = dailySuggestionsCount >= 3;
 
   const fetchWorkoutSuggestion = async () => {
-      // Use the live userProfile from the hook
-      const currentCount = userProfile?.dailySuggestionsCount || 0;
-      
-      if (!allWorkoutLogs || !masterExercises || !userProfile || currentCount >= 3 || !userProfileRef) {
-        setIsLoadingSuggestion(false);
-        return;
-      };
-      setIsLoadingSuggestion(true);
-      
-      const sevenDaysAgo = subDays(new Date(), 7);
-      const recentLogs = allWorkoutLogs.filter(log => isWithinInterval(parseISO(log.date), { start: sevenDaysAgo, end: new Date() }));
-      
-      const history: SuggestWorkoutSetupInput['workoutHistory'] = recentLogs.map(log => {
-          const muscleGroups = new Set<string>();
-          log.exercises.forEach(ex => {
-              const masterEx = masterExercises.find(me => me.id === ex.exerciseId);
-              if(masterEx?.category) {
-                  const groups = categoryToMuscleGroup[masterEx.category] || [];
-                  groups.forEach(g => muscleGroups.add(g));
-              }
-          });
-          return {
-              date: format(parseISO(log.date), 'PPP'),
-              name: log.workoutName,
-              volume: log.volume,
-              muscleGroups: Array.from(muscleGroups)
-          }
-      });
+    setIsLoadingSuggestion(true);
 
-      const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
+    const currentCount = userProfile?.dailySuggestionsCount || 0;
 
-      try {
-        // The `useDoc` hook will update userProfile automatically, which will in turn update dailySuggestionsCount
-        setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount + 1 }, { merge: true });
-        const suggestion = await suggestWorkoutSetup({
-          fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
-          workoutHistory: history,
+    if (!allWorkoutLogs || !masterExercises || !userProfile || currentCount >= 3 || !userProfileRef) {
+      setIsLoadingSuggestion(false);
+      return;
+    }
+    
+    // Increment count in Firestore FIRST.
+    await setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount + 1 }, { merge: true });
+
+    const sevenDaysAgo = subDays(new Date(), 7);
+    const recentLogs = allWorkoutLogs.filter(log => isWithinInterval(parseISO(log.date), { start: sevenDaysAgo, end: new Date() }));
+    
+    const history: SuggestWorkoutSetupInput['workoutHistory'] = recentLogs.map(log => {
+        const muscleGroups = new Set<string>();
+        log.exercises.forEach(ex => {
+            const masterEx = masterExercises.find(me => me.id === ex.exerciseId);
+            if(masterEx?.category) {
+                const groups = categoryToMuscleGroup[masterEx.category] || [];
+                groups.forEach(g => muscleGroups.add(g));
+            }
         });
-        setWorkoutSuggestions(prev => [...prev, suggestion]);
-      } catch(error) {
-          console.error("Failed to get workout suggestion:", error);
-          toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
-          // Decrement count if suggestion fails
-          setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount }, { merge: true });
-      } finally {
-        setIsLoadingSuggestion(false);
-      }
-    };
+        return {
+            date: format(parseISO(log.date), 'PPP'),
+            name: log.workoutName,
+            volume: log.volume,
+            muscleGroups: Array.from(muscleGroups)
+        }
+    });
+
+    const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
+
+    try {
+      const suggestion = await suggestWorkoutSetup({
+        fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
+        workoutHistory: history,
+      });
+      setWorkoutSuggestions(prev => [...prev, suggestion]);
+    } catch(error) {
+        console.error("Failed to get workout suggestion:", error);
+        toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
+        // Decrement count if suggestion fails
+        await setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: currentCount }, { merge: true });
+    } finally {
+      setIsLoadingSuggestion(false);
+    }
+  };
 
 
   useEffect(() => {
-    if (isLoadingProfile) return; // Wait for profile to load
+    if (isLoadingProfile || !userProfile) return;
 
-    if (userProfile) {
-      // Reset daily count if it's a new day
-      if (userProfile.lastAiWorkoutDate && !isToday(parseISO(userProfile.lastAiWorkoutDate))) {
-          if (userProfileRef) {
-            setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: 0 }, { merge: true });
-          }
+    // Reset daily count if it's a new day
+    if (userProfile.lastAiWorkoutDate && !isToday(parseISO(userProfile.lastAiWorkoutDate))) {
+      if (userProfile.dailySuggestionsCount !== 0 && userProfileRef) {
+        setDocumentNonBlocking(userProfileRef, { dailySuggestionsCount: 0 }, { merge: true });
       }
+    }
+    
+    // Check if an AI workout has been generated for today
+    const hasWorkoutForToday = userProfile.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate));
+    setHasUsedAiToday(hasWorkoutForToday);
 
-      if (userProfile.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate))) {
-        setHasUsedAiToday(true);
-        if (userProfile.todaysAiWorkout) {
-          setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
-        }
-        setIsLoadingSuggestion(false);
-      } else {
-        setHasUsedAiToday(false);
+    if (hasWorkoutForToday) {
+      if (userProfile.todaysAiWorkout) {
+        setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
+      }
+      setIsLoadingSuggestion(false);
+    } else {
+        // No workout generated for today
         setGeneratedWorkout(null);
-        // Only fetch the very first suggestion automatically if none have been fetched this session.
-        if (workoutSuggestions.length === 0 && !sessionStorage.getItem('initialSuggestionFetched')) {
-            sessionStorage.setItem('initialSuggestionFetched', 'true');
+        if (!hasFetchedInitial) {
+            setHasFetchedInitial(true);
             fetchWorkoutSuggestion();
         } else {
             setIsLoadingSuggestion(false);
         }
-      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, isLoadingProfile, allWorkoutLogs, masterExercises]);
+  }, [userProfile, isLoadingProfile]);
   
     useEffect(() => {
     if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
@@ -234,13 +236,6 @@ export default function GuidePage() {
       form.setValue('availableEquipment', defaultEquipment);
     }
   }, [userEquipment, form]);
-
-  useEffect(() => {
-    // Clear session storage on component unmount
-    return () => {
-        sessionStorage.removeItem('initialSuggestionFetched');
-    }
-  }, []);
 
   const handleFocusAreaChange = (group: string, checked: boolean) => {
     const currentValues = form.getValues('focusArea');
@@ -433,7 +428,7 @@ export default function GuidePage() {
         const isParentChecked = currentFocusArea?.includes(group);
 
         return (
-          <div key={group} className="space-y-2">
+          <div key={group} className="space-y-4">
             <FormField
               control={form.control}
               name="focusArea"
