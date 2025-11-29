@@ -374,6 +374,9 @@ export default function GuidePage() {
     <div className={isSubGroup ? "space-y-3 pl-6" : "space-y-3"}>
       {groupNames.map(group => {
         const subGroupItems = (subGroups)[group];
+        const currentFocusArea = form.watch('focusArea');
+        const isParentChecked = currentFocusArea?.includes(group);
+
         return (
           <div key={group} className="space-y-2">
             <FormField
@@ -393,7 +396,7 @@ export default function GuidePage() {
                 </FormItem>
               )}
             />
-            {subGroupItems && form.getValues('focusArea').includes(group) && renderCheckboxes(subGroupItems, true)}
+            {subGroupItems && isParentChecked && renderCheckboxes(subGroupItems, true)}
           </div>
         );
       })}
