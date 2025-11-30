@@ -143,12 +143,7 @@ export default function GuidePage() {
     // This effect's sole job is to decide whether to fetch a new suggestion or use an existing one.
     const runSuggestionLogic = async () => {
       // Step 1: Wait until all necessary data is loaded.
-      if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !user) {
-        return;
-      }
-  
-      // This ensures we don't do anything until the profile is confirmed loaded.
-      if (userProfile === undefined) {
+      if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !user || userProfile === undefined) {
         return;
       }
       
@@ -157,17 +152,17 @@ export default function GuidePage() {
       const hasTodaysSuggestion = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysSuggestion;
   
       if (hasTodaysSuggestion) {
-        // Step 2: A valid suggestion for today already exists. Display it.
+        // A valid suggestion for today already exists. Display it.
         setWorkoutSuggestion(userProfile.todaysSuggestion as SuggestWorkoutSetupOutput);
         if (userProfile.todaysAiWorkout) {
           setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
         }
         setIsLoadingSuggestion(false);
       } else {
-        // Step 3: No suggestion for today. Generate one.
+        // No suggestion for today. Generate one.
         const history: SuggestWorkoutSetupInput['workoutHistory'] = (recentLogs || []).map(log => {
           const muscleGroups = new Set<string>();
-          log.exercises.forEach(ex => {
+          (log.exercises || []).forEach(ex => {
             const masterEx = masterExercises?.find(me => me.id === ex.exerciseId);
             if (masterEx?.category) {
               const groups = categoryToMuscleGroup[masterEx.category] || [];
@@ -210,7 +205,7 @@ export default function GuidePage() {
   
     runSuggestionLogic();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, userProfile, recentLogs, masterExercises, isLoadingProfile, isLoadingLogs, isLoadingExercises]);
+  }, [user, userProfile, isLoadingProfile, isLoadingLogs, isLoadingExercises]);
   
     useEffect(() => {
     if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
@@ -287,7 +282,7 @@ export default function GuidePage() {
     const history = recentLogs?.map(log => ({
       date: format(parseISO(log.date), 'PPP'),
       name: log.workoutName,
-      exercises: log.exercises.map(ex => ex.exerciseName).join(', ')
+      exercises: (log.exercises || []).map(ex => ex.exerciseName).join(', ')
     }));
     
     const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
@@ -408,7 +403,7 @@ export default function GuidePage() {
         const isParentChecked = currentFocusArea?.includes(group);
 
         return (
-          <div key={group} className="space-y-4">
+          <div key={group} className={isSubGroup ? "space-y-4" : "space-y-4 pt-2"}>
             <FormField
               control={form.control}
               name="focusArea"
@@ -479,7 +474,7 @@ export default function GuidePage() {
                             <p className="font-medium capitalize">{workoutSuggestion.supersetStrategy}</p>
                         </div>
                     </div>
-                    <Button onClick={() => applySuggestion(workoutSuggestion)} className="w-full sm:w-auto">Apply Suggestion</Button>
+                    {!displayWorkout && <Button onClick={() => applySuggestion(workoutSuggestion)} className="w-full sm:w-auto">Apply Suggestion</Button>}
                 </CardContent>
             </Card>
         )}

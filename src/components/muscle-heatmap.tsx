@@ -80,7 +80,7 @@ export const HeatPoint = ({ intensity, size, coords, bodyType, view }: { intensi
   const hue = intensity <= 0.5
     ? 240 - (intensity * 2 * 140) // Transition from Blue (240) to deeper Green (100)
     : 100 - ((intensity - 0.5) * 2 * 100); // Transition from Green (100) to Red (0)
-  const color = `hsl(${hue}, 100%, 50%)`;
+  const color = `hsl(${hue}, 100%, 40%)`;
 
   const renderPoints = () => {
     const mainPoint = (
