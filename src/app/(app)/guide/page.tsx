@@ -80,7 +80,8 @@ export default function GuidePage() {
   const [workoutSuggestion, setWorkoutSuggestion] = useState<SuggestWorkoutSetupOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(true);
+  // Separate loading state for initial data fetch vs AI generation
+  const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
 
   const equipmentCollection = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -118,7 +119,7 @@ export default function GuidePage() {
       availableEquipment: [],
       fitnessLevel: 'intermediate',
       workoutDuration: 40,
-      focusArea: ["Full Body"],
+      focusArea: [],
       supersetStrategy: "focused",
     },
   });
@@ -147,8 +148,6 @@ export default function GuidePage() {
         return;
       }
 
-      setIsLoadingSuggestion(true);
-
       const hasTodaysSuggestion = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysSuggestion;
 
       if (hasTodaysSuggestion) {
@@ -157,8 +156,8 @@ export default function GuidePage() {
         if (userProfile.todaysAiWorkout) {
           setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
         }
-        setIsLoadingSuggestion(false);
       } else {
+        setIsGeneratingSuggestion(true);
         // No suggestion for today. Generate one.
         const history: SuggestWorkoutSetupInput['workoutHistory'] = (recentLogs || []).map(log => {
           const muscleGroups = new Set<string>();
@@ -198,7 +197,7 @@ export default function GuidePage() {
           console.error("Failed to get workout suggestion:", error);
           toast({ variant: 'destructive', title: "Suggestion Failed", description: "Could not generate a suggestion at this time." });
         } finally {
-          setIsLoadingSuggestion(false);
+          setIsGeneratingSuggestion(false);
         }
       }
     };
@@ -435,16 +434,25 @@ export default function GuidePage() {
       </div>
 
       <div className="space-y-4">
-        {isLoadingSuggestion && (
+        {isLoadingProfile && (
           <Card className="lg:col-span-3">
             <CardContent className="p-6 flex items-center justify-center gap-4">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-muted-foreground">fRepo Coach is analyzing your progress...</p>
+              <p className="text-muted-foreground">Loading your profile...</p>
             </CardContent>
           </Card>
         )}
 
-        {!isLoadingSuggestion && workoutSuggestion && (
+        {isGeneratingSuggestion && (
+          <Card className="lg:col-span-3">
+            <CardContent className="p-6 flex items-center justify-center gap-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-muted-foreground">Coach is analyzing your progress...</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isLoadingProfile && !isGeneratingSuggestion && workoutSuggestion && (
           <Card className="border-primary/50 bg-primary/5">
             <CardHeader>
               <div className="flex items-center gap-3">
