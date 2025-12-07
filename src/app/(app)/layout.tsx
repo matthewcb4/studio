@@ -51,14 +51,14 @@ const navItems = [
 ];
 
 const secondaryNavItems = [
-    { href: "/settings", icon: Settings, label: "Settings" },
+  { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
-  
+
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/');
@@ -66,13 +66,13 @@ function UserNav() {
 
   const initials = useMemo(() => {
     if (!isUserLoading && user) {
-        if (user.displayName) {
-            return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        } else if (user.email) {
-            return user.email.substring(0, 2).toUpperCase();
-        } else {
-            return 'U';
-        }
+      if (user.displayName) {
+        return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      } else if (user.email) {
+        return user.email.substring(0, 2).toUpperCase();
+      } else {
+        return 'U';
+      }
     }
     return '';
   }, [user, isUserLoading]);
@@ -129,55 +129,55 @@ function Nav({ onLinkClick }: { onLinkClick?: () => void }) {
   );
 }
 function SecondaryNav({ onLinkClick }: { onLinkClick?: () => void }) {
-    const pathname = usePathname();
-    return (
-      <SidebarMenu>
-        {secondaryNavItems.map((item) => (
-          <SidebarMenuItem key={item.href}>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith(item.href)}
-              tooltip={item.label}
-              onClick={onLinkClick}
-            >
-              <Link href={item.href}>
-                <item.icon />
-                <span>{item.label}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    );
-  }
+  const pathname = usePathname();
+  return (
+    <SidebarMenu>
+      {secondaryNavItems.map((item) => (
+        <SidebarMenuItem key={item.href}>
+          <SidebarMenuButton
+            asChild
+            isActive={pathname.startsWith(item.href)}
+            tooltip={item.label}
+            onClick={onLinkClick}
+          >
+            <Link href={item.href}>
+              <item.icon />
+              <span>{item.label}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
+}
 
 function MobileNav() {
-    const [isOpen, setIsOpen] = useState(false);
-    return (
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="shrink-0 md:hidden">
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Toggle navigation menu</span>
-                </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col bg-sidebar text-sidebar-foreground p-0 max-w-64">
-                <SheetHeader className="p-2 border-b">
-                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2" onClick={() => setIsOpen(false)}>
-                        <Logo className="h-6 w-6" />
-                        <span>fRepo</span>
-                    </Link>
-                </SheetHeader>
-                <SidebarContent className="p-2">
-                    <Nav onLinkClick={() => setIsOpen(false)} />
-                </SidebarContent>
-                 <SidebarFooter className="p-2 mt-auto border-t">
-                    <SecondaryNav onLinkClick={() => setIsOpen(false)} />
-                </SidebarFooter>
-            </SheetContent>
-        </Sheet>
-    )
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle navigation menu</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="flex flex-col bg-sidebar text-sidebar-foreground p-0 max-w-64">
+        <SheetHeader className="p-2 border-b">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2" onClick={() => setIsOpen(false)}>
+            <Logo className="h-6 w-6" />
+            <span>fRepo</span>
+          </Link>
+        </SheetHeader>
+        <SidebarContent className="p-2">
+          <Nav onLinkClick={() => setIsOpen(false)} />
+        </SidebarContent>
+        <SidebarFooter className="p-2 mt-auto border-t">
+          <SecondaryNav onLinkClick={() => setIsOpen(false)} />
+        </SidebarFooter>
+      </SheetContent>
+    </Sheet>
+  )
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -196,8 +196,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Sidebar collapsible="icon" className="hidden md:flex">
           <SidebarHeader>
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground px-2">
-                <Logo className="h-6 w-6" />
-                <span className="group-data-[collapsible=icon]:hidden">fRepo</span>
+              <Logo className="h-6 w-6" />
+              <span className="group-data-[collapsible=icon]:hidden">fRepo</span>
             </Link>
           </SidebarHeader>
           <SidebarContent>
@@ -206,7 +206,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarFooter>
             <SecondaryNav />
             <div className="text-xs text-center text-muted-foreground p-2 group-data-[collapsible=icon]:hidden">
-              v2.0.0
+              v2.1
             </div>
           </SidebarFooter>
         </Sidebar>
