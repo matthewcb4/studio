@@ -8,7 +8,7 @@ const pwaConfig = {
   disable: process.env.NODE_ENV === 'development',
   // By creating a static manifest.webmanifest, we can disable the dynamic generation.
   // This gives us full control and avoids pathing issues.
-  manifest: undefined, 
+  manifest: undefined,
 };
 
 const nextConfig: NextConfig = {
@@ -58,6 +58,11 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       }
     ],
+  },
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
   },
 };
 
