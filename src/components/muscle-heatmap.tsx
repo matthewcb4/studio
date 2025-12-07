@@ -229,6 +229,22 @@ export function MuscleHeatmap({
       });
     });
 
+    let target = 0;
+    if (isSingleWorkout) {
+      // For a single workout, the target is the max effort of any single muscle group in that workout.
+      target = Math.max(...Object.values(muscleGroupEffort));
+    } else {
+      // For multiple workouts (dashboard), use the weekly volume target.
+      // Approx: 3 workouts * 10k lbs volume = 30k
+      const baselineWeeklyVolume = 30000;
+      target = baselineWeeklyVolume;
+      if (userProfile?.fatLossGoal === 'reduce_body_fat' || userProfile?.strengthGoal === 'improve_endurance') {
+        target *= 1.5;
+      } else if (userProfile?.muscleGoal === 'gain_overall_mass' || userProfile?.strengthGoal === 'increase_max_lift') {
+        target *= 0.75;
+      }
+    }
+
 
 
     const intensities: MuscleGroupIntensities = {};
