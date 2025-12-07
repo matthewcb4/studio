@@ -20,7 +20,8 @@ import {
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/logo";
 import { useAuth, initiateEmailSignIn, initiateGoogleSignIn, useUser, initiateFacebookSignIn } from "@/firebase";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -31,7 +32,9 @@ export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
   const loginImage = PlaceHolderImages.find((img) => img.id === "login-hero");
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -47,16 +50,52 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    initiateEmailSignIn(auth, values.email, values.password);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    try {
+      await initiateEmailSignIn(auth, values.email, values.password);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "An error occurred during login.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function onGoogleSignIn() {
-    initiateGoogleSignIn(auth);
+  async function onGoogleSignIn() {
+    setIsLoading(true);
+    try {
+      await initiateGoogleSignIn(auth);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Google Login Failed",
+        description: error.message || "An error occurred during Google login.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function onFacebookSignIn() {
-    initiateFacebookSignIn(auth);
+  async function onFacebookSignIn() {
+    setIsLoading(true);
+    try {
+      await initiateFacebookSignIn(auth);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Facebook Login Failed",
+        description: error.message || "An error occurred during Facebook login.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   if (isUserLoading || user) {

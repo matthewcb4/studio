@@ -13,41 +13,31 @@ import {
 } from 'firebase/auth';
 
 /** Initiate anonymous sign-in (non-blocking). */
-export function initiateAnonymousSignIn(authInstance: Auth): void {
-  // CRITICAL: Call signInAnonymously directly. Do NOT use 'await signInAnonymously(...)'.
-  signInAnonymously(authInstance);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+export function initiateAnonymousSignIn(authInstance: Auth): Promise<any> {
+  return signInAnonymously(authInstance);
 }
 
 /** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
-  // CRITICAL: Call createUserWithEmailAndPassword directly. Do NOT use 'await createUserWithEmailAndPassword(...)'.
-  createUserWithEmailAndPassword(authInstance, email, password);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): Promise<any> {
+  return createUserWithEmailAndPassword(authInstance, email, password);
 }
 
 /** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  // CRITICAL: Call signInWithEmailAndPassword directly. Do NOT use 'await signInWithEmailAndPassword(...)'.
-  signInWithEmailAndPassword(authInstance, email, password);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<any> {
+  return signInWithEmailAndPassword(authInstance, email, password);
 }
 
 /** Initiate Google sign-in with a redirect (non-blocking). */
-export function initiateGoogleSignIn(authInstance: Auth): void {
+export function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
   const provider = new GoogleAuthProvider();
-  // CRITICAL: Call signInWithRedirect directly. Do NOT use 'await signInWithRedirect(...)'.
-  signInWithRedirect(authInstance, provider);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+  return signInWithRedirect(authInstance, provider);
 }
 
 /** Initiate Facebook sign-in with a popup (non-blocking). */
-export function initiateFacebookSignIn(authInstance: Auth): void {
+export function initiateFacebookSignIn(authInstance: Auth): Promise<any> {
   const provider = new FacebookAuthProvider();
-  // Add the 'email' scope to request the user's email address
   provider.addScope('email');
-  // Use signInWithPopup for environments where redirects may be problematic.
-  signInWithPopup(authInstance, provider);
+  return signInWithPopup(authInstance, provider);
 }
 
 /** Link the current user with a Facebook account. */

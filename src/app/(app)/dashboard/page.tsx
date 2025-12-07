@@ -36,9 +36,8 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { format, isWithinInterval, subDays, isSameWeek } from "date-fns";
+import { format, isWithinInterval, subDays } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise, LoggedSet } from "@/lib/types";
@@ -62,65 +61,11 @@ const parseDuration = (duration: string): number => {
     return 0;
 };
 
-function StarRating({ rating }: { rating: number }) {
-    if (rating < 1) return null;
-    return (
-        <div className="flex items-center">
-            {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                    key={star}
-                    className="w-4 h-4"
-                    fill={star <= rating ? 'hsl(var(--primary))' : 'transparent'}
-                    stroke="currentColor"
-                />
-            ))}
-        </div>
-    )
-}
-
-function WeeklyGoalCard({ logs, userProfile }: { logs: WorkoutLog[] | null | undefined, userProfile: UserProfile | null | undefined }) {
-    const weeklyGoal = userProfile?.weeklyWorkoutGoal || 3;
-
-    const workoutsThisWeek = useMemo(() => {
-        if (!logs) return 0;
-        const now = new Date();
-        return logs.filter(log => isSameWeek(new Date(log.date), now)).length;
-    }, [logs]);
-
-    const progress = Math.min((workoutsThisWeek / weeklyGoal) * 100, 100);
-
-    return (
-        <Card>
-            <CardHeader className="pb-2">
-                <CardTitle>Weekly Goal</CardTitle>
-                <CardDescription>
-                    Target: {weeklyGoal} workouts/week
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-2">
-                    <div className="flex items-end justify-between">
-                        <div className="text-4xl font-bold">{workoutsThisWeek} <span className="text-lg text-muted-foreground font-normal">/ {weeklyGoal}</span></div>
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                    <p className="text-xs text-muted-foreground">
-                        {workoutsThisWeek >= weeklyGoal
-                            ? "Goal reached! Great job!"
-                            : `${weeklyGoal - workoutsThisWeek} more to go. Keep it up!`}
-                    </p>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
-
 function UserStatsCard({ userProfile }: { userProfile: UserProfile | null | undefined }) {
     if (!userProfile) return null;
 
     const level = userProfile.level || 1;
     const xp = userProfile.xp || 0;
-    const nextLevelXp = level * 1000;
     const progress = (xp % 1000) / 10; // (XP % 1000) / 1000 * 100
 
     return (
@@ -260,7 +205,6 @@ export default function DashboardPage() {
     const firestore = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
-    const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
     const [dateRange, setDateRange] = useState('7');
@@ -448,6 +392,7 @@ export default function DashboardPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <UserStatsCard userProfile={userProfile} />
+
                     <Card className="lg:col-span-1 flex flex-col">
                         <CardHeader className="pb-3">
                             <CardTitle>Quick Start</CardTitle>
@@ -493,22 +438,17 @@ export default function DashboardPage() {
                     </Card>
 
                     {hasData ? (
-                        <>
-                            {/* Replaces simple workout count with Weekly Goal */}
-                            <WeeklyGoalCard logs={allLogs || undefined} userProfile={userProfile} />
-
-                            <Card>
-                                <CardHeader className="pb-2">
-                                    <CardTitle>Total Volume</CardTitle>
-                                    <CardDescription>{dateRangeLabel}</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
-                                </CardContent>
-                            </Card>
-                        </>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle>Total Volume</CardTitle>
+                                <CardDescription>{dateRangeLabel}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
+                            </CardContent>
+                        </Card>
                     ) : (
-                        <Card className="lg:col-span-2 flex flex-col items-center justify-center p-6 text-center">
+                        <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
                             <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
                             <CardTitle className="mt-4">Start Your Journey</CardTitle>
                             <CardDescription>
@@ -519,94 +459,101 @@ export default function DashboardPage() {
                             </Button>
                         </Card>
                     )}
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Quick Log</CardTitle>
+                            <CardDescription>
+                                Log a single exercise on the fly.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col gap-4">
+                                <Combobox
+                                    options={exerciseOptions || []}
+                                    value={selectedExerciseId || ''}
+                                    onSelect={setSelectedExerciseId}
+                                    placeholder="Select an exercise..."
+                                    searchPlaceholder="Search exercises..."
+                                />
+                                <Button disabled={!selectedExerciseId} onClick={() => setIsQuickLogOpen(true)}>Log Exercise</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <ProgressSummaryCard />
+
+                    <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                        <MuscleHeatmap
+                            userProfile={userProfile}
+                            thisWeeksLogs={filteredLogs}
+                            isLoading={isLoading}
+                            dateRangeLabel={dateRangeLabel}
+                            onIntensitiesChange={setMuscleIntensities}
+                            onViewClick={handleHeatmapView}
+                        />
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                        <MuscleGroupVolumeChart
+                            filteredLogs={filteredLogs}
+                            masterExercises={masterExercises}
+                            isLoading={isLoading}
+                            dateRangeLabel={dateRangeLabel}
+                        />
+                    </div>
+
+                    <Card className="col-span-1 sm:col-span-2 lg:col-span-3">
+                        <CardHeader>
+                            <CardTitle>Recent Activity</CardTitle>
+                            <CardDescription>
+                                A log of your most recent workouts.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Workout</TableHead>
+                                        <TableHead className="hidden sm:table-cell">Date</TableHead>
+                                        <TableHead className="hidden sm:table-cell">Rating</TableHead>
+                                        <TableHead className="text-right">Total Volume</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoadingLogs && <TableRow><TableCell colSpan={4} className="text-center">Loading recent activity...</TableCell></TableRow>}
+                                    {!isLoadingLogs && recentLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No recent workouts found.</TableCell></TableRow>}
+                                    {recentLogs.map((log) => (
+                                        <TableRow key={log.id}>
+                                            <TableCell>
+                                                <div className="font-medium">{log.workoutName}</div>
+                                            </TableCell>
+                                            <TableCell className="hidden sm:table-cell">
+                                                {format(new Date(log.date), "PPP")}
+                                            </TableCell>
+                                            <TableCell className="hidden sm:table-cell">
+                                                {log.rating ? (
+                                                    <div className="flex items-center">
+                                                        {log.rating} <Star className="w-3 h-3 ml-1 fill-primary text-primary" />
+                                                    </div>
+                                                ) : "-"}
+                                            </TableCell>
+                                            <TableCell className="text-right font-medium">
+                                                {log.volume?.toLocaleString() || 0} lbs
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <Dialog open={isQuickLogOpen} onOpenChange={(open) => { if (!open) { setSelectedExerciseId(null); setIsQuickLogOpen(false); } }}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Quick Log</CardTitle>
-                                <CardDescription>
-                                    Log a single exercise on the fly.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-col gap-4">
-                                    <Combobox
-                                        options={exerciseOptions || []}
-                                        value={selectedExerciseId || ''}
-                                        onSelect={setSelectedExerciseId}
-                                        placeholder="Select an exercise..."
-                                        searchPlaceholder="Search exercises..."
-                                    />
-                                    <DialogTrigger asChild>
-                                        <Button disabled={!selectedExerciseId} onClick={() => setIsQuickLogOpen(true)}>Log Exercise</Button>
-                                    </DialogTrigger>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <ProgressSummaryCard />
-                    </div>
                     <DialogContent>
                         {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => { setIsQuickLogOpen(false); setSelectedExerciseId(null); }} />}
                     </DialogContent>
                 </Dialog>
-
-                <MuscleHeatmap
-                    userProfile={userProfile}
-                    thisWeeksLogs={filteredLogs}
-                    isLoading={isLoading}
-                    dateRangeLabel={dateRangeLabel}
-                    onIntensitiesChange={setMuscleIntensities}
-                    onViewClick={handleHeatmapView}
-                />
-
-                <MuscleGroupVolumeChart
-                    filteredLogs={filteredLogs}
-                    masterExercises={masterExercises}
-                    isLoading={isLoading}
-                    dateRangeLabel={dateRangeLabel}
-                />
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>
-                            A log of your most recent workouts.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Workout</TableHead>
-                                    <TableHead className="hidden sm:table-cell">Date</TableHead>
-                                    <TableHead className="hidden sm:table-cell">Rating</TableHead>
-                                    <TableHead className="text-right">Total Volume</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoadingLogs && <TableRow><TableCell colSpan={4} className="text-center">Loading recent activity...</TableCell></TableRow>}
-                                {!isLoadingLogs && recentLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No recent workouts found.</TableCell></TableRow>}
-                                {recentLogs.map((log) => (
-                                    <TableRow key={log.id}>
-                                        <TableCell>
-                                            <div className="font-medium">{log.workoutName}</div>
-                                        </TableCell>
-                                        <TableCell className="hidden sm:table-cell">
-                                            {format(new Date(log.date), "PPP")}
-                                        </TableCell>
-                                        <TableCell className="hidden sm:table-cell">
-                                            {log.rating ? <StarRating rating={log.rating} /> : <span className="text-xs text-muted-foreground">N/A</span>}
-                                        </TableCell>
-                                        <TableCell className="text-right">{log.volume.toLocaleString()} lbs</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
             </div>
 
             <AlertDialog open={!!workoutToStart} onOpenChange={(open) => !open && setWorkoutToStart(null)}>
@@ -632,5 +579,3 @@ export default function DashboardPage() {
         </>
     );
 }
-
-

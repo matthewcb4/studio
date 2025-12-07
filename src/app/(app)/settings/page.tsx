@@ -542,6 +542,46 @@ export default function SettingsPage() {
                         </AccordionContent>
                     </Card>
                 </AccordionItem>
+                <AccordionItem value="data-management" className="border-none">
+                    <Card>
+                        <AccordionTrigger className="p-6 text-left">
+                            <div className="flex items-center gap-3">
+                                <Database className="w-6 h-6 text-primary" />
+                                <div>
+                                    <CardTitle>Data Management</CardTitle>
+                                    <CardDescription className="mt-1.5 text-left">
+                                        Manage your workout history and statistics.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium">Recalculate Statistics</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        If your streak, level, or lifetime volume seems incorrect, you can verify and recalculate them from your entire workout history.
+                                        This provides a safe way to ensure your stats are up to date.
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleRecalculateStats}
+                                        disabled={isRecalculating}
+                                    >
+                                        {isRecalculating ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Recalculating...
+                                            </>
+                                        ) : (
+                                            "Recalculate Statistics"
+                                        )}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </AccordionContent>
+                    </Card>
+                </AccordionItem>
                 <AccordionItem value="account-linking" className="border-none">
                     <Card>
                         <AccordionTrigger className="p-6 text-left">

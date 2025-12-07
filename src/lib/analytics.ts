@@ -90,10 +90,18 @@ export const calculateUserStats = (history: WorkoutLog[]): UserStats => {
     let lifetimeVolume = 0;
     let xp = 0;
 
-    // Sort history by date descending for accurate streak calc, 
-    // though for volume/xp order doesn't matter.
-    // We create a copy to avoid mutating the input.
-    const sortedHistory = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Helper to robustly get Date object from string or Timestamp
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const getDate = (d: any): Date => {
+        if (!d) return new Date();
+        if (typeof d.toDate === 'function') {
+            return d.toDate();
+        }
+        return new Date(d);
+    };
+
+    // Sort history by date descending for accurate streak calc.
+    const sortedHistory = [...history].sort((a, b) => getDate(b.date).getTime() - getDate(a.date).getTime());
 
     // 1. Calculate Volume and XP
     sortedHistory.forEach(log => {
@@ -111,7 +119,7 @@ export const calculateUserStats = (history: WorkoutLog[]): UserStats => {
     // We need unique dates (ignoring time)
     const uniqueDates = new Set<string>();
     sortedHistory.forEach(log => {
-        const dateStr = new Date(log.date).toLocaleDateString('en-CA');
+        const dateStr = getDate(log.date).toLocaleDateString('en-CA');
         uniqueDates.add(dateStr);
     });
 
