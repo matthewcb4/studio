@@ -27,6 +27,17 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format, isWithinInterval, subDays, isSameWeek } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
@@ -67,8 +78,8 @@ function StarRating({ rating }: { rating: number }) {
     )
 }
 
-function WeeklyGoalCard({ logs }: { logs: WorkoutLog[] | null | undefined }) {
-    const weeklyGoal = 3; // Hardcoded goal for now, could be in settings later
+function WeeklyGoalCard({ logs, userProfile }: { logs: WorkoutLog[] | null | undefined, userProfile: UserProfile | null | undefined }) {
+    const weeklyGoal = userProfile?.weeklyWorkoutGoal || 3;
 
     const workoutsThisWeek = useMemo(() => {
         if (!logs) return 0;
@@ -212,6 +223,10 @@ export default function DashboardPage() {
     const [heatmapModalOpen, setHeatmapModalOpen] = useState(false);
     const [selectedHeatmapView, setSelectedHeatmapView] = useState<'front' | 'back' | null>(null);
     const [muscleIntensities, setMuscleIntensities] = useState<MuscleGroupIntensities>({});
+
+    const [workoutToStart, setWorkoutToStart] = useState<CustomWorkout | null>(null);
+
+
 
     const customWorkoutsQuery = useMemoFirebase(() => {
         if (!user) return null;
@@ -400,12 +415,16 @@ export default function DashboardPage() {
                             ) : quickStartWorkouts.length > 0 ? (
                                 <div className="space-y-2">
                                     {quickStartWorkouts.map(workout => (
-                                        <Button key={workout.id} variant="secondary" className="w-full justify-between" asChild>
-                                            <Link href={`/workout/${workout.id}`}>
+                                        <div key={workout.id}>
+                                            <Button
+                                                variant="secondary"
+                                                className="w-full justify-between"
+                                                onClick={() => setWorkoutToStart(workout)}
+                                            >
                                                 <span className="truncate">{workout.name}</span>
                                                 <Play className="h-4 w-4 ml-2 opacity-50" />
-                                            </Link>
-                                        </Button>
+                                            </Button>
+                                        </div>
                                     ))}
                                 </div>
                             ) : (
@@ -430,7 +449,7 @@ export default function DashboardPage() {
                     {hasData ? (
                         <>
                             {/* Replaces simple workout count with Weekly Goal */}
-                            <WeeklyGoalCard logs={allLogs || undefined} />
+                            <WeeklyGoalCard logs={allLogs || undefined} userProfile={userProfile} />
 
                             <Card>
                                 <CardHeader className="pb-2">
@@ -543,6 +562,29 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <AlertDialog open={!!workoutToStart} onOpenChange={(open) => !open && setWorkoutToStart(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Start "{workoutToStart?.name}"?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you ready to begin this workout?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                            if (workoutToStart) {
+                                router.push(`/workout/${workoutToStart.id}`);
+                            }
+                        }}>
+                            Start Workout
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
+
+

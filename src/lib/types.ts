@@ -61,16 +61,17 @@ export type UserEquipment = {
 };
 
 export type UserProfile = {
-    id: string;
-    targetWeight?: number;
-    strengthGoal?: string;
-    muscleGoal?: string;
-    fatLossGoal?: string;
-    biologicalSex?: 'Male' | 'Female';
-    lastAiWorkoutDate?: string; // ISO string
-    hasCompletedOnboarding?: boolean;
-    todaysAiWorkout?: object;
-    todaysSuggestion?: object;
+  id: string;
+  targetWeight?: number;
+  weeklyWorkoutGoal?: number;
+  strengthGoal?: string;
+  muscleGoal?: string;
+  fatLossGoal?: string;
+  biologicalSex?: 'Male' | 'Female';
+  lastAiWorkoutDate?: string; // ISO string
+  hasCompletedOnboarding?: boolean;
+  todaysAiWorkout?: object;
+  todaysSuggestion?: object;
 }
 
 export type ProgressLog = {
@@ -80,4 +81,3 @@ export type ProgressLog = {
   weight: number;
 };
 
-    
