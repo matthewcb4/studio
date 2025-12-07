@@ -8,11 +8,11 @@ import * as z from 'zod';
 import { PlusCircle, Trash2, Check, Loader2, Edit, Save } from 'lucide-react';
 
 import {
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,13 +30,13 @@ const quickLogSetSchema = z.object({
 });
 
 const quickLogSchema = z.object({
-  sets: z.array(quickLogSetSchema).min(1, "Log at least one set."),
+    sets: z.array(quickLogSetSchema).min(1, "Log at least one set."),
 });
 
 interface QuickLogFormProps {
-  exercise: MasterExercise;
-  onLog: (sets: LoggedSet[]) => void;
-  onCancel: () => void;
+    exercise: MasterExercise;
+    onLog: (sets: LoggedSet[]) => void;
+    onCancel: () => void;
 }
 
 const getDefaultSetValues = (unit: string) => {
@@ -52,6 +52,9 @@ const getDefaultSetValues = (unit: string) => {
             return { weight: undefined, reps: undefined };
     }
 }
+
+import { Card, CardContent } from "@/components/ui/card";
+import { AnimatePresence, motion } from "framer-motion";
 
 export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,7 +72,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
         control: form.control,
         name: "sets",
     });
-    
+
     const handleUnitChange = (newUnit: WorkoutExercise['unit']) => {
         setUnit(newUnit);
         // Reset the form fields to match the new unit structure
@@ -86,13 +89,13 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
         switch (unit) {
             case 'seconds':
                 return (
-                     <FormField
+                    <FormField
                         control={form.control}
                         name={`sets.${index}.duration`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Duration (s)</FormLabel>
-                                <FormControl><Input type="number" placeholder="60" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormControl><Input type="number" placeholder="60" {...field} value={field.value ?? ''} className="bg-transparent border-0 border-b border-border rounded-none shadow-none focus-visible:ring-0 focus-visible:border-primary px-0 text-center text-lg font-medium" /></FormControl>
+                                <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider text-center block mt-1">Duration (s)</FormLabel>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -105,35 +108,35 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                         name={`sets.${index}.reps`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Reps</FormLabel>
-                                <FormControl><Input type="number" placeholder="12" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormControl><Input type="number" placeholder="12" {...field} value={field.value ?? ''} className="bg-transparent border-0 border-b border-border rounded-none shadow-none focus-visible:ring-0 focus-visible:border-primary px-0 text-center text-lg font-medium" /></FormControl>
+                                <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider text-center block mt-1">Reps</FormLabel>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 );
             case 'bodyweight':
-                 return (
+                return (
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-2">
-                             <FormField
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
                                 control={form.control}
                                 name={`sets.${index}.weight`}
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Add. Weight</FormLabel>
-                                        <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
+                                        <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} className="bg-transparent border-0 border-b border-border rounded-none shadow-none focus-visible:ring-0 focus-visible:border-primary px-0 text-center" /></FormControl>
+                                        <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider text-center block mt-1">Add. Weight</FormLabel>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                             <FormField
+                            <FormField
                                 control={form.control}
                                 name={`sets.${index}.reps`}
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Reps</FormLabel>
-                                        <FormControl><Input type="number" placeholder="10" {...field} value={field.value ?? ''} /></FormControl>
+                                        <FormControl><Input type="number" placeholder="10" {...field} value={field.value ?? ''} className="bg-transparent border-0 border-b border-border rounded-none shadow-none focus-visible:ring-0 focus-visible:border-primary px-0 text-center" /></FormControl>
+                                        <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider text-center block mt-1">Reps</FormLabel>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -143,14 +146,14 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                             control={form.control}
                             name={`sets.${index}.includeBodyweight`}
                             render={({ field }) => (
-                                <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                                <FormItem className="flex flex-row items-center justify-center space-x-2 space-y-0">
                                     <FormControl>
                                         <Checkbox
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
                                         />
                                     </FormControl>
-                                    <FormLabel className="text-sm font-normal">
+                                    <FormLabel className="text-sm font-normal cursor-pointer">
                                         Include Bodyweight
                                     </FormLabel>
                                 </FormItem>
@@ -161,25 +164,25 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
             case 'reps':
             default:
                 return (
-                    <div className="grid grid-cols-2 gap-2">
-                         <FormField
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
                             control={form.control}
                             name={`sets.${index}.weight`}
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Weight (lbs)</FormLabel>
-                                    <FormControl><Input type="number" placeholder="135" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="135" {...field} value={field.value ?? ''} className="bg-transparent border-0 border-b border-border rounded-none shadow-none focus-visible:ring-0 focus-visible:border-primary px-0 text-center font-medium" /></FormControl>
+                                    <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider text-center block mt-1">Lbs</FormLabel>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-                         <FormField
+                        <FormField
                             control={form.control}
                             name={`sets.${index}.reps`}
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Reps</FormLabel>
-                                    <FormControl><Input type="number" placeholder="8" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="8" {...field} value={field.value ?? ''} className="bg-transparent border-0 border-b border-border rounded-none shadow-none focus-visible:ring-0 focus-visible:border-primary px-0 text-center font-medium" /></FormControl>
+                                    <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider text-center block mt-1">Reps</FormLabel>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -188,7 +191,7 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                 );
         }
     };
-    
+
     return (
         <>
             <DialogHeader>
@@ -206,7 +209,12 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
             </DialogHeader>
 
             {isEditing && (
-                <div className="space-y-2 py-4">
+                <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2 py-4"
+                >
                     <Label>Logging Method</Label>
                     <Select value={unit} onValueChange={(newUnit) => handleUnitChange(newUnit as WorkoutExercise['unit'])}>
                         <SelectTrigger>
@@ -219,36 +227,53 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                             <SelectItem value="bodyweight">Bodyweight</SelectItem>
                         </SelectContent>
                     </Select>
-                </div>
+                </motion.div>
             )}
 
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
-                        {fields.map((field, index) => (
-                            <div key={field.id} className="flex items-end gap-2 p-3 border rounded-md">
-                                <div className="font-medium text-sm text-muted-foreground pt-7">Set {index + 1}</div>
-                                <div className="flex-1">
-                                    {renderSetInputs(index)}
-                                </div>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive h-9 w-9 mb-1">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ))}
+                    <div className="max-h-[50vh] overflow-y-auto pr-2 -mr-2 space-y-3">
+                        <AnimatePresence mode='popLayout'>
+                            {fields.map((field, index) => (
+                                <motion.div
+                                    key={field.id}
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <Card className="overflow-hidden border-border/50 shadow-sm bg-card/50">
+                                        <CardContent className="p-3 flex items-center justify-between gap-4">
+                                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/50 text-xs font-semibold text-muted-foreground shrink-0">
+                                                {index + 1}
+                                            </div>
+                                            <div className="flex-1">
+                                                {renderSetInputs(index)}
+                                            </div>
+                                            <div className="self-center">
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8 transition-colors">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                     </div>
-                    
-                    <Button type="button" variant="outline" onClick={() => append(getDefaultSetValues(unit))}>
+
+                    <Button type="button" variant="outline" className="w-full border-dashed border-primary/20 hover:border-primary/50 hover:bg-primary/5 text-primary" onClick={() => append(getDefaultSetValues(unit))}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Set
                     </Button>
-                    
-                    <DialogFooter>
+
+                    <DialogFooter className="gap-2 sm:gap-0">
                         <DialogClose asChild>
-                            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+                            <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
                         </DialogClose>
-                        <Button type="submit" disabled={isSubmitting}>
+                        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-                             Log Exercise
+                            Log Exercise
                         </Button>
                     </DialogFooter>
                 </form>

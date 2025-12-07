@@ -61,9 +61,9 @@ export default function LoginPage() {
 
   if (isUserLoading || user) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <p>Loading...</p>
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center animate-pulse">
+          <p className="text-lg font-medium text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -71,12 +71,18 @@ export default function LoginPage() {
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
+      <div className="flex items-center justify-center py-12 relative overflow-hidden">
+        {/* Animated Background Effect for Form Side */}
+        <div className="absolute inset-0 -z-10 bg-background">
+          <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] animate-pulse" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[100px] animate-pulse delay-1000" />
+        </div>
+
+        <div className="mx-auto grid w-[350px] gap-6 z-10">
           <div className="grid gap-2 text-center">
             <div className="flex justify-center items-center gap-2 mb-4">
-              <Logo className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold">fRepo</h1>
+              <Logo className="h-10 w-10 text-primary" />
+              <h1 className="text-4xl font-headline font-bold tracking-tight">fRepo</h1>
             </div>
             <p className="text-balance text-muted-foreground">
               Enter your email below to login to your account
@@ -91,7 +97,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="m@example.com" {...field} />
+                      <Input placeholder="m@example.com" {...field} className="bg-background/50 backdrop-blur-sm" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -106,22 +112,30 @@ export default function LoginPage() {
                       <FormLabel>Password</FormLabel>
                       <Link
                         href="#"
-                        className="ml-auto inline-block text-sm underline"
+                        className="ml-auto inline-block text-sm underline text-muted-foreground hover:text-primary transition-colors"
                       >
                         Forgot your password?
                       </Link>
                     </div>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <Input type="password" {...field} className="bg-background/50 backdrop-blur-sm" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full shadow-lg hover:shadow-primary/25 transition-all">
                 Login
               </Button>
-              <Button variant="outline" className="w-full" type="button" onClick={onGoogleSignIn}>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
+              <Button variant="outline" className="w-full hover:bg-card hover:text-foreground transition-colors border-muted py-5" type="button" onClick={onGoogleSignIn}>
                 <svg
                   className="mr-2 h-4 w-4"
                   aria-hidden="true"
@@ -139,7 +153,7 @@ export default function LoginPage() {
                 </svg>
                 Login with Google
               </Button>
-              <Button variant="outline" className="w-full" type="button" onClick={onFacebookSignIn}>
+              <Button variant="outline" className="w-full hover:bg-card hover:text-foreground transition-colors border-muted py-5" type="button" onClick={onFacebookSignIn}>
                 <svg
                   className="mr-2 h-4 w-4"
                   aria-hidden="true"
@@ -159,37 +173,39 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="underline">
+            <Link href="/signup" className="underline hover:text-primary transition-colors">
               Sign up
             </Link>
           </div>
           <div className="mt-6 text-center text-xs">
-            <Link href="/terms" className="underline text-muted-foreground">
+            <Link href="/terms" className="underline text-muted-foreground hover:text-primary transition-colors">
               Terms of Service
             </Link>
             {' '} | {' '}
-            <Link href="/privacy" className="underline text-muted-foreground">
+            <Link href="/privacy" className="underline text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy
             </Link>
           </div>
         </div>
       </div>
-      <div className="hidden bg-muted lg:block">
+      <div className="hidden bg-muted lg:block relative">
         {loginImage && (
-          <Image
-            src={loginImage.imageUrl}
-            alt={loginImage.description}
-            width="1200"
-            height="1800"
-            data-ai-hint={loginImage.imageHint}
-            className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-          />
+          <>
+            <div className="absolute inset-0 bg-primary/10 mix-blend-overlay z-10" />
+            <Image
+              src={loginImage.imageUrl}
+              alt={loginImage.description}
+              width="1200"
+              height="1800"
+              data-ai-hint={loginImage.imageHint}
+              className="h-full w-full object-cover dark:brightness-[0.4] dark:grayscale-[0.3]"
+            />
+          </>
         )}
       </div>
     </div>
   );
 }
 
-    
