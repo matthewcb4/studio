@@ -43,7 +43,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown, Loader2, Video } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown, Loader2, Video, Search } from 'lucide-react';
 import type {
   CustomWorkout,
   WorkoutExercise,
@@ -72,29 +72,29 @@ import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find
 import Image from 'next/image';
 
 const generateUniqueId = (): string => {
-    return `_${Math.random().toString(36).substr(2, 9)}`;
+  return `_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 // Group exercises by supersetId for display
 const groupExercises = (exercises: WorkoutExercise[] = []) => {
-    if (!exercises || exercises.length === 0) return [];
-    const grouped = exercises.reduce((acc, ex) => {
-        (acc[ex.supersetId] = acc[ex.supersetId] || []).push(ex);
-        return acc;
-    }, {} as Record<string, WorkoutExercise[]>);
-    
-    const originalOrder: Record<string, number> = {};
-    exercises.forEach((ex, index) => {
-        if(!(ex.supersetId in originalOrder)) {
-            originalOrder[ex.supersetId] = index;
-        }
-    });
+  if (!exercises || exercises.length === 0) return [];
+  const grouped = exercises.reduce((acc, ex) => {
+    (acc[ex.supersetId] = acc[ex.supersetId] || []).push(ex);
+    return acc;
+  }, {} as Record<string, WorkoutExercise[]>);
 
-    return Object.values(grouped).sort((a,b) => {
-        const orderA = originalOrder[a[0].supersetId];
-        const orderB = originalOrder[b[0].supersetId];
-        return orderA - orderB;
-    });
+  const originalOrder: Record<string, number> = {};
+  exercises.forEach((ex, index) => {
+    if (!(ex.supersetId in originalOrder)) {
+      originalOrder[ex.supersetId] = index;
+    }
+  });
+
+  return Object.values(grouped).sort((a, b) => {
+    const orderA = originalOrder[a[0].supersetId];
+    const orderB = originalOrder[b[0].supersetId];
+    return orderA - orderB;
+  });
 };
 
 
@@ -145,7 +145,7 @@ function WorkoutForm({
     const newSupersetId = generateUniqueId();
     const newExercise: WorkoutExercise = {
       id: generateUniqueId(),
-      exerciseId: '', 
+      exerciseId: '',
       exerciseName: '',
       sets: 3,
       reps: '8-12',
@@ -158,7 +158,7 @@ function WorkoutForm({
   const addExerciseToGroup = (supersetId: string) => {
     const newExercise: WorkoutExercise = {
       id: generateUniqueId(),
-      exerciseId: '', 
+      exerciseId: '',
       exerciseName: '',
       sets: 3,
       reps: '8-12',
@@ -185,10 +185,10 @@ function WorkoutForm({
             updatedEx.exerciseId = selectedExercise.id;
             updatedEx.exerciseName = selectedExercise.name;
             if (selectedExercise.defaultUnit) {
-                updatedEx.unit = selectedExercise.defaultUnit;
+              updatedEx.unit = selectedExercise.defaultUnit;
             }
           } else {
-            updatedEx.exerciseId = value as string; 
+            updatedEx.exerciseId = value as string;
             updatedEx.exerciseName = value as string;
           }
         } else if (field === 'sets') {
@@ -207,7 +207,7 @@ function WorkoutForm({
   const removeExercise = (exerciseIdToRemove: string) => {
     const exerciseToRemove = exercises.find(ex => ex.id === exerciseIdToRemove);
     if (!exerciseToRemove) return;
-  
+
     const remainingExercises = exercises.filter(ex => ex.id !== exerciseIdToRemove);
     setExercises(remainingExercises);
   };
@@ -217,8 +217,8 @@ function WorkoutForm({
     const preferenceDocRef = doc(firestore, `users/${user.uid}/exercisePreferences`, masterExerciseId);
     setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
     toast({
-        title: "Video Preference Saved",
-        description: `Video linked for this exercise.`
+      title: "Video Preference Saved",
+      description: `Video linked for this exercise.`
     });
     setVideoResults({ exerciseId: '', videos: [] }); // Close dialog
     setSelectedVideo(null);
@@ -228,29 +228,29 @@ function WorkoutForm({
     if (!exerciseName) return;
     setFindingVideoFor(exerciseId);
     try {
-        const result = await findExerciseVideo({ exerciseName });
-        if (result.videos && result.videos.length > 0) {
-            setVideoResults({ exerciseId, videos: result.videos });
-            setSelectedVideo(result.videos[0]);
-        } else {
-            toast({ variant: "destructive", title: "No Videos Found", description: "The AI couldn't find any suitable videos for this exercise." });
-        }
+      const result = await findExerciseVideo({ exerciseName });
+      if (result.videos && result.videos.length > 0) {
+        setVideoResults({ exerciseId, videos: result.videos });
+        setSelectedVideo(result.videos[0]);
+      } else {
+        toast({ variant: "destructive", title: "No Videos Found", description: "The AI couldn't find any suitable videos for this exercise." });
+      }
     } catch (error) {
-        console.error("Error finding video:", error);
-        toast({ variant: "destructive", title: "AI Error", description: "Could not find videos at this time." });
+      console.error("Error finding video:", error);
+      toast({ variant: "destructive", title: "AI Error", description: "Could not find videos at this time." });
     } finally {
-        setFindingVideoFor(null);
+      setFindingVideoFor(null);
     }
   };
 
 
   const handleSave = () => {
     const finalizedExercises = exercises.map(ex => {
-        const matched = masterExercises.find(me => me.name === ex.exerciseName || me.id === ex.exerciseId);
-        if (matched) {
-            return { ...ex, exerciseId: matched.id, exerciseName: matched.name, unit: ex.unit || 'reps' };
-        }
-        return { ...ex, unit: ex.unit || 'reps' };
+      const matched = masterExercises.find(me => me.name === ex.exerciseName || me.id === ex.exerciseId);
+      if (matched) {
+        return { ...ex, exerciseId: matched.id, exerciseName: matched.name, unit: ex.unit || 'reps' };
+      }
+      return { ...ex, unit: ex.unit || 'reps' };
     });
 
     const isNew = !workout;
@@ -268,17 +268,17 @@ function WorkoutForm({
     if (!currentGroups) return;
     if (direction === 'up' && groupIndex === 0) return;
     if (direction === 'down' && groupIndex === currentGroups.length - 1) return;
-  
+
     const otherGroupIndex = direction === 'up' ? groupIndex - 1 : groupIndex + 1;
-    
+
     const newGroups = [...currentGroups];
     const [movedGroup] = newGroups.splice(groupIndex, 1);
     newGroups.splice(otherGroupIndex, 0, movedGroup);
-  
+
     const newExercises = newGroups.flat();
     setExercises(newExercises);
   };
-  
+
   const exerciseGroups = useMemo(() => groupExercises(exercises), [exercises]);
 
   return (
@@ -294,50 +294,50 @@ function WorkoutForm({
 
       <div className="flex-1 overflow-y-auto p-1 -mx-1">
         <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
-            <DialogContent className="sm:max-w-lg w-full max-w-[95vw]">
-                <DialogHeader>
-                    <DialogTitle>Select a Video</DialogTitle>
-                    <DialogDescription>
-                        Click a video on the right to preview it, then link it to this exercise.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        {selectedVideo ? (
-                            <>
-                                <YouTubeEmbed videoId={selectedVideo.videoId} />
-                                <h3 className="font-semibold">{selectedVideo.title}</h3>
-                                <Button className="w-full" onClick={() => handleSelectVideo(firestore, videoResults.exerciseId, selectedVideo.videoId)}>
-                                    Link this Video
-                                </Button>
-                            </>
-                        ) : (
-                            <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
-                                <p className="text-muted-foreground">Select a video to preview</p>
-                            </div>
-                        )}
+          <DialogContent className="sm:max-w-lg w-full max-w-[95vw]">
+            <DialogHeader>
+              <DialogTitle>Select a Video</DialogTitle>
+              <DialogDescription>
+                Click a video on the right to preview it, then link it to this exercise.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                {selectedVideo ? (
+                  <>
+                    <YouTubeEmbed videoId={selectedVideo.videoId} />
+                    <h3 className="font-semibold">{selectedVideo.title}</h3>
+                    <Button className="w-full" onClick={() => handleSelectVideo(firestore, videoResults.exerciseId, selectedVideo.videoId)}>
+                      Link this Video
+                    </Button>
+                  </>
+                ) : (
+                  <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
+                    <p className="text-muted-foreground">Select a video to preview</p>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                {videoResults.videos.map(video => (
+                  <button key={video.videoId} onClick={() => setSelectedVideo(video)} className="w-full text-left space-y-2 hover:bg-secondary p-2 rounded-lg transition-colors">
+                    <div className="flex gap-4">
+                      <Image src={video.thumbnailUrl} alt={video.title} width={120} height={67} className="rounded-md bg-muted" />
+                      <p className="text-sm font-medium line-clamp-3">{video.title}</p>
                     </div>
-                    <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-                        {videoResults.videos.map(video => (
-                            <button key={video.videoId} onClick={() => setSelectedVideo(video)} className="w-full text-left space-y-2 hover:bg-secondary p-2 rounded-lg transition-colors">
-                                <div className="flex gap-4">
-                                    <Image src={video.thumbnailUrl} alt={video.title} width={120} height={67} className="rounded-md bg-muted" />
-                                    <p className="text-sm font-medium line-clamp-3">{video.title}</p>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </DialogContent>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </DialogContent>
         </Dialog>
-        
+
         <Dialog open={!!viewingVideoId} onOpenChange={() => setViewingVideoId(null)}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Exercise Video</DialogTitle>
-                </DialogHeader>
-                {viewingVideoId && <YouTubeEmbed videoId={viewingVideoId} />}
-            </DialogContent>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Exercise Video</DialogTitle>
+            </DialogHeader>
+            {viewingVideoId && <YouTubeEmbed videoId={viewingVideoId} />}
+          </DialogContent>
         </Dialog>
 
 
@@ -373,27 +373,27 @@ function WorkoutForm({
                 className="p-4 border rounded-lg bg-secondary/30 space-y-4"
               >
                 <div className="flex justify-between items-center">
-                    <Label>Group {groupIndex + 1} {group.length > 1 && '(Superset)'}</Label>
-                    <div className="flex items-center gap-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleMoveGroup(groupIndex, 'up')}
-                            disabled={groupIndex === 0}
-                            className="h-7 w-7"
-                        >
-                            <ArrowUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleMoveGroup(groupIndex, 'down')}
-                            disabled={!exerciseGroups || groupIndex === exerciseGroups.length - 1}
-                            className="h-7 w-7"
-                        >
-                            <ArrowDown className="h-4 w-4" />
-                        </Button>
-                    </div>
+                  <Label>Group {groupIndex + 1} {group.length > 1 && '(Superset)'}</Label>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleMoveGroup(groupIndex, 'up')}
+                      disabled={groupIndex === 0}
+                      className="h-7 w-7"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleMoveGroup(groupIndex, 'down')}
+                      disabled={!exerciseGroups || groupIndex === exerciseGroups.length - 1}
+                      className="h-7 w-7"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 {group.map((ex, exIndex) => {
                   const matchedExercise = masterExercises.find(masterEx => masterEx.id === ex.exerciseId);
@@ -405,100 +405,100 @@ function WorkoutForm({
                       key={ex.id}
                       className="flex flex-col gap-4 p-3 border rounded-lg bg-background"
                     >
-                        <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center">
                         <Label className="text-xs">Exercise {exIndex + 1}</Label>
                         <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeExercise(ex.id)}
-                            className='h-7'
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeExercise(ex.id)}
+                          className='h-7'
                         >
-                            <Trash2 className="h-4 w-4 mr-1" /> Remove
+                          <Trash2 className="h-4 w-4 mr-1" /> Remove
                         </Button>
+                      </div>
+                      <div className="flex flex-col gap-4">
+                        <Select
+                          value={selectValue}
+                          onValueChange={(value) =>
+                            updateExercise(ex.id, 'exerciseId', value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select exercise" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {masterExercises.map((e) => (
+                              <SelectItem key={e.id} value={e.id}>
+                                {e.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex flex-col sm:grid sm:grid-cols-2 items-start sm:items-center gap-4">
+                          <div className="flex items-center gap-2 flex-1 w-full">
+                            <Label htmlFor={`sets-${ex.id}`} className="min-w-fit">Sets</Label>
+                            <Input
+                              id={`sets-${ex.id}`}
+                              type="number"
+                              value={ex.sets}
+                              onChange={(e) =>
+                                updateExercise(
+                                  ex.id,
+                                  'sets',
+                                  parseInt(e.target.value) || 0
+                                )
+                              }
+                              placeholder="3"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 flex-1 w-full">
+                            <Label htmlFor={`reps-${ex.id}`} className="min-w-fit">Reps</Label>
+                            <Input
+                              id={`reps-${ex.id}`}
+                              value={ex.reps}
+                              onChange={(e) =>
+                                updateExercise(ex.id, 'reps', e.target.value)
+                              }
+                              placeholder={ex.unit === 'reps' ? "8-12" : "30"}
+                            />
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-4">
-                            <Select
-                                value={selectValue}
-                                onValueChange={(value) =>
-                                updateExercise(ex.id, 'exerciseId', value)
-                                }
-                            >
-                                <SelectTrigger>
-                                <SelectValue placeholder="Select exercise" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                {masterExercises.map((e) => (
-                                    <SelectItem key={e.id} value={e.id}>
-                                    {e.name}
-                                    </SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                            <div className="flex flex-col sm:grid sm:grid-cols-2 items-start sm:items-center gap-4">
-                                <div className="flex items-center gap-2 flex-1 w-full">
-                                    <Label htmlFor={`sets-${ex.id}`} className="min-w-fit">Sets</Label>
-                                    <Input
-                                        id={`sets-${ex.id}`}
-                                        type="number"
-                                        value={ex.sets}
-                                        onChange={(e) =>
-                                        updateExercise(
-                                            ex.id,
-                                            'sets',
-                                            parseInt(e.target.value) || 0
-                                        )
-                                        }
-                                        placeholder="3"
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2 flex-1 w-full">
-                                    <Label htmlFor={`reps-${ex.id}`} className="min-w-fit">Reps</Label>
-                                    <Input
-                                        id={`reps-${ex.id}`}
-                                        value={ex.reps}
-                                        onChange={(e) =>
-                                        updateExercise(ex.id, 'reps', e.target.value)
-                                        }
-                                        placeholder={ex.unit === 'reps' ? "8-12" : "30"}
-                                    />
-                                </div>
-                            </div>
-                            
-                            <Select value={ex.unit || 'reps'} onValueChange={(value) => updateExercise(ex.id, 'unit', value)}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="reps">Weight & Reps</SelectItem>
-                                    <SelectItem value="reps-only">Reps Only</SelectItem>
-                                    <SelectItem value="seconds">Seconds</SelectItem>
-                                    <SelectItem value="bodyweight">Bodyweight</SelectItem>
-                                </SelectContent>
-                            </Select>
+
+                        <Select value={ex.unit || 'reps'} onValueChange={(value) => updateExercise(ex.id, 'unit', value)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="reps">Weight & Reps</SelectItem>
+                            <SelectItem value="reps-only">Reps Only</SelectItem>
+                            <SelectItem value="seconds">Seconds</SelectItem>
+                            <SelectItem value="bodyweight">Bodyweight</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {preference?.videoId && (
+                            <Button variant="outline" size="sm" className="w-full" onClick={() => setViewingVideoId(preference.videoId!)}>
+                              <Video className="h-4 w-4 mr-2" />
+                              View Linked Video
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            disabled={!ex.exerciseName || findingVideoFor === ex.id}
+                            onClick={() => handleFindVideo(ex.exerciseId, ex.exerciseName)}
+                          >
+                            {findingVideoFor === ex.id ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Searching...</> : <><Youtube className="h-4 w-4 mr-2" /> Find Video</>}
+                          </Button>
                         </div>
-                       <div className="space-y-1">
-                           <div className="flex items-center gap-2">
-                                {preference?.videoId && (
-                                    <Button variant="outline" size="sm" className="w-full" onClick={() => setViewingVideoId(preference.videoId!)}>
-                                        <Video className="h-4 w-4 mr-2" />
-                                        View Linked Video
-                                    </Button>
-                                )}
-                                <Button 
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-full"
-                                  disabled={!ex.exerciseName || findingVideoFor === ex.id}
-                                  onClick={() => handleFindVideo(ex.exerciseId, ex.exerciseName)}
-                                >
-                                  {findingVideoFor === ex.id ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Searching...</> : <><Youtube className="h-4 w-4 mr-2" /> Find Video</>}
-                                </Button>
-                           </div>
-                        </div>
+                      </div>
                     </div>
                   )
                 })}
-                 <Button
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => addExerciseToGroup(group[0].supersetId)}
@@ -536,6 +536,7 @@ function WorkoutsPageContent() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState('date_desc');
+  const [searchQuery, setSearchQuery] = useState('');
 
 
   const workoutsCollection = useMemoFirebase(() => {
@@ -547,19 +548,19 @@ function WorkoutsPageContent() {
     useCollection<CustomWorkout>(workoutsCollection);
 
   const masterExercisesQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return query(collection(firestore, 'exercises'), orderBy('name', 'asc'));
+    if (!firestore) return null;
+    return query(collection(firestore, 'exercises'), orderBy('name', 'asc'));
   }, [firestore]);
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<MasterExercise>(masterExercisesQuery);
-  
+
   const exercisePreferencesQuery = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
-  , [firestore, user]);
+    , [firestore, user]);
   const { data: exercisePreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
-  
+
   const editingWorkout = useMemo(() => {
-      if (!editingWorkoutId || !workouts) return null;
-      return workouts.find(w => w.id === editingWorkoutId) || null;
+    if (!editingWorkoutId || !workouts) return null;
+    return workouts.find(w => w.id === editingWorkoutId) || null;
   }, [editingWorkoutId, workouts])
 
   // Effect to open sheet if `edit` param is present
@@ -568,8 +569,8 @@ function WorkoutsPageContent() {
     if (editId) {
       if (workouts && workouts.some(w => w.id === editId)) {
         setTimeout(() => {
-            setEditingWorkoutId(editId);
-            setIsSheetOpen(true);
+          setEditingWorkoutId(editId);
+          setIsSheetOpen(true);
         }, 0);
       }
     }
@@ -606,7 +607,7 @@ function WorkoutsPageContent() {
     isNew: boolean
   ) => {
     if (!user || !workoutsCollection) return;
-    
+
     if (isNew) {
       const dataToSave = { ...workoutData, userId: user.uid, createdAt: new Date().toISOString() };
       await addDoc(workoutsCollection, dataToSave);
@@ -622,37 +623,42 @@ function WorkoutsPageContent() {
       } else {
         dataToSave.createdAt = originalWorkout.createdAt;
       }
-      
+
       const workoutDoc = doc(workoutsCollection, editingWorkoutId!);
       await updateDocumentNonBlocking(workoutDoc, dataToSave);
     }
     handleSheetOpenChange(false);
   };
-  
+
   const sortedWorkouts = useMemo(() => {
     if (!workouts) return [];
     const sorted = [...workouts];
     if (sortOrder === 'alphabetical') {
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortOrder === 'date_desc') {
-        sorted.sort((a, b) => {
-            if (a.createdAt && b.createdAt) {
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            }
-            if (a.createdAt) return -1; // a comes first
-            if (b.createdAt) return 1;  // b comes first
-            return 0; // no dates, keep original order
-        });
+      sorted.sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        if (a.createdAt) return -1; // a comes first
+        if (b.createdAt) return 1;  // b comes first
+        return 0; // no dates, keep original order
+      });
     }
-    return sorted;
-  }, [workouts, sortOrder]);
-  
+    const filtered = sorted.filter(w =>
+      w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (w.description && w.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
+    return filtered;
+  }, [workouts, sortOrder, searchQuery]);
+
   const groupedWorkouts = useMemo(() => {
-    return sortedWorkouts?.map(w => ({ ...w, groupedExercises: groupExercises(w.exercises || [])})) || [];
+    return sortedWorkouts?.map(w => ({ ...w, groupedExercises: groupExercises(w.exercises || []) })) || [];
   }, [sortedWorkouts]);
 
   const isLoading = isLoadingWorkouts || isLoadingExercises;
-  
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -663,36 +669,45 @@ function WorkoutsPageContent() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-2 w-full sm:w-auto">
-            <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
+          <div className="relative w-full sm:w-[250px]">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search workouts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
             <SheetTrigger asChild>
-                <Button onClick={handleCreateNew} className="w-full sm:w-auto">
+              <Button onClick={handleCreateNew} className="w-full sm:w-auto">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create New Workout
-                </Button>
+              </Button>
             </SheetTrigger>
             <SheetContent className="w-full max-w-[95vw] sm:max-w-2xl flex flex-col">
-                <Suspense fallback={<div className="p-6">Loading form...</div>}>
+              <Suspense fallback={<div className="p-6">Loading form...</div>}>
                 {isSheetOpen && (isLoading ? <div>Loading workout data...</div> :
-                    <WorkoutForm
-                        workout={editingWorkout}
-                        masterExercises={masterExercises || []}
-                        exercisePreferences={exercisePreferences || []}
-                        onSave={handleSaveWorkout}
-                        onCancel={() => handleSheetOpenChange(false)}
-                    />
+                  <WorkoutForm
+                    workout={editingWorkout}
+                    masterExercises={masterExercises || []}
+                    exercisePreferences={exercisePreferences || []}
+                    onSave={handleSaveWorkout}
+                    onCancel={() => handleSheetOpenChange(false)}
+                  />
                 )}
-                </Suspense>
+              </Suspense>
             </SheetContent>
-            </Sheet>
-            <Select value={sortOrder} onValueChange={setSortOrder}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="date_desc">Date Created (Newest)</SelectItem>
-                    <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
-                </SelectContent>
-            </Select>
+          </Sheet>
+          <Select value={sortOrder} onValueChange={setSortOrder}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date_desc">Date Created (Newest)</SelectItem>
+              <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       {isLoading && <div className="text-center">Loading workouts...</div>}
