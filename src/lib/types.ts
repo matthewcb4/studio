@@ -72,6 +72,14 @@ export type UserProfile = {
   hasCompletedOnboarding?: boolean;
   todaysAiWorkout?: object;
   todaysSuggestion?: object;
+
+  // Gamification
+  currentStreak?: number;
+  longestStreak?: number;
+  lastWorkoutDate?: string; // ISO string of last completed workout (any type)
+  lifetimeVolume?: number;
+  xp?: number;
+  level?: number;
 }
 
 export type ProgressLog = {

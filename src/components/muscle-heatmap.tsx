@@ -236,7 +236,7 @@ export function MuscleHeatmap({
     } else {
       // For multiple workouts (dashboard), use the weekly volume target.
       // Approx: 3 workouts * 10k lbs volume = 30k
-      const baselineWeeklyVolume = 30000;
+      const baselineWeeklyVolume = 10000;
       target = baselineWeeklyVolume;
       if (userProfile?.fatLossGoal === 'reduce_body_fat' || userProfile?.strengthGoal === 'improve_endurance') {
         target *= 1.5;

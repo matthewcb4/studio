@@ -75,6 +75,8 @@ import { doc, collection, addDoc, query, orderBy, limit } from 'firebase/firesto
 import { Checkbox } from '@/components/ui/checkbox';
 import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
+import { checkPersonalRecord } from '@/lib/analytics';
+
 
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
@@ -104,26 +106,26 @@ type ExerciseState = {
 
 // Group exercises by supersetId for display
 const groupExercises = (exercises: WorkoutExercise[] = []) => {
-    if (!exercises) return [];
-    const grouped = exercises.reduce((acc, ex) => {
-        (acc[ex.supersetId] = acc[ex.supersetId] || []).push(ex);
-        return acc;
-    }, {} as Record<string, WorkoutExercise[]>);
-    
-    // Sort outer groups, a bit tricky without a dedicated order field.
-    // Let's assume the first exercise's original index gives a hint.
-    const originalOrder: Record<string, number> = {};
-    exercises.forEach((ex, index) => {
-        if(!(ex.supersetId in originalOrder)) {
-            originalOrder[ex.supersetId] = index;
-        }
-    });
+  if (!exercises) return [];
+  const grouped = exercises.reduce((acc, ex) => {
+    (acc[ex.supersetId] = acc[ex.supersetId] || []).push(ex);
+    return acc;
+  }, {} as Record<string, WorkoutExercise[]>);
 
-    return Object.values(grouped).sort((a,b) => {
-        const orderA = originalOrder[a[0].supersetId];
-        const orderB = originalOrder[b[0].supersetId];
-        return orderA - orderB;
-    });
+  // Sort outer groups, a bit tricky without a dedicated order field.
+  // Let's assume the first exercise's original index gives a hint.
+  const originalOrder: Record<string, number> = {};
+  exercises.forEach((ex, index) => {
+    if (!(ex.supersetId in originalOrder)) {
+      originalOrder[ex.supersetId] = index;
+    }
+  });
+
+  return Object.values(grouped).sort((a, b) => {
+    const orderA = originalOrder[a[0].supersetId];
+    const orderB = originalOrder[b[0].supersetId];
+    return orderA - orderB;
+  });
 };
 
 
@@ -135,10 +137,10 @@ export default function WorkoutSessionPage() {
 
   const { user } = useUser();
   const firestore = useFirestore();
-  
+
   const [sessionExercises, setSessionExercises] = useState<WorkoutExercise[]>([]);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
-  
+
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const workoutDocRef = useMemoFirebase(() => {
@@ -158,19 +160,24 @@ export default function WorkoutSessionPage() {
 
   const exercisePreferencesQuery = useMemoFirebase(() =>
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
-  , [firestore, user]);
+    , [firestore, user]);
   const { data: exercisePreferences, isLoading: isLoadingPreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
-  
+
   const progressLogsQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, `users/${user.uid}/progressLogs`), orderBy("date", "desc"), limit(1)) : null
-  , [firestore, user]);
+    , [firestore, user]);
   const { data: latestProgress } = useCollection<ProgressLog>(progressLogsQuery);
   const latestWeight = latestProgress?.[0]?.weight || 150;
-  
+
   const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
-  , [firestore, user]);
+    , [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+  const historyQuery = useMemoFirebase(() =>
+    user ? query(collection(firestore, `users/${user.uid}/workoutLogs`)) : null
+    , [firestore, user]);
+  const { data: workoutHistory } = useCollection<WorkoutLog>(historyQuery);
 
 
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
@@ -185,10 +192,44 @@ export default function WorkoutSessionPage() {
   const [finishedLog, setFinishedLog] = useState<WorkoutLog | null>(null);
   const [hoverRating, setHoverRating] = useState(0);
   const [currentRating, setCurrentRating] = useState(0);
-  
+
   const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
   const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<FindExerciseVideoOutput['videos'][0] | null>(null);
+
+  // Auto-Rest Timer State
+  const [restTimer, setRestTimer] = useState<{ endTime: number; originalDuration: number } | null>(null);
+  const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
+
+  // Timer Effect
+  useEffect(() => {
+    if (!restTimer) return;
+
+    const interval = setInterval(() => {
+      const remaining = Math.ceil((restTimer.endTime - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setRestTimer(null);
+        setRestTimeRemaining(0);
+        // Optional: Play a sound?
+        toast({ title: "Rest Finished!", description: "Time to get back to work." });
+      } else {
+        setRestTimeRemaining(remaining);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [restTimer, toast]);
+
+  const skipRest = () => {
+    setRestTimer(null);
+    setRestTimeRemaining(0);
+  };
+
+  const addRestTime = (seconds: number) => {
+    if (restTimer) {
+      setRestTimer(prev => prev ? { ...prev, endTime: prev.endTime + seconds * 1000 } : null);
+    }
+  };
 
   const exerciseGroups = useMemo(() => {
     if (!sessionExercises) return [];
@@ -222,23 +263,23 @@ export default function WorkoutSessionPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, [isFinished]);
-  
+
   const handleFindVideo = async (exerciseId: string, exerciseName: string) => {
     if (!exerciseName) return;
     setFindingVideoFor(exerciseId);
     try {
-        const result = await findExerciseVideo({ exerciseName });
-        if (result.videos && result.videos.length > 0) {
-            setVideoResults({ exerciseId, videos: result.videos });
-            setSelectedVideo(result.videos[0]);
-        } else {
-            toast({ variant: "destructive", title: "No Videos Found", description: "The AI couldn't find any suitable videos for this exercise." });
-        }
+      const result = await findExerciseVideo({ exerciseName });
+      if (result.videos && result.videos.length > 0) {
+        setVideoResults({ exerciseId, videos: result.videos });
+        setSelectedVideo(result.videos[0]);
+      } else {
+        toast({ variant: "destructive", title: "No Videos Found", description: "The AI couldn't find any suitable videos for this exercise." });
+      }
     } catch (error) {
-        console.error("Error finding video:", error);
-        toast({ variant: "destructive", title: "AI Error", description: "Could not find videos at this time." });
+      console.error("Error finding video:", error);
+      toast({ variant: "destructive", title: "AI Error", description: "Could not find videos at this time." });
     } finally {
-        setFindingVideoFor(null);
+      setFindingVideoFor(null);
     }
   };
 
@@ -248,13 +289,13 @@ export default function WorkoutSessionPage() {
     setDocumentNonBlocking(preferenceDocRef, { videoId: videoId, userId: user.uid }, { merge: true });
 
     toast({
-        title: "Video Preference Saved",
-        description: `Video linked for this exercise.`
+      title: "Video Preference Saved",
+      description: `Video linked for this exercise.`
     });
     setVideoResults({ exerciseId: '', videos: [] }); // Close dialog
     setSelectedVideo(null);
   };
-  
+
   const handleUnitChange = (exerciseId: string, newUnit: WorkoutExercise['unit']) => {
     setSessionExercises(prevExercises =>
       prevExercises.map(ex =>
@@ -270,14 +311,14 @@ export default function WorkoutSessionPage() {
   if (!workout) {
     return <div>Workout not found.</div>;
   }
-  
+
   const currentGroup = exerciseGroups[currentGroupIndex];
   const totalGroups = exerciseGroups.length;
   const isLastGroup = currentGroupIndex === totalGroups - 1;
 
   if (!currentGroup) {
-      // Can happen if workout data is malformed or empty
-      return <div>Error: No exercises found for this workout group.</div>
+    // Can happen if workout data is malformed or empty
+    return <div>Error: No exercises found for this workout group.</div>
   }
 
   const formatTime = (seconds: number) => {
@@ -293,56 +334,80 @@ export default function WorkoutSessionPage() {
     const unit = exercise.unit || 'reps';
 
     let newLog: LoggedSet;
-    
-    if (skipped) {
-        newLog = { weight: 0, reps: 0 };
-    } else {
-        if (unit === 'reps-only') {
-            if (!state.reps) {
-                toast({ title: 'Missing Info', description: 'Please enter reps.', variant: 'destructive' });
-                return;
-            }
-            newLog = { weight: 0, reps: parseFloat(state.reps) };
-        } else if (unit === 'bodyweight') {
-            if (!state.reps) {
-                toast({ title: 'Missing Info', description: 'Please enter reps.', variant: 'destructive' });
-                return;
-            }
-            const additionalWeight = state.weight ? parseFloat(state.weight) : 0;
-            const bodyweightComponent = state.includeBodyweight ? latestWeight : 0;
-            newLog = { weight: bodyweightComponent + additionalWeight, reps: parseFloat(state.reps) };
-        } else if (unit === 'reps') {
-            if (!state.weight || !state.reps) {
-                toast({ title: 'Missing Info', description: 'Please enter weight and reps.', variant: 'destructive' });
-                return;
-            }
-            newLog = { weight: parseFloat(state.weight), reps: parseFloat(state.reps) };
-        } else { // 'seconds'
-            if (!state.duration) {
-                toast({ title: 'Missing Info', description: 'Please enter duration.', variant: 'destructive' });
-                return;
-            }
-            newLog = { duration: parseFloat(state.duration) };
-        }
-    }
-    
-    const fullSessionLog = sessionLog[exercise.id] || [];
-    setSessionLog({ ...sessionLog, [exercise.id]: [...fullSessionLog, newLog]});
 
-    const newLogs = [...state.logs, newLog];
-    const newState = { ...state, logs: newLogs };
-    
-    if (state.currentSet < exercise.sets) {
-      newState.currentSet += 1;
-    } 
-    setExerciseStates({ ...exerciseStates, [exercise.id]: newState });
-  };
-  
-  const handleNextGroup = () => {
-     if (isLastGroup) {
-      finishWorkout();
+    if (skipped) {
+      newLog = { weight: 0, reps: 0 };
     } else {
-      setCurrentGroupIndex(prev => prev + 1);
+      if (unit === 'reps-only') {
+        if (!state.reps) {
+          toast({ title: 'Missing Info', description: 'Please enter reps.', variant: 'destructive' });
+          return;
+        }
+        newLog = { weight: 0, reps: parseFloat(state.reps) };
+      } else if (unit === 'bodyweight') {
+        if (!state.reps) {
+          toast({ title: 'Missing Info', description: 'Please enter reps.', variant: 'destructive' });
+          return;
+        }
+        const additionalWeight = state.weight ? parseFloat(state.weight) : 0;
+        const bodyweightComponent = state.includeBodyweight ? latestWeight : 0;
+        newLog = { weight: bodyweightComponent + additionalWeight, reps: parseFloat(state.reps) };
+      } else if (unit === 'reps') {
+        if (!state.weight || !state.reps) {
+          toast({ title: 'Missing Info', description: 'Please enter weight and reps.', variant: 'destructive' });
+          return;
+        }
+        newLog = { weight: parseFloat(state.weight), reps: parseFloat(state.reps) };
+      } else { // 'seconds'
+        if (!state.duration) {
+          toast({ title: 'Missing Info', description: 'Please enter duration.', variant: 'destructive' });
+          return;
+        }
+        newLog = { duration: parseFloat(state.duration) };
+      }
+    }
+
+    const fullSessionLog = sessionLog[exercise.id] || [];
+    const updatedFullSessionLog = [...fullSessionLog, newLog];
+    setSessionLog({ ...sessionLog, [exercise.id]: updatedFullSessionLog });
+
+    // Update exercise state (move to next set)
+    setExerciseStates(prev => ({
+      ...prev,
+      [exercise.id]: {
+        ...prev[exercise.id],
+        currentSet: prev[exercise.id].currentSet + 1,
+        logs: [...prev[exercise.id].logs, newLog]
+      }
+    }));
+
+    // Check for PRs
+    if (!skipped && workoutHistory) {
+      const prs = checkPersonalRecord(exercise.exerciseId, newLog, workoutHistory);
+      if (prs) {
+        prs.forEach(pr => {
+          toast({
+            title: "🏆 New Personal Record!",
+            description: pr.type === 'max_weight'
+              ? `Heaviest Weight: ${pr.newValue} lbs (Prev: ${pr.oldValue} lbs)`
+              : `Best 1RM: ${pr.newValue} lbs (Prev: ${pr.oldValue} lbs)`,
+            // Styling for "gold" effect
+            className: "bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-400",
+            duration: 5000,
+          });
+        });
+      }
+    }
+
+    // Auto-Rest Timer
+    // Start timer if not the very last set of the workout (simplified: if not skipped)
+    if (!skipped && state.currentSet < exercise.sets) {
+      const REST_DURATION = 90; // Default 90s, could be preference
+      setRestTimer({
+        endTime: Date.now() + REST_DURATION * 1000,
+        originalDuration: REST_DURATION
+      });
+      setRestTimeRemaining(REST_DURATION);
     }
   }
 
@@ -354,15 +419,15 @@ export default function WorkoutSessionPage() {
   const finishWorkout = async () => {
     if (!user || !workout || isFinishing) return;
     setIsFinishing(true);
-    
+
     const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
-    
+
     const loggedExercises: LoggedExercise[] = Object.entries(sessionLog).map(([exerciseInstanceId, sets]) => ({
       exerciseId: workout.exercises.find(e => e.id === exerciseInstanceId)?.exerciseId || 'Unknown',
       exerciseName: workout.exercises.find(e => e.id === exerciseInstanceId)?.exerciseName || 'Unknown',
       sets,
     }));
-    
+
     const totalVolume = loggedExercises.reduce(
       (total, ex) =>
         total + ex.sets.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0),
@@ -380,22 +445,22 @@ export default function WorkoutSessionPage() {
     };
 
     try {
-        const newLogRef = await addDoc(logsCollection, newWorkoutLog);
-        setFinishedLog({ ...newWorkoutLog, id: newLogRef.id });
-        setIsFinished(true); // Move to summary screen
-        toast({
-            title: 'Workout Complete!',
-            description: 'Your session has been logged successfully.',
-        });
+      const newLogRef = await addDoc(logsCollection, newWorkoutLog);
+      setFinishedLog({ ...newWorkoutLog, id: newLogRef.id });
+      setIsFinished(true); // Move to summary screen
+      toast({
+        title: 'Workout Complete!',
+        description: 'Your session has been logged successfully.',
+      });
     } catch (error) {
-        console.error("Error finishing workout:", error);
-        toast({
-            title: "Error",
-            description: "Failed to save workout log.",
-            variant: "destructive"
-        });
+      console.error("Error finishing workout:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save workout log.",
+        variant: "destructive"
+      });
     } finally {
-        setIsFinishing(false);
+      setIsFinishing(false);
     }
   };
 
@@ -405,329 +470,355 @@ export default function WorkoutSessionPage() {
     const logDocRef = doc(firestore, `users/${user.uid}/workoutLogs`, finishedLog.id);
     updateDocumentNonBlocking(logDocRef, { rating });
     toast({
-        title: 'Rating Saved!',
-        description: `You rated this workout ${rating} out of 5 stars.`
+      title: 'Rating Saved!',
+      description: `You rated this workout ${rating} out of 5 stars.`
     });
   }
 
   const progressValue = totalGroups > 0 ? ((currentGroupIndex) / totalGroups) * 100 : 0;
-  
+
   if (isFinished && finishedLog) {
     return (
       <>
         {isShareDialogOpen && finishedLog && userProfile && (
-            <ShareWorkoutDialog
-                log={finishedLog}
-                userProfile={userProfile}
-                isOpen={isShareDialogOpen}
-                onOpenChange={setIsShareDialogOpen}
-            />
+          <ShareWorkoutDialog
+            log={finishedLog}
+            userProfile={userProfile}
+            isOpen={isShareDialogOpen}
+            onOpenChange={setIsShareDialogOpen}
+          />
         )}
         <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center">
-            <CheckCircle className="w-24 h-24 text-green-500 mb-4" />
-            <h1 className="text-4xl font-bold mb-2">Workout Logged!</h1>
-            <p className="text-muted-foreground text-lg mb-6">
+          <CheckCircle className="w-24 h-24 text-green-500 mb-4" />
+          <h1 className="text-4xl font-bold mb-2">Workout Logged!</h1>
+          <p className="text-muted-foreground text-lg mb-6">
             Great job finishing your workout. How would you rate it?
-            </p>
-            <div className="flex items-center gap-2 mb-6">
-                {[1,2,3,4,5].map(star => (
-                    <Star
-                        key={star}
-                        className="w-10 h-10 cursor-pointer transition-colors"
-                        fill={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'transparent'}
-                        stroke={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'currentColor'}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        onClick={() => handleRatingSubmit(star)}
-                    />
-                ))}
-            </div>
-            <Card className="w-full text-left">
+          </p>
+          <div className="flex items-center gap-2 mb-6">
+            {[1, 2, 3, 4, 5].map(star => (
+              <Star
+                key={star}
+                className="w-10 h-10 cursor-pointer transition-colors"
+                fill={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'transparent'}
+                stroke={star <= (hoverRating || currentRating) ? 'hsl(var(--primary))' : 'currentColor'}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                onClick={() => handleRatingSubmit(star)}
+              />
+            ))}
+          </div>
+          <Card className="w-full text-left">
             <CardHeader>
-                <CardTitle>{finishedLog.workoutName}</CardTitle>
-                <CardDescription>Session Summary</CardDescription>
+              <CardTitle>{finishedLog.workoutName}</CardTitle>
+              <CardDescription>Session Summary</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Total Time</span>
                 <span className="font-bold text-primary">
-                    {finishedLog.duration}
+                  {finishedLog.duration}
                 </span>
-                </div>
-                <div className="flex justify-between items-center">
+              </div>
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Total Volume</span>
                 <span className="font-bold text-primary">
-                    {finishedLog.volume.toLocaleString()} lbs
+                  {finishedLog.volume.toLocaleString()} lbs
                 </span>
-                </div>
-                <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                 {finishedLog.exercises.map((exercise) => {
-                    const totalVolume = exercise.sets.reduce(
+                  const totalVolume = exercise.sets.reduce(
                     (acc, set) => acc + (set.weight || 0) * (set.reps || 0),
                     0
-                    );
-                    return (
+                  );
+                  return (
                     <div key={exercise.exerciseId} className="text-sm">
-                        <p className="font-medium">{exercise.exerciseName}</p>
-                        <p className="text-muted-foreground">
+                      <p className="font-medium">{exercise.exerciseName}</p>
+                      <p className="text-muted-foreground">
                         {exercise.sets.length} sets, Total Volume: {totalVolume.toLocaleString()} lbs
-                        </p>
+                      </p>
                     </div>
-                    );
+                  );
                 })}
-                </div>
+              </div>
             </CardContent>
-            </Card>
-            <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Button onClick={() => router.push('/history')} className="w-full">
-                View in History
-                </Button>
-                <Button onClick={() => setIsShareDialogOpen(true)} className="w-full" variant="outline">
-                    <Share2 className="mr-2 h-4 w-4" /> Share Workout
-                </Button>
-            </div>
+          </Card>
+          <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Button onClick={() => router.push('/history')} className="w-full">
+              View in History
+            </Button>
+            <Button onClick={() => setIsShareDialogOpen(true)} className="w-full" variant="outline">
+              <Share2 className="mr-2 h-4 w-4" /> Share Workout
+            </Button>
+          </div>
         </div>
       </>
     );
   }
 
+  const handleNextGroup = () => {
+    if (isLastGroup) {
+      finishWorkout();
+    } else {
+      setCurrentGroupIndex(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <>
-    <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
+      <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
         <DialogContent className="sm:max-w-lg w-full max-w-[95vw]">
-            <DialogHeader>
-                <DialogTitle>Select a Video</DialogTitle>
-                <DialogDescription>
-                    Click a video on the right to preview it, then link it to this exercise.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    {selectedVideo ? (
-                        <>
-                            <YouTubeEmbed videoId={selectedVideo.videoId} />
-                            <h3 className="font-semibold">{selectedVideo.title}</h3>
-                            <Button className="w-full" onClick={() => handleSelectVideo(videoResults.exerciseId, selectedVideo.videoId)}>
-                                Link this Video
-                            </Button>
-                        </>
-                    ) : (
-                        <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
-                            <p className="text-muted-foreground">Select a video to preview</p>
-                        </div>
-                    )}
+          <DialogHeader>
+            <DialogTitle>Select a Video</DialogTitle>
+            <DialogDescription>
+              Click a video on the right to preview it, then link it to this exercise.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              {selectedVideo ? (
+                <>
+                  <YouTubeEmbed videoId={selectedVideo.videoId} />
+                  <h3 className="font-semibold">{selectedVideo.title}</h3>
+                  <Button className="w-full" onClick={() => handleSelectVideo(videoResults.exerciseId, selectedVideo.videoId)}>
+                    Link this Video
+                  </Button>
+                </>
+              ) : (
+                <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
+                  <p className="text-muted-foreground">Select a video to preview</p>
                 </div>
-                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-                    {videoResults.videos.map(video => (
-                        <button key={video.videoId} onClick={() => setSelectedVideo(video)} className="w-full text-left space-y-2 hover:bg-secondary p-2 rounded-lg transition-colors">
-                            <div className="flex gap-4">
-                                <Image src={video.thumbnailUrl} alt={video.title} width={120} height={67} className="rounded-md bg-muted" />
-                                <p className="text-sm font-medium line-clamp-3">{video.title}</p>
-                            </div>
-                        </button>
-                    ))}
-                </div>
+              )}
             </div>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+              {videoResults.videos.map(video => (
+                <button key={video.videoId} onClick={() => setSelectedVideo(video)} className="w-full text-left space-y-2 hover:bg-secondary p-2 rounded-lg transition-colors">
+                  <div className="flex gap-4">
+                    <Image src={video.thumbnailUrl} alt={video.title} width={120} height={67} className="rounded-md bg-muted" />
+                    <p className="text-sm font-medium line-clamp-3">{video.title}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </DialogContent>
-    </Dialog>
+      </Dialog>
 
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Exit
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure you want to exit?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Your current workout progress will be lost. This action cannot
-                be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => router.push('/dashboard')}>
-                Exit Workout
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <div className="flex items-center gap-2 text-lg font-medium text-muted-foreground">
-          <Timer className="h-5 w-5" />
-          <span>{formatTime(elapsedTime)}</span>
+      <div className="space-y-6 max-w-2xl mx-auto">
+        <div className="flex justify-between items-center">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Exit
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to exit?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Your current workout progress will be lost. This action cannot
+                  be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => router.push('/dashboard')}>
+                  Exit Workout
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <div className="flex items-center gap-2 text-lg font-medium text-muted-foreground">
+            <Timer className="h-5 w-5" />
+            <span>{formatTime(elapsedTime)}</span>
+          </div>
         </div>
-      </div>
 
-      <div>
-        <div className="flex justify-between items-baseline mb-1">
-          <p className="text-sm text-muted-foreground">
-            Group {currentGroupIndex + 1} of {totalGroups}
-          </p>
-          <p className="text-sm font-medium">{workout.name}</p>
+        <div>
+          <div className="flex justify-between items-baseline mb-1">
+            <p className="text-sm text-muted-foreground">
+              Group {currentGroupIndex + 1} of {totalGroups}
+            </p>
+            <p className="text-sm font-medium">{workout.name}</p>
+          </div>
+          <Progress value={progressValue} className="h-2" />
         </div>
-        <Progress value={progressValue} className="h-2" />
-      </div>
 
-      {currentGroup.map((exercise) => {
-        const state = exerciseStates[exercise.id];
-        if (!state) return <div key={exercise.id}>Loading exercise...</div>;
+        {currentGroup.map((exercise) => {
+          const state = exerciseStates[exercise.id];
+          if (!state) return <div key={exercise.id}>Loading exercise...</div>;
 
-        const isEditing = editingExerciseId === exercise.id;
-        const isExerciseComplete = state.currentSet > exercise.sets;
-        const unit = exercise.unit || 'reps';
-        
-        const videoId = exercisePreferences?.find(p => p.id === exercise.exerciseId)?.videoId;
+          const isEditing = editingExerciseId === exercise.id;
+          const isExerciseComplete = state.currentSet > exercise.sets;
+          const unit = exercise.unit || 'reps';
 
-        return (
-          <Card key={exercise.id} className={isExerciseComplete ? 'opacity-50' : ''}>
-            <CardHeader>
+          const videoId = exercisePreferences?.find(p => p.id === exercise.exerciseId)?.videoId;
+
+          return (
+            <Card key={exercise.id} className={isExerciseComplete ? 'opacity-50' : ''}>
+              <CardHeader>
                 <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-2xl">{exercise.exerciseName}</CardTitle>
-                        <CardDescription>
-                            Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
-                        </CardDescription>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => setEditingExerciseId(isEditing ? null : exercise.id)}>
-                        {isEditing ? <Save className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
-                    </Button>
+                  <div>
+                    <CardTitle className="text-2xl">{exercise.exerciseName}</CardTitle>
+                    <CardDescription>
+                      Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
+                    </CardDescription>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setEditingExerciseId(isEditing ? null : exercise.id)}>
+                    {isEditing ? <Save className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
+                  </Button>
                 </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </CardHeader>
+              <CardContent className="space-y-4">
                 {isEditing ? (
-                    <div className="p-4 bg-secondary/50 rounded-lg">
-                        <Label>Edit Logging Method</Label>
-                        <Select value={unit} onValueChange={(newUnit) => handleUnitChange(exercise.id, newUnit as WorkoutExercise['unit'])}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="reps">Weight & Reps</SelectItem>
-                                <SelectItem value="reps-only">Reps Only</SelectItem>
-                                <SelectItem value="seconds">Seconds</SelectItem>
-                                <SelectItem value="bodyweight">Bodyweight</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <Label>Edit Logging Method</Label>
+                    <Select value={unit} onValueChange={(newUnit) => handleUnitChange(exercise.id, newUnit as WorkoutExercise['unit'])}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="reps">Weight & Reps</SelectItem>
+                        <SelectItem value="reps-only">Reps Only</SelectItem>
+                        <SelectItem value="seconds">Seconds</SelectItem>
+                        <SelectItem value="bodyweight">Bodyweight</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 ) : !isExerciseComplete && (
-                    <>
-                        {unit === 'reps' && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor={`weight-${exercise.id}`} className="text-base">Weight (lbs)</Label>
-                                    <Input id={`weight-${exercise.id}`} type="number" placeholder="135" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                                    <Input id={`reps-${exercise.id}`} type="number" placeholder="8" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
-                                </div>
-                            </div>
-                        )}
-                        {unit === 'reps-only' && (
-                            <div className="space-y-2">
-                                <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                                <Input id={`reps-${exercise.id}`} type="number" placeholder="15" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
-                            </div>
-                        )}
-                        {unit === 'bodyweight' && (
-                        <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor={`weight-${exercise.id}`} className="text-base">Additional Weight</Label>
-                                        <Input id={`weight-${exercise.id}`} type="number" placeholder="0" value={state.weight} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, weight: e.target.value}})} className="h-14 text-2xl text-center" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                                        <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, reps: e.target.value}})} className="h-14 text-2xl text-center" />
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id={`include-bodyweight-${exercise.id}`}
-                                        checked={state.includeBodyweight}
-                                        onCheckedChange={(checked) => setExerciseStates({...exerciseStates, [exercise.id]: {...state, includeBodyweight: !!checked}})}
-                                    />
-                                    <Label htmlFor={`include-bodyweight-${exercise.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                        Include Bodyweight ({latestWeight} lbs)
-                                    </Label>
-                                </div>
+                  <>
+                    {unit === 'reps' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`weight-${exercise.id}`} className="text-base">Weight (lbs)</Label>
+                          <Input id={`weight-${exercise.id}`} type="number" placeholder="135" value={state.weight} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: e.target.value } })} className="h-14 text-2xl text-center" />
                         </div>
-                        )}
-                        {unit === 'seconds' && (
-                            <div className="space-y-2">
-                                <Label htmlFor={`duration-${exercise.id}`} className="text-base">Duration (seconds)</Label>
-                                <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({...exerciseStates, [exercise.id]: {...state, duration: e.target.value}})} className="h-14 text-2xl text-center" />
-                            </div>
-                        )}
-                        <div className="flex gap-2">
-                            <Button onClick={() => handleLogSet(exercise)} className="w-full h-14 text-lg">
-                                Log Set
-                            </Button>
-                            <Button onClick={() => handleLogSet(exercise, true)} variant="outline" size="icon" className="h-14 w-14 flex-shrink-0">
-                                <SkipForward />
-                                <span className="sr-only">Skip Set</span>
-                            </Button>
+                        <div className="space-y-2">
+                          <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
+                          <Input id={`reps-${exercise.id}`} type="number" placeholder="8" value={state.reps} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: e.target.value } })} className="h-14 text-2xl text-center" />
                         </div>
-                    </>
-                )}
-                 {state.logs.length > 0 && (
-                    <div className="mt-4">
-                        <p className="text-base font-medium mb-2">Logged Sets</p>
-                        <ul className="space-y-2">
-                            {state.logs.map((set, index) => (
-                                <li key={index} className="flex justify-between items-center text-base p-3 bg-secondary rounded-md">
-                                    <div className="flex items-center gap-3">
-                                        <Check className="h-5 w-5 text-green-500" />
-                                        <span className="font-medium text-secondary-foreground">Set {index + 1}</span>
-                                    </div>
-                                    {unit === 'seconds' ? (
-                                        <span className="text-muted-foreground">{set.duration} seconds</span>
-                                    ) : (
-                                        <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                 )}
-            </CardContent>
-             <CardContent>
-              <Collapsible>
-                <div className="flex gap-2">
-                    {videoId && (
-                        <CollapsibleTrigger asChild>
-                            <Button variant="outline" size="sm" className="w-full">
-                                <Video className="mr-2 h-4 w-4"/>
-                                Show/Hide Video
-                            </Button>
-                        </CollapsibleTrigger>
+                      </div>
                     )}
-                    <Button 
-                        variant="outline" size="sm" className="w-full"
-                        onClick={() => handleFindVideo(exercise.exerciseId, exercise.exerciseName)}
-                        disabled={findingVideoFor === exercise.id}
+                    {unit === 'reps-only' && (
+                      <div className="space-y-2">
+                        <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
+                        <Input id={`reps-${exercise.id}`} type="number" placeholder="15" value={state.reps} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: e.target.value } })} className="h-14 text-2xl text-center" />
+                      </div>
+                    )}
+                    {unit === 'bodyweight' && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor={`weight-${exercise.id}`} className="text-base">Additional Weight</Label>
+                            <Input id={`weight-${exercise.id}`} type="number" placeholder="0" value={state.weight} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: e.target.value } })} className="h-14 text-2xl text-center" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
+                            <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: e.target.value } })} className="h-14 text-2xl text-center" />
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`include-bodyweight-${exercise.id}`}
+                            checked={state.includeBodyweight}
+                            onCheckedChange={(checked) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, includeBodyweight: !!checked } })}
+                          />
+                          <Label htmlFor={`include-bodyweight-${exercise.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            Include Bodyweight ({latestWeight} lbs)
+                          </Label>
+                        </div>
+                      </div>
+                    )}
+                    {unit === 'seconds' && (
+                      <div className="space-y-2">
+                        <Label htmlFor={`duration-${exercise.id}`} className="text-base">Duration (seconds)</Label>
+                        <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, duration: e.target.value } })} className="h-14 text-2xl text-center" />
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Button onClick={() => handleLogSet(exercise)} className="w-full h-14 text-lg">
+                        Log Set
+                      </Button>
+                      <Button onClick={() => handleLogSet(exercise, true)} variant="outline" size="icon" className="h-14 w-14 flex-shrink-0">
+                        <SkipForward />
+                        <span className="sr-only">Skip Set</span>
+                      </Button>
+                    </div>
+                  </>
+                )}
+                {state.logs.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-base font-medium mb-2">Logged Sets</p>
+                    <ul className="space-y-2">
+                      {state.logs.map((set, index) => (
+                        <li key={index} className="flex justify-between items-center text-base p-3 bg-secondary rounded-md">
+                          <div className="flex items-center gap-3">
+                            <Check className="h-5 w-5 text-green-500" />
+                            <span className="font-medium text-secondary-foreground">Set {index + 1}</span>
+                          </div>
+                          {unit === 'seconds' ? (
+                            <span className="text-muted-foreground">{set.duration} seconds</span>
+                          ) : (
+                            <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+              <CardContent>
+                <Collapsible>
+                  <div className="flex gap-2">
+                    {videoId && (
+                      <CollapsibleTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Video className="mr-2 h-4 w-4" />
+                          Show/Hide Video
+                        </Button>
+                      </CollapsibleTrigger>
+                    )}
+                    <Button
+                      variant="outline" size="sm" className="w-full"
+                      onClick={() => handleFindVideo(exercise.exerciseId, exercise.exerciseName)}
+                      disabled={findingVideoFor === exercise.id}
                     >
-                        {findingVideoFor === exercise.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Youtube className="h-4 w-4" />}
-                        <span className="ml-2">Find Video</span>
+                      {findingVideoFor === exercise.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Youtube className="h-4 w-4" />}
+                      <span className="ml-2">Find Video</span>
                     </Button>
-                </div>
-                <CollapsibleContent>
-                  {videoId ? <YouTubeEmbed videoId={videoId} /> : <p className="text-sm text-muted-foreground text-center mt-4">No video linked. Use "Find Video" to add one.</p>}
-                </CollapsibleContent>
-              </Collapsible>
-            </CardContent>
-          </Card>
-        );
-      })}
-       <Button onClick={handleNextGroup} className="w-full h-14 text-lg" disabled={!isGroupFinished || isFinishing}>
-            {isFinishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isLastGroup ? 'Finish Workout' : 'Next Exercise Group'}
-            <ChevronRight className="ml-2 h-4 w-4" />
+                  </div>
+                  <CollapsibleContent>
+                    {videoId ? <YouTubeEmbed videoId={videoId} /> : <p className="text-sm text-muted-foreground text-center mt-4">No video linked. Use "Find Video" to add one.</p>}
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
+            </Card>
+          );
+        })}
+        <Button onClick={handleNextGroup} className="w-full h-14 text-lg" disabled={!isGroupFinished || isFinishing}>
+          {isFinishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {isLastGroup ? 'Finish Workout' : 'Next Exercise Group'}
+          <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
-    </div>
+      </div>
+
+      {restTimer && restTimeRemaining > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t p-4 z-50 flex items-center justify-between gap-4 shadow-lg animate-in slide-in-from-bottom">
+          <div className="flex items-center gap-4">
+            <Timer className="w-8 h-8 text-primary animate-pulse" />
+            <div>
+              <p className="text-sm text-muted-foreground font-semibold">Resting...</p>
+              <h3 className="text-2xl font-bold font-mono">{formatTime(restTimeRemaining)}</h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => addRestTime(30)}>+30s</Button>
+            <Button onClick={skipRest} size="sm">Skip Rest</Button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
