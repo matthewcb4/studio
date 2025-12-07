@@ -445,13 +445,89 @@ export default function WorkoutSessionPage() {
     };
 
     try {
+      // 1. Save Workout Log
       const newLogRef = await addDoc(logsCollection, newWorkoutLog);
       setFinishedLog({ ...newWorkoutLog, id: newLogRef.id });
+
+      // 2. Calculate Gamification Stats
+      const now = new Date();
+      // Use local date string for streak calculation to respect user's "day"
+      const todayStr = now.toLocaleDateString('en-CA');
+      const lastDateStr = userProfile?.lastWorkoutDate ? new Date(userProfile.lastWorkoutDate).toLocaleDateString('en-CA') : null;
+
+      let newStreak = userProfile?.currentStreak || 0;
+      let streakUpdated = false;
+
+      // If not same day, check if consecutive
+      if (lastDateStr !== todayStr) {
+        if (lastDateStr) {
+          const yesterday = new Date(now);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+          if (lastDateStr === yesterdayStr) {
+            newStreak += 1;
+            streakUpdated = true;
+          } else {
+            newStreak = 1; // Reset 
+          }
+        } else {
+          newStreak = 1; // First workout
+          streakUpdated = true;
+        }
+      }
+
+      const newLongestStreak = Math.max(newStreak, userProfile?.longestStreak || 0);
+      const newLifetimeVolume = (userProfile?.lifetimeVolume || 0) + totalVolume;
+
+      // XP: 100 for finishing + 1 per 100lbs
+      const xpEarned = 100 + Math.floor(totalVolume / 100);
+      const currentXP = userProfile?.xp || 0;
+      const newXP = currentXP + xpEarned;
+
+      const currentLevel = userProfile?.level || 1;
+      const newLevel = Math.floor(newXP / 1000) + 1;
+      const levelUp = newLevel > currentLevel;
+
+      // 3. Update User Profile
+      if (userProfileRef) {
+        updateDocumentNonBlocking(userProfileRef, {
+          lastWorkoutDate: now.toISOString(),
+          currentStreak: newStreak,
+          longestStreak: newLongestStreak,
+          lifetimeVolume: newLifetimeVolume,
+          xp: newXP,
+          level: newLevel
+        });
+      }
+
       setIsFinished(true); // Move to summary screen
+
       toast({
         title: 'Workout Complete!',
-        description: 'Your session has been logged successfully.',
+        description: `Logged successfully. +${xpEarned} XP!`,
       });
+
+      if (streakUpdated) {
+        setTimeout(() => {
+          toast({
+            title: "🔥 Streak Increased!",
+            description: `You are on a ${newStreak} day streak!`,
+            className: "bg-orange-500/10 border-orange-500/50 text-orange-600 dark:text-orange-400"
+          });
+        }, 1000);
+      }
+
+      if (levelUp) {
+        setTimeout(() => {
+          toast({
+            title: "🎉 Level Up!",
+            description: `Congratulations! You reached Level ${newLevel}!`,
+            className: "bg-purple-500/10 border-purple-500/50 text-purple-600 dark:text-purple-400"
+          });
+        }, 2000);
+      }
+
     } catch (error) {
       console.error("Error finishing workout:", error);
       toast({

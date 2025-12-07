@@ -42,7 +42,7 @@ import { format, isWithinInterval, subDays, isSameWeek } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise, LoggedSet } from "@/lib/types";
-import { Dumbbell, Target, TrendingDown, TrendingUp, Star, Play, Plus } from "lucide-react";
+import { Dumbbell, Target, TrendingDown, TrendingUp, Star, Play, Plus, Zap, Trophy, Flame } from "lucide-react";
 import { MuscleHeatmap, type MuscleGroupIntensities } from "@/components/muscle-heatmap";
 import { HeatmapDetailModal } from "@/components/heatmap-detail-modal";
 import { OnboardingModal } from "@/components/onboarding-modal";
@@ -114,6 +114,51 @@ function WeeklyGoalCard({ logs, userProfile }: { logs: WorkoutLog[] | null | und
     );
 }
 
+
+function UserStatsCard({ userProfile }: { userProfile: UserProfile | null | undefined }) {
+    if (!userProfile) return null;
+
+    const level = userProfile.level || 1;
+    const xp = userProfile.xp || 0;
+    const nextLevelXp = level * 1000;
+    const progress = (xp % 1000) / 10; // (XP % 1000) / 1000 * 100
+
+    return (
+        <Card className="bg-gradient-to-br from-card to-secondary/30">
+            <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between">
+                    <span>Level {level}</span>
+                    <Trophy className="w-5 h-5 text-yellow-500" />
+                </CardTitle>
+                <CardDescription>User Stats</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                        <span>XP Progress</span>
+                        <span className="text-muted-foreground">{xp % 1000} / 1000</span>
+                    </div>
+                    <Progress value={progress} className="h-2" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col items-center p-2 bg-background/50 rounded-lg">
+                        <Flame className="w-6 h-6 text-orange-500 mb-1" />
+                        <span className="text-2xl font-bold">{userProfile.currentStreak || 0}</span>
+                        <span className="text-xs text-muted-foreground">Day Streak</span>
+                    </div>
+                    <div className="flex flex-col items-center p-2 bg-background/50 rounded-lg">
+                        <Zap className="w-6 h-6 text-blue-500 mb-1" />
+                        <span className="text-xs font-bold mt-1">
+                            {(userProfile.lifetimeVolume || 0).toLocaleString()} lbs
+                        </span>
+                        <span className="text-xs text-muted-foreground">Lifetime Volume</span>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
 function ProgressSummaryCard() {
     const { user } = useUser();
@@ -402,6 +447,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <UserStatsCard userProfile={userProfile} />
                     <Card className="lg:col-span-1 flex flex-col">
                         <CardHeader className="pb-3">
                             <CardTitle>Quick Start</CardTitle>

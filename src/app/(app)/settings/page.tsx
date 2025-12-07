@@ -210,6 +210,7 @@ export default function SettingsPage() {
 
     return (
         <div className="flex flex-col gap-8 max-w-4xl mx-auto">
+            <p className="text-xs text-muted-foreground">Version 2.1</p>
             <div className="flex items-center gap-4">
                 <Settings className="w-8 h-8 text-primary" />
                 <div>
