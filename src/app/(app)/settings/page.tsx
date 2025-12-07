@@ -7,14 +7,15 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Loader2, Settings, Target, User as UserIcon, Dumbbell, FileText, Palette, Link as LinkIcon } from 'lucide-react';
+import { calculateUserStats } from '@/lib/analytics'; // Imported analytics
+import { PlusCircle, Trash2, Loader2, Settings, Target, User as UserIcon, Dumbbell, FileText, Palette, Link as LinkIcon, Database } from 'lucide-react'; // Added Database icon
 import { Card, CardContent, CardDescription, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { useCollection, useUser, useFirestore, useAuth, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteUser, linkFacebookAccount } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
-import type { UserEquipment, UserProfile } from '@/lib/types';
+import { collection, doc, query, orderBy, getDocs } from 'firebase/firestore'; // Added query, orderBy, getDocs
+import type { UserEquipment, UserProfile, WorkoutLog } from '@/lib/types'; // Added WorkoutLog
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -55,6 +56,7 @@ export default function SettingsPage() {
     const [isSubmittingEquipment, setIsSubmittingEquipment] = useState(false);
     const [isSubmittingGoals, setIsSubmittingGoals] = useState(false);
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+    const [isRecalculating, setIsRecalculating] = useState(false);
 
     const equipmentCollection = useMemoFirebase(() =>
         user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -202,6 +204,53 @@ export default function SettingsPage() {
                 title: "Linking Failed",
                 description: description,
             });
+        }
+    };
+
+    const handleRecalculateStats = async () => {
+        if (!user || !userProfileRef) return;
+        setIsRecalculating(true);
+        try {
+            // Fetch all workout logs
+            const logsRef = collection(firestore, `users/${user.uid}/workoutLogs`);
+            // We need all logs, creating a query is good practice
+            const logsQuery = query(logsRef);
+            const snapshot = await getDocs(logsQuery);
+
+            const logs = snapshot.docs.map(d => d.data() as WorkoutLog);
+
+            if (logs.length === 0) {
+                toast({ title: "No Workouts Found", description: "You don't have any logged workouts to analyze." });
+                return;
+            }
+
+            // Calculate Stats
+            const stats = calculateUserStats(logs);
+
+            // Update Profile
+            await setDocumentNonBlocking(userProfileRef, {
+                lifetimeVolume: stats.lifetimeVolume,
+                xp: stats.xp,
+                level: stats.level,
+                currentStreak: stats.currentStreak,
+                longestStreak: stats.longestStreak,
+                lastWorkoutDate: logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date
+            }, { merge: true });
+
+            toast({
+                title: "Stats Updated!",
+                description: `Recalculated: Level ${stats.level}, Streak ${stats.currentStreak} days.`
+            });
+
+        } catch (error) {
+            console.error("Error recalculating stats:", error);
+            toast({
+                title: "Error",
+                description: "Failed to recalculate statistics.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsRecalculating(false);
         }
     };
 
@@ -399,6 +448,36 @@ export default function SettingsPage() {
                                     </CardFooter>
                                 </form>
                             </Form>
+                        </AccordionContent>
+                    </Card>
+                </AccordionItem>
+                <AccordionItem value="data-management" className="border-none">
+                    <Card>
+                        <AccordionTrigger className="p-6 text-left">
+                            <div className="flex items-center gap-3">
+                                <Database className="w-6 h-6 text-primary" />
+                                <div>
+                                    <CardTitle>Data Management</CardTitle>
+                                    <CardDescription className="mt-1.5 text-left">
+                                        Manage your workout data and statistics.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <h4 className="text-sm font-medium leading-none">Recalculate Statistics</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        Sync your gamification stats (Level, XP, Streaks) with your entire workout history.
+                                        Use this if your Dashboard stats look incorrect.
+                                    </p>
+                                </div>
+                                <Button onClick={handleRecalculateStats} disabled={isRecalculating}>
+                                    {isRecalculating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    Recalculate Stats
+                                </Button>
+                            </CardContent>
                         </AccordionContent>
                     </Card>
                 </AccordionItem>
