@@ -149,6 +149,14 @@ export default function GuidePage() {
       }
 
       const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+      console.log('DEBUG: Checking Suggestion Logic', {
+        todayStr,
+        lastAiSuggestionDate: userProfile?.lastAiSuggestionDate,
+        todaysSuggestion: !!userProfile?.todaysSuggestion,
+        match: userProfile?.lastAiSuggestionDate === todayStr
+      });
+
       const hasTodaysSuggestion = userProfile?.lastAiSuggestionDate === todayStr && userProfile.todaysSuggestion;
 
       if (hasTodaysSuggestion) {
