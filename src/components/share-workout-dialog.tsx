@@ -35,10 +35,10 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-pink-500 rounded-full blur-3xl opacity-20" />
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20" />
 
-            <div className="relative z-10 flex flex-col h-full p-4 justify-between">
+            <div className="relative z-10 flex flex-col h-full p-4 gap-2">
 
                 {/* Header */}
-                <div className="space-y-1">
+                <div className="flex-none">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 bg-white/10 rounded-xl">
@@ -52,9 +52,9 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
                     </div>
                 </div>
 
-                {/* Main Content: Heatmap & Title */}
-                <div className="flex flex-col items-center flex-1 justify-center space-y-0.5 my-0.5">
-                    <div className="text-center space-y-0.5">
+                {/* Main Content: Heatmap & Title - Grow to fill space */}
+                <div className="flex flex-col items-center flex-1 min-h-0 justify-center gap-1">
+                    <div className="text-center space-y-0.5 flex-none">
                         <h1 className="text-lg font-black text-white drop-shadow-md">
                             WORKOUT
                         </h1>
@@ -63,17 +63,19 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
                         </h2>
                     </div>
 
-                    <div className="relative w-full aspect-square max-w-[260px]">
-                        {/* We pass a custom className or style to override default text colors for the dark card */}
-                        <div className="bg-white/5 rounded-3xl p-1 shadow-inner border border-white/5 w-full h-full flex items-center justify-center">
-                            <MuscleHeatmap
-                                userProfile={userProfile}
-                                thisWeeksLogs={[log]}
-                                isLoading={false}
-                                dateRangeLabel=""
-                                isCard={false}
-                                isSingleWorkout={true}
-                            />
+                    <div className="relative w-full flex-1 flex items-center justify-center min-h-0">
+                        {/* Heatmap container that fills available space but respects aspect ratio of body image */}
+                        <div className="bg-white/5 rounded-3xl p-1 shadow-inner border border-white/5 w-full h-full max-h-full flex items-center justify-center">
+                            <div className="relative w-full h-full flex items-center justify-center">
+                                <MuscleHeatmap
+                                    userProfile={userProfile}
+                                    thisWeeksLogs={[log]}
+                                    isLoading={false}
+                                    dateRangeLabel=""
+                                    isCard={false}
+                                    isSingleWorkout={true}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
