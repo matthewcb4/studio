@@ -26,7 +26,6 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
     const gradientClass = "bg-gradient-to-br from-indigo-900 via-purple-900 to-black";
 
     return (
-    return (
         <div
             className={`relative overflow-hidden rounded-3xl w-full max-w-[320px] aspect-[9/15] text-white shadow-2xl ${gradientClass} mx-auto`}
             style={{ fontFamily: 'Inter, sans-serif' }}
