@@ -29,6 +29,7 @@ export const checkPersonalRecord = (
     history: WorkoutLog[]
 ): PRResult[] | null => {
     if (!currentSet.weight || !currentSet.reps) return null;
+    if (currentSet.type === 'warmup') return null;
 
     const currentWeight = currentSet.weight;
     const current1RM = calculate1RM(currentSet.weight, currentSet.reps);

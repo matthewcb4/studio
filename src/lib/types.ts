@@ -35,6 +35,7 @@ export type LoggedSet = {
   reps?: number;
   weight?: number;
   duration?: number; // Duration in seconds
+  type?: 'normal' | 'warmup' | 'drop' | 'failure';
 };
 
 export type LoggedExercise = {
