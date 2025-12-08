@@ -160,8 +160,8 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
     const shareCardRef = useRef<HTMLDivElement>(null);
 
     const handleShare = async () => {
-        // Find the div inside the dialog
-        const cardElement = document.getElementById('share-card-container');
+        // Capture the off-screen, fixed-size card for perfect consistency
+        const cardElement = document.getElementById('hidden-share-card');
         if (!cardElement || !log) return;
 
         const playStoreUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
@@ -205,7 +205,7 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
     };
 
     const handleDownload = async () => {
-        const cardElement = document.getElementById('share-card-container');
+        const cardElement = document.getElementById('hidden-share-card');
         if (!cardElement || !log) return;
         try {
             const canvas = await html2canvas(cardElement, {
@@ -236,6 +236,21 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
                 </DialogHeader>
 
                 <div className="flex justify-center p-2" id="share-card-container">
+                    <ShareableSummaryCard log={log} userProfile={userProfile} prs={prs} />
+                </div>
+
+                {/* Off-screen fixed-size container for generation */}
+                <div
+                    id="hidden-share-card"
+                    style={{
+                        position: 'fixed',
+                        left: '-9999px',
+                        top: 0,
+                        width: '320px',
+                        height: '569px', // 9:16 aspect ratio (approx) for Stories
+                        zIndex: -1
+                    }}
+                >
                     <ShareableSummaryCard log={log} userProfile={userProfile} prs={prs} />
                 </div>
 
