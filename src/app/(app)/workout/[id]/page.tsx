@@ -271,7 +271,9 @@ export default function WorkoutSessionPage() {
     setFindingVideoFor(exerciseId);
     try {
       const result = await findExerciseVideo({ exerciseName });
-      if (result.videos && result.videos.length > 0) {
+      if (result.error) {
+        toast({ variant: "destructive", title: "Video Search Failed", description: result.error });
+      } else if (result.videos && result.videos.length > 0) {
         setVideoResults({ exerciseId, videos: result.videos });
         setSelectedVideo(result.videos[0]);
       } else {

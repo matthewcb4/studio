@@ -349,10 +349,9 @@ export default function DashboardPage() {
         // Simple logic: just show the most recently created for now
         // A better enhancement later would be to track 'lastPlayed'
         return [...customWorkouts].sort((a, b) => {
-            if (a.createdAt && b.createdAt) {
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            }
-            return 0;
+            const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+            const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+            return dateB - dateA;
         }).slice(0, 3);
     }, [customWorkouts]);
 

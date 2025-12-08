@@ -29,6 +29,7 @@ export type CustomWorkout = {
   description?: string;
   exercises: WorkoutExercise[];
   createdAt?: string; // ISO string for creation date
+  updatedAt?: string; // ISO string for last update date
 };
 
 export type LoggedSet = {
