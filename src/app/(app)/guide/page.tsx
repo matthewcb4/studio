@@ -161,6 +161,27 @@ export default function GuidePage() {
           setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
         }
       } else {
+        // Short-circuit for new users with no history to prevent errors/delays
+        if (!recentLogs || recentLogs.length === 0) {
+          const defaultSuggestion: SuggestWorkoutSetupOutput = {
+            summary: "Welcome to your first session! We've designed a balanced Full Body routine to help you learn the movements and establish a baseline.",
+            focusArea: ["Full Body"],
+            supersetStrategy: "mixed",
+            workoutDuration: 40
+          };
+
+          if (userProfileRef) {
+            // Save it so it persists for the day
+            await setDocumentNonBlocking(userProfileRef, {
+              todaysSuggestion: defaultSuggestion,
+              lastAiSuggestionDate: format(new Date(), 'yyyy-MM-dd'),
+            }, { merge: true });
+          }
+          setWorkoutSuggestion(defaultSuggestion);
+          setIsGeneratingSuggestion(false);
+          return;
+        }
+
         setIsGeneratingSuggestion(true);
         // No suggestion for today. Generate one.
         const history: SuggestWorkoutSetupInput['workoutHistory'] = (recentLogs || []).map(log => {

@@ -47,7 +47,13 @@ const goalsFormSchema = z.object({
     biologicalSex: z.enum(['Male', 'Female']).optional(),
 });
 
+import { useSearchParams } from 'next/navigation';
+
 export default function SettingsPage() {
+    const searchParams = useSearchParams();
+    const openSection = searchParams.get('open');
+    const defaultAccordionValue = openSection === 'fitness-goals' ? ['fitness-goals'] : [];
+
     const { user } = useUser();
     const auth = useAuth();
     const firestore = useFirestore();
@@ -268,7 +274,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            <Accordion type="multiple" defaultValue={[]} className="w-full space-y-4">
+            <Accordion type="multiple" defaultValue={defaultAccordionValue} className="w-full space-y-4">
                 <AccordionItem value="appearance" className="border-none">
                     <Card>
                         <AccordionTrigger className="p-6 text-left">

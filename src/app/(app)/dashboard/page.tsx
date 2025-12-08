@@ -282,7 +282,7 @@ export default function DashboardPage() {
             setDocumentNonBlocking(userProfileRef, { hasCompletedOnboarding: true }, { merge: true });
         }
         setShowOnboarding(false);
-        router.push('/settings');
+        router.push('/settings?open=fitness-goals');
     };
 
     const handleQuickLog = async (exercise: Exercise, sets: LoggedSet[]) => {
