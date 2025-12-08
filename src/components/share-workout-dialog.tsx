@@ -26,8 +26,9 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
     const gradientClass = "bg-gradient-to-br from-indigo-900 via-purple-900 to-black";
 
     return (
+    return (
         <div
-            className={`relative overflow-hidden rounded-3xl w-full max-w-[340px] aspect-[9/15] text-white shadow-2xl ${gradientClass} mx-auto`}
+            className={`relative overflow-hidden rounded-3xl w-full max-w-[320px] aspect-[9/15] text-white shadow-2xl ${gradientClass} mx-auto`}
             style={{ fontFamily: 'Inter, sans-serif' }}
         >
             {/* Background Texture/Effects */}
@@ -35,7 +36,7 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-pink-500 rounded-full blur-3xl opacity-20" />
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20" />
 
-            <div className="relative z-10 flex flex-col h-full p-6 justify-between">
+            <div className="relative z-10 flex flex-col h-full p-4 justify-between">
 
                 {/* Header */}
                 <div className="space-y-1">
@@ -63,7 +64,7 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
                         </h2>
                     </div>
 
-                    <div className="relative w-full aspect-square max-w-[280px]">
+                    <div className="relative w-full aspect-square max-w-[260px]">
                         {/* We pass a custom className or style to override default text colors for the dark card */}
                         <div className="bg-white/5 rounded-3xl p-1 shadow-inner border border-white/5 w-full h-full flex items-center justify-center">
                             <MuscleHeatmap
