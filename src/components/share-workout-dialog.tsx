@@ -38,13 +38,13 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
             <div className="relative z-10 flex flex-col h-full p-4 gap-2">
 
                 {/* Header */}
-                <div className="flex-none">
+                <div className="flex-none relative z-30">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 bg-white/10 rounded-xl">
                                 <Logo className="h-5 w-5 text-white" />
                             </div>
-                            <span className="font-bold text-base tracking-wider opacity-90 whitespace-nowrap">FITNESS REPO</span>
+                            <span className="font-bold text-xs tracking-wider opacity-90 whitespace-nowrap">FITNESS REPO</span>
                         </div>
                         <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-medium text-white/80">
                             {format(new Date(log.date), "MMM d, yyyy")}
@@ -53,19 +53,23 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
                 </div>
 
                 {/* Main Content: Heatmap & Title - Grow to fill space */}
-                <div className="flex flex-col items-center flex-1 min-h-0 justify-center gap-1">
-                    <div className="text-center space-y-0.5 flex-none">
-                        <h1 className="text-lg font-black text-white drop-shadow-md">
+                <div className="flex flex-col items-center flex-1 min-h-0 justify-center gap-1 relative z-20">
+                    <div className="text-center space-y-0.5 flex-none relative z-30">
+                        <h1 className="text-base font-black text-white drop-shadow-md tracking-widest opacity-90">
                             WORKOUT
                         </h1>
-                        <h2 className="text-xl font-black text-blue-100 uppercase tracking-tight leading-tight line-clamp-2 px-2 drop-shadow-md">
+                        <h2 className="text-lg font-black text-blue-100 uppercase tracking-tight leading-tight line-clamp-2 px-2 drop-shadow-md">
                             {log.workoutName}
                         </h2>
                     </div>
 
                     <div className="relative w-full flex-1 flex items-center justify-center min-h-0">
-                        {/* Heatmap container that fills available space but respects aspect ratio of body image */}
-                        <div className="bg-white/5 rounded-3xl p-1 shadow-inner border border-white/5 w-full h-full max-h-full flex items-center justify-center">
+                        {/* 
+                           Heatmap container: 
+                           Constrained max-width to prevent height from overflowing vertical space (since Aspect Ratio is fixed by image).
+                           ~220px width results in ~390px height, which should fit the flex space safely.
+                        */}
+                        <div className="bg-white/5 rounded-3xl p-1 shadow-inner border border-white/5 w-full max-w-[220px] h-full max-h-full flex items-center justify-center relative z-10">
                             <div className="relative w-full h-full flex items-center justify-center">
                                 <MuscleHeatmap
                                     userProfile={userProfile}
