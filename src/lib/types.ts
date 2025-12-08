@@ -70,6 +70,7 @@ export type UserProfile = {
   fatLossGoal?: string;
   biologicalSex?: 'Male' | 'Female';
   lastAiWorkoutDate?: string; // ISO string
+  lastAiSuggestionDate?: string; // ISO string
   hasCompletedOnboarding?: boolean;
   todaysAiWorkout?: object;
   todaysSuggestion?: object;

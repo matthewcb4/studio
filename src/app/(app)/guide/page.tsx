@@ -148,12 +148,13 @@ export default function GuidePage() {
         return;
       }
 
-      const hasTodaysSuggestion = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysSuggestion;
+      const hasTodaysSuggestion = userProfile?.lastAiSuggestionDate && isToday(parseISO(userProfile.lastAiSuggestionDate)) && userProfile.todaysSuggestion;
 
       if (hasTodaysSuggestion) {
         // A valid suggestion for today already exists. Display it.
         setWorkoutSuggestion(userProfile.todaysSuggestion as SuggestWorkoutSetupOutput);
-        if (userProfile.todaysAiWorkout) {
+        // Check if there's also a workout generated for today
+        if (userProfile.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysAiWorkout) {
           setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
         }
       } else {
@@ -187,8 +188,8 @@ export default function GuidePage() {
           if (userProfileRef) {
             await setDocumentNonBlocking(userProfileRef, {
               todaysSuggestion: suggestion,
-              lastAiWorkoutDate: new Date().toISOString(),
-              todaysAiWorkout: null, // Clear any previously generated workout
+              lastAiSuggestionDate: new Date().toISOString(),
+              // Do NOT clear todaysAiWorkout here, as they are independent
             }, { merge: true });
           }
 
@@ -295,7 +296,8 @@ export default function GuidePage() {
       setGeneratedWorkout(result);
       if (userProfileRef) {
         setDocumentNonBlocking(userProfileRef, {
-          todaysAiWorkout: result
+          todaysAiWorkout: result,
+          lastAiWorkoutDate: new Date().toISOString()
         }, { merge: true });
       }
     } catch (error) {
@@ -392,7 +394,8 @@ export default function GuidePage() {
     return groupAiExercises(generatedWorkout.exercises);
   }, [generatedWorkout]);
 
-  const displayWorkout = !!generatedWorkout;
+  const hasTodaysWorkout = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && !!userProfile.todaysAiWorkout;
+  const displayWorkout = !!generatedWorkout || hasTodaysWorkout;
 
   const renderCheckboxGroup = (items: string[]) => (
     <div className="grid grid-cols-2 gap-4">
