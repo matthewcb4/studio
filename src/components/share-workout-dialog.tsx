@@ -52,33 +52,32 @@ function ShareableSummaryCard({ log, userProfile, prs = [], className = "" }: { 
                     </div>
                 </div>
 
-                {/* Main Content: Heatmap & Title - Grow to fill space */}
-                <div className="flex flex-col items-center flex-1 min-h-0 justify-center relative z-20">
-                    <div className="text-center flex-none relative z-30 mb-4">
-                        <h1 className="text-sm font-black text-white drop-shadow-md tracking-widest opacity-90 mb-1">
-                            WORKOUT
-                        </h1>
-                        <h2 className="text-lg font-black text-blue-100 uppercase tracking-tight leading-tight line-clamp-2 px-2 drop-shadow-md pb-1">
-                            {log.workoutName}
-                        </h2>
-                    </div>
+                {/* Title - Fixed at top, separate from flexible heatmap area */}
+                <div className="text-center flex-none relative z-30 mb-2">
+                    <h1 className="text-sm font-black text-white drop-shadow-md tracking-widest opacity-90 mb-1">
+                        WORKOUT
+                    </h1>
+                    <h2 className="text-lg font-black text-blue-100 uppercase tracking-tight leading-tight line-clamp-2 px-2 drop-shadow-md pb-1">
+                        {log.workoutName}
+                    </h2>
+                </div>
 
-                    <div className="relative w-full flex-1 flex items-center justify-center min-h-0 z-10">
-                        {/* 
-                           Heatmap container: 
-                           Constrained max-width to prevent height from overflowing vertical space.
-                        */}
-                        <div className="bg-white/5 rounded-3xl p-1 shadow-inner border border-white/5 w-full max-w-[220px] h-full max-h-full flex items-center justify-center relative z-10">
-                            <div className="relative w-full h-full flex items-center justify-center">
-                                <MuscleHeatmap
-                                    userProfile={userProfile}
-                                    thisWeeksLogs={[log]}
-                                    isLoading={false}
-                                    dateRangeLabel=""
-                                    isCard={false}
-                                    isSingleWorkout={true}
-                                />
-                            </div>
+                {/* Main Content: Heatmap - Grow to fill REMAINING space */}
+                <div className="relative w-full flex-1 flex items-center justify-center min-h-0 z-10 mb-2">
+                    {/* 
+                       Heatmap container: 
+                       Constrained max-width to prevent height from overflowing vertical space.
+                    */}
+                    <div className="bg-white/5 rounded-3xl p-1 shadow-inner border border-white/5 w-full max-w-[220px] h-full max-h-full flex items-center justify-center relative z-10 overflow-hidden">
+                        <div className="relative w-full h-full flex items-center justify-center">
+                            <MuscleHeatmap
+                                userProfile={userProfile}
+                                thisWeeksLogs={[log]}
+                                isLoading={false}
+                                dateRangeLabel=""
+                                isCard={false}
+                                isSingleWorkout={true}
+                            />
                         </div>
                     </div>
                 </div>
