@@ -144,7 +144,7 @@ export default function GuidePage() {
     // This effect's sole job is to decide whether to fetch a new suggestion or use an existing one.
     const runSuggestionLogic = async () => {
       // Step 1: Wait until all necessary data is loaded.
-      if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !user || userProfile === undefined) {
+      if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !user || userProfile === undefined || !userProfile.id) {
         return;
       }
 
@@ -161,6 +161,7 @@ export default function GuidePage() {
 
       if (hasTodaysSuggestion) {
         // A valid suggestion for today already exists. Display it.
+        setIsGeneratingSuggestion(false);
         setWorkoutSuggestion(userProfile.todaysSuggestion as SuggestWorkoutSetupOutput);
         // Check if there's also a workout generated for today
         if (userProfile.lastAiWorkoutDate === todayStr && userProfile.todaysAiWorkout) {
