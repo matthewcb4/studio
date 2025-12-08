@@ -38,34 +38,34 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
             <div className="relative z-10 flex flex-col h-full p-6 justify-between">
 
                 {/* Header */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-white/10 rounded-xl backdrop-blur-md">
+                            <div className="p-1.5 bg-white/10 rounded-xl">
                                 <Logo className="h-5 w-5 text-white" />
                             </div>
                             <span className="font-bold text-base tracking-wider opacity-90">FITNESS REPO</span>
                         </div>
-                        <div className="px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-sm text-[10px] font-medium text-white/80">
+                        <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-medium text-white/80">
                             {format(new Date(log.date), "MMM d, yyyy")}
                         </div>
                     </div>
                 </div>
 
                 {/* Main Content: Heatmap & Title */}
-                <div className="flex flex-col items-center flex-1 justify-center space-y-4 my-4">
-                    <div className="text-center space-y-1">
-                        <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+                <div className="flex flex-col items-center flex-1 justify-center space-y-2 my-1">
+                    <div className="text-center space-y-0.5">
+                        <h1 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
                             WORKOUT
                         </h1>
-                        <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-tight leading-tight line-clamp-2 px-2">
+                        <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-tight leading-tight line-clamp-2 px-2">
                             {log.workoutName}
                         </h2>
                     </div>
 
-                    <div className="relative w-full aspect-square max-w-[280px]">
+                    <div className="relative w-full aspect-square max-w-[240px]">
                         {/* We pass a custom className or style to override default text colors for the dark card */}
-                        <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-3 shadow-inner border border-white/5 w-full h-full flex items-center justify-center">
+                        <div className="bg-white/5 rounded-3xl p-3 shadow-inner border border-white/5 w-full h-full flex items-center justify-center">
                             <MuscleHeatmap
                                 userProfile={userProfile}
                                 thisWeeksLogs={[log]}
@@ -79,51 +79,51 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                    <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-white/10 flex flex-col items-start space-y-0.5">
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="bg-white/5 rounded-2xl p-2.5 border border-white/10 flex flex-col items-start space-y-0.5">
                         <div className="flex items-center gap-1.5 text-white/60 text-[10px] font-bold uppercase tracking-wider">
                             <Dumbbell className="w-3 h-3" /> Volume
                         </div>
-                        <span className="text-xl font-black text-white">
+                        <span className="text-lg font-black text-white">
                             {(log.volume / 1000).toFixed(1)}k <span className="text-xs font-normal text-white/60">lbs</span>
                         </span>
                     </div>
 
-                    <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-white/10 flex flex-col items-start space-y-0.5">
+                    <div className="bg-white/5 rounded-2xl p-2.5 border border-white/10 flex flex-col items-start space-y-0.5">
                         <div className="flex items-center gap-1.5 text-white/60 text-[10px] font-bold uppercase tracking-wider">
                             <Timer className="w-3 h-3" /> Duration
                         </div>
-                        <span className="text-xl font-black text-white">
+                        <span className="text-lg font-black text-white">
                             {log.duration}
                         </span>
                     </div>
 
                     {prs.length > 0 ? (
-                        <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 backdrop-blur-md rounded-2xl p-3 border border-yellow-500/20 flex flex-col items-start space-y-0.5 col-span-2">
+                        <div className="bg-yellow-500/20 rounded-2xl p-2.5 border border-yellow-500/20 flex flex-col items-start space-y-0.5 col-span-2">
                             <div className="flex items-center gap-1.5 text-yellow-200 text-[10px] font-bold uppercase tracking-wider">
                                 <Medal className="w-3 h-3 text-yellow-400" /> New Records
                             </div>
-                            <span className="text-xl font-black text-yellow-50">
+                            <span className="text-lg font-black text-yellow-50">
                                 {prs.length} <span className="text-xs font-normal text-yellow-200/70">PRs Broken</span>
                             </span>
                         </div>
                     ) : (
-                        <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-md rounded-2xl p-3 border border-orange-500/20 flex flex-col items-start space-y-0.5">
+                        <div className="bg-orange-500/20 rounded-2xl p-2.5 border border-orange-500/20 flex flex-col items-start space-y-0.5">
                             <div className="flex items-center gap-1.5 text-orange-200 text-[10px] font-bold uppercase tracking-wider">
                                 <Flame className="w-3 h-3 text-orange-400" /> Streak
                             </div>
-                            <span className="text-xl font-black text-orange-50">
+                            <span className="text-lg font-black text-orange-50">
                                 {userProfile.currentStreak || 0} <span className="text-xs font-normal text-orange-200/70">days</span>
                             </span>
                         </div>
                     )}
 
                     {prs.length === 0 && (
-                        <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 backdrop-blur-md rounded-2xl p-3 border border-yellow-500/20 flex flex-col items-start space-y-0.5">
-                            <div className="flex items-center gap-1.5 text-yellow-200 text-[10px] font-bold uppercase tracking-wider">
-                                <Trophy className="w-3 h-3 text-yellow-400" /> Level
+                        <div className="bg-purple-500/20 rounded-2xl p-2.5 border border-purple-500/20 flex flex-col items-start space-y-0.5">
+                            <div className="flex items-center gap-1.5 text-purple-200 text-[10px] font-bold uppercase tracking-wider">
+                                <Trophy className="w-3 h-3 text-purple-400" /> Level
                             </div>
-                            <span className="text-xl font-black text-yellow-50">
+                            <span className="text-lg font-black text-purple-50">
                                 {userProfile.level || 1}
                             </span>
                         </div>
@@ -132,7 +132,7 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
 
                 {/* Footer */}
                 <div className="text-center">
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-white/40 font-bold">
+                    <p className="text-[8px] uppercase tracking-[0.2em] text-white/40 font-bold">
                         Generated by Fitness Repo
                     </p>
                 </div>
