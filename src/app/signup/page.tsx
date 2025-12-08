@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import Logo from "@/components/logo";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, initiateEmailSignUp, initiateGoogleSignIn, useUser, setDocumentNonBlocking, initiateFacebookSignIn } from "@/firebase";
+import { signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
@@ -54,7 +55,7 @@ export default function SignupPage() {
   useEffect(() => {
     // Defer state update to prevent sync state update in effect error
     const timer = setTimeout(() => {
-        setIsAndroid(/android/i.test(navigator.userAgent));
+      setIsAndroid(/android/i.test(navigator.userAgent));
     }, 0);
 
     return () => clearTimeout(timer);
@@ -64,19 +65,33 @@ export default function SignupPage() {
     if (!isUserLoading && user) {
       // Create user profile in Firestore
       const userRef = doc(firestore, `users/${user.uid}`);
-      setDocumentNonBlocking(userRef, {
+      // If email is not verified, we must await the profile creation before signing out
+      // otherwise the write might be cancelled or lack permissions if auth is lost
+      const promise = setDocumentNonBlocking(userRef, {
         id: user.uid,
         email: user.email,
         displayName: form.getValues('name') || user.displayName || user.email,
       }, { merge: true });
 
-      toast({
-        title: "Account Created!",
-        description: "Redirecting you to the dashboard.",
-      });
-      setTimeout(() => router.push("/dashboard"), 1000);
+      if (!user.emailVerified) {
+        promise.then(() => {
+          toast({
+            title: "Account Created!",
+            description: "Please check your email to verify your account.",
+          });
+          signOut(auth).then(() => {
+            router.push("/");
+          });
+        });
+      } else {
+        toast({
+          title: "Account Created!",
+          description: "Redirecting you to the dashboard.",
+        });
+        setTimeout(() => router.push("/dashboard"), 1000);
+      }
     }
-  }, [user, isUserLoading, router, firestore, form, toast]);
+  }, [user, isUserLoading, router, firestore, form, toast, auth]);
 
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -86,114 +101,114 @@ export default function SignupPage() {
   function onGoogleSignIn() {
     initiateGoogleSignIn(auth);
   }
-  
+
   function onFacebookSignIn() {
     initiateFacebookSignIn(auth);
   }
 
   const renderContent = () => {
     if (isAndroid === null) {
-        return (
-            <div className="flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="text-muted-foreground">Checking device...</p>
-            </div>
-        )
+      return (
+        <div className="flex flex-col items-center justify-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <p className="text-muted-foreground">Checking device...</p>
+        </div>
+      )
     }
-    
+
     if (isAndroid) {
-        return (
-            <>
-                <div className="grid gap-2 text-center">
-                    <h2 className="text-2xl font-bold">Create an account</h2>
-                    <p className="text-balance text-muted-foreground">
-                    Enter your information to get started
-                    </p>
-                </div>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Name</FormLabel>
-                            <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                            <Input placeholder="m@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                            <Input type="password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <Button type="submit" className="w-full">
-                        Create account
-                    </Button>
-                    <Button variant="outline" className="w-full" type="button" onClick={onGoogleSignIn}>
-                        <svg
-                        className="mr-2 h-4 w-4"
-                        aria-hidden="true"
-                        focusable="false"
-                        data-prefix="fab"
-                        data-icon="google"
-                        role="img"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 488 512"
-                        >
-                        <path
-                            fill="currentColor"
-                            d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-69.4 69.4c-24.5-23.4-58.6-37.9-97.9-37.9-86.3 0-156.5 70.2-156.5 156.5s70.2 156.5 156.5 156.5c97.2 0 133-57.2 138.8-88.5H248v-71.3h239.1c1.4 12.2 2.9 24.4 2.9 37.8z"
-                        ></path>
-                        </svg>
-                        Sign up with Google
-                    </Button>
-                    <Button variant="outline" className="w-full" type="button" onClick={onFacebookSignIn}>
-                        <svg
-                        className="mr-2 h-4 w-4"
-                        aria-hidden="true"
-                        focusable="false"
-                        data-prefix="fab"
-                        data-icon="facebook"
-                        role="img"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 512 512"
-                        >
-                        <path
-                            fill="currentColor"
-                            d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"
-                        ></path>
-                        </svg>
-                        Sign up with Facebook
-                    </Button>
-                    </form>
-                </Form>
-            </>
-        )
+      return (
+        <>
+          <div className="grid gap-2 text-center">
+            <h2 className="text-2xl font-bold">Create an account</h2>
+            <p className="text-balance text-muted-foreground">
+              Enter your information to get started
+            </p>
+          </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="m@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full">
+                Create account
+              </Button>
+              <Button variant="outline" className="w-full" type="button" onClick={onGoogleSignIn}>
+                <svg
+                  className="mr-2 h-4 w-4"
+                  aria-hidden="true"
+                  focusable="false"
+                  data-prefix="fab"
+                  data-icon="google"
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 488 512"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-69.4 69.4c-24.5-23.4-58.6-37.9-97.9-37.9-86.3 0-156.5 70.2-156.5 156.5s70.2 156.5 156.5 156.5c97.2 0 133-57.2 138.8-88.5H248v-71.3h239.1c1.4 12.2 2.9 24.4 2.9 37.8z"
+                  ></path>
+                </svg>
+                Sign up with Google
+              </Button>
+              <Button variant="outline" className="w-full" type="button" onClick={onFacebookSignIn}>
+                <svg
+                  className="mr-2 h-4 w-4"
+                  aria-hidden="true"
+                  focusable="false"
+                  data-prefix="fab"
+                  data-icon="facebook"
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 512 512"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"
+                  ></path>
+                </svg>
+                Sign up with Facebook
+              </Button>
+            </form>
+          </Form>
+        </>
+      )
     }
 
     return (
@@ -203,9 +218,9 @@ export default function SignupPage() {
           To create an account, please download fRepo from the Google Play Store on your Android device.
         </p>
         <Button asChild className="mt-4">
-            <Link href="https://play.google.com/store/apps" target="_blank">
-                Go to Play Store
-            </Link>
+          <Link href="https://play.google.com/store/apps" target="_blank">
+            Go to Play Store
+          </Link>
         </Button>
       </div>
     );
@@ -213,7 +228,7 @@ export default function SignupPage() {
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-       <div className="hidden bg-muted lg:block">
+      <div className="hidden bg-muted lg:block">
         {loginImage && (
           <Image
             src={loginImage.imageUrl}
@@ -228,19 +243,19 @@ export default function SignupPage() {
       <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="flex justify-center items-center gap-2 mb-4">
-              <Logo className="h-8 w-8" />
-              <h1 className="text-3xl font-bold">fRepo</h1>
+            <Logo className="h-8 w-8" />
+            <h1 className="text-3xl font-bold">fRepo</h1>
           </div>
-          
+
           {renderContent()}
-          
+
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
             <Link href="/" className="underline">
               Sign in
             </Link>
           </div>
-           <div className="mt-6 text-center text-xs">
+          <div className="mt-6 text-center text-xs">
             <Link href="/terms" className="underline text-muted-foreground">
               Terms of Service
             </Link>
@@ -248,11 +263,10 @@ export default function SignupPage() {
             <Link href="/privacy" className="underline text-muted-foreground">
               Privacy Policy
             </Link>
-           </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-    
