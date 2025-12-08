@@ -44,7 +44,7 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
                             <div className="p-1.5 bg-white/10 rounded-xl">
                                 <Logo className="h-5 w-5 text-white" />
                             </div>
-                            <span className="font-bold text-base tracking-wider opacity-90">FITNESS REPO</span>
+                            <span className="font-bold text-base tracking-wider opacity-90 whitespace-nowrap">FITNESS REPO</span>
                         </div>
                         <div className="px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-medium text-white/80">
                             {format(new Date(log.date), "MMM d, yyyy")}
@@ -53,12 +53,12 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
                 </div>
 
                 {/* Main Content: Heatmap & Title */}
-                <div className="flex flex-col items-center flex-1 justify-center space-y-1 my-1">
+                <div className="flex flex-col items-center flex-1 justify-center space-y-0.5 my-0.5">
                     <div className="text-center space-y-0.5">
-                        <h1 className="text-xl font-black text-white drop-shadow-md">
+                        <h1 className="text-lg font-black text-white drop-shadow-md">
                             WORKOUT
                         </h1>
-                        <h2 className="text-2xl font-black text-blue-100 uppercase tracking-tight leading-tight line-clamp-2 px-2 drop-shadow-md">
+                        <h2 className="text-xl font-black text-blue-100 uppercase tracking-tight leading-tight line-clamp-2 px-2 drop-shadow-md">
                             {log.workoutName}
                         </h2>
                     </div>
