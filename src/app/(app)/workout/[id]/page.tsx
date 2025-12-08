@@ -35,7 +35,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog, LoggedExercise, WorkoutLog, UserProfile } from '@/lib/types';
+import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog, LoggedExercise, WorkoutLog, UserProfile, PRResult } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -197,6 +197,9 @@ export default function WorkoutSessionPage() {
   const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
   const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<FindExerciseVideoOutput['videos'][0] | null>(null);
+
+  // Track session PRs
+  const [sessionPRs, setSessionPRs] = useState<(PRResult & { exerciseId: string })[]>([]);
 
   // Auto-Rest Timer State
   const [restTimer, setRestTimer] = useState<{ endTime: number; originalDuration: number } | null>(null);
@@ -394,13 +397,21 @@ export default function WorkoutSessionPage() {
       const prs = checkPersonalRecord(exercise.exerciseId, newLog, workoutHistory);
       if (prs) {
         prs.forEach(pr => {
+          // Add unique PRs to session tracking
+          setSessionPRs(prev => {
+            // Avoid duplicates if user logs same set multiple times (simplified check)
+            const exists = prev.some(p => p.type === pr.type && p.newValue === pr.newValue && p.exerciseId === exercise.exerciseId);
+            if (exists) return prev;
+            return [...prev, { ...pr, exerciseId: exercise.exerciseId }]; // Add exerciseId to distinguishing PRs
+          });
+
           toast({
             title: "🏆 New Personal Record!",
             description: pr.type === 'max_weight'
               ? `Heaviest Weight: ${pr.newValue} lbs (Prev: ${pr.oldValue} lbs)`
               : `Best 1RM: ${pr.newValue} lbs (Prev: ${pr.oldValue} lbs)`,
-            // Styling for "gold" effect
-            className: "bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-400",
+            // Styling for "gold" effect - Opaque background for better readability
+            className: "bg-amber-100 border-amber-400 text-amber-900 dark:bg-amber-900 dark:border-amber-600 dark:text-amber-100 shadow-lg",
             duration: 5000,
           });
         });
@@ -572,6 +583,7 @@ export default function WorkoutSessionPage() {
           <ShareWorkoutDialog
             log={finishedLog}
             userProfile={userProfile}
+            prs={sessionPRs}
             isOpen={isShareDialogOpen}
             onOpenChange={setIsShareDialogOpen}
           />

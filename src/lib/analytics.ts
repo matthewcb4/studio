@@ -1,5 +1,5 @@
 
-import { WorkoutLog, LoggedSet } from "./types";
+import { WorkoutLog, LoggedSet, PRResult, PRType } from "./types";
 
 /**
  * Calculates the Estimated One Rep Max (1RM) using the Epley Formula.
@@ -11,14 +11,7 @@ export const calculate1RM = (weight: number, reps: number): number => {
     return Math.round(weight * (1 + reps / 30));
 };
 
-export type PRType = 'max_weight' | 'max_volume' | 'best_1rm';
 
-export type PRResult = {
-    isPR: boolean;
-    type: PRType;
-    oldValue: number;
-    newValue: number;
-};
 
 /**
  * Checks if a newly logged set is a Personal Record compared to history.

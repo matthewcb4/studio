@@ -14,20 +14,20 @@ import {
 } from '@/components/ui/dialog';
 import { MuscleHeatmap } from '@/components/muscle-heatmap';
 import Logo from '@/components/logo';
-import type { WorkoutLog, UserProfile } from '@/lib/types';
+import type { WorkoutLog, UserProfile, PRResult } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
-import { Flame, Trophy, Calendar, Dumbbell, Timer, Download, Share2 } from 'lucide-react';
+import { Flame, Trophy, Calendar, Dumbbell, Timer, Download, Share2, Medal } from 'lucide-react';
 import { format } from 'date-fns';
 
-function ShareableSummaryCard({ log, userProfile, isVisible }: { log: WorkoutLog, userProfile: UserProfile, isVisible?: boolean }) {
+function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog, userProfile: UserProfile, prs?: (PRResult & { exerciseId: string })[] }) {
     // Determine gradient based on intensity or just a cool default
     // Using a vibrant dark theme gradient
     const gradientClass = "bg-gradient-to-br from-indigo-900 via-purple-900 to-black";
 
     return (
         <div
-            className={`relative overflow-hidden rounded-3xl w-[400px] h-[700px] text-white shadow-2xl ${gradientClass} ${isVisible ? '' : 'absolute -left-[9999px] top-0'}`}
+            className={`relative overflow-hidden rounded-3xl w-full max-w-[360px] aspect-[9/16] text-white shadow-2xl ${gradientClass} mx-auto`}
             style={{ fontFamily: 'Inter, sans-serif' }}
         >
             {/* Background Texture/Effects */}
@@ -35,37 +35,37 @@ function ShareableSummaryCard({ log, userProfile, isVisible }: { log: WorkoutLog
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-pink-500 rounded-full blur-3xl opacity-20" />
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20" />
 
-            <div className="relative z-10 flex flex-col h-full p-8 justify-between">
+            <div className="relative z-10 flex flex-col h-full p-6 justify-between">
 
                 {/* Header */}
                 <div className="space-y-2">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                            <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md">
-                                <Logo className="h-6 w-6 text-white" />
+                            <div className="p-1.5 bg-white/10 rounded-xl backdrop-blur-md">
+                                <Logo className="h-5 w-5 text-white" />
                             </div>
-                            <span className="font-bold text-lg tracking-wider opacity-90">FITNESS REPO</span>
+                            <span className="font-bold text-base tracking-wider opacity-90">FITNESS REPO</span>
                         </div>
-                        <div className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-xs font-medium text-white/80">
+                        <div className="px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-sm text-[10px] font-medium text-white/80">
                             {format(new Date(log.date), "MMM d, yyyy")}
                         </div>
                     </div>
                 </div>
 
                 {/* Main Content: Heatmap & Title */}
-                <div className="flex flex-col items-center flex-1 justify-center space-y-6">
+                <div className="flex flex-col items-center flex-1 justify-center space-y-4 my-4">
                     <div className="text-center space-y-1">
-                        <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+                        <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
                             WORKOUT
                         </h1>
-                        <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-tight leading-tight line-clamp-2 px-2">
+                        <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-tight leading-tight line-clamp-2 px-2">
                             {log.workoutName}
                         </h2>
                     </div>
 
-                    <div className="relative w-full aspect-square max-w-[320px]">
+                    <div className="relative w-full aspect-square max-w-[280px]">
                         {/* We pass a custom className or style to override default text colors for the dark card */}
-                        <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-4 shadow-inner border border-white/5">
+                        <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-3 shadow-inner border border-white/5 w-full h-full flex items-center justify-center">
                             <MuscleHeatmap
                                 userProfile={userProfile}
                                 thisWeeksLogs={[log]}
@@ -79,47 +79,60 @@ function ShareableSummaryCard({ log, userProfile, isVisible }: { log: WorkoutLog
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex flex-col items-start space-y-1">
-                        <div className="flex items-center gap-2 text-white/60 text-xs font-bold uppercase tracking-wider">
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-white/10 flex flex-col items-start space-y-0.5">
+                        <div className="flex items-center gap-1.5 text-white/60 text-[10px] font-bold uppercase tracking-wider">
                             <Dumbbell className="w-3 h-3" /> Volume
                         </div>
-                        <span className="text-2xl font-black text-white">
-                            {(log.volume / 1000).toFixed(1)}k <span className="text-sm font-normal text-white/60">lbs</span>
+                        <span className="text-xl font-black text-white">
+                            {(log.volume / 1000).toFixed(1)}k <span className="text-xs font-normal text-white/60">lbs</span>
                         </span>
                     </div>
 
-                    <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex flex-col items-start space-y-1">
-                        <div className="flex items-center gap-2 text-white/60 text-xs font-bold uppercase tracking-wider">
+                    <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-white/10 flex flex-col items-start space-y-0.5">
+                        <div className="flex items-center gap-1.5 text-white/60 text-[10px] font-bold uppercase tracking-wider">
                             <Timer className="w-3 h-3" /> Duration
                         </div>
-                        <span className="text-2xl font-black text-white">
+                        <span className="text-xl font-black text-white">
                             {log.duration}
                         </span>
                     </div>
 
-                    <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-md rounded-2xl p-4 border border-orange-500/20 flex flex-col items-start space-y-1">
-                        <div className="flex items-center gap-2 text-orange-200 text-xs font-bold uppercase tracking-wider">
-                            <Flame className="w-3 h-3 text-orange-400" /> Streak
+                    {prs.length > 0 ? (
+                        <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 backdrop-blur-md rounded-2xl p-3 border border-yellow-500/20 flex flex-col items-start space-y-0.5 col-span-2">
+                            <div className="flex items-center gap-1.5 text-yellow-200 text-[10px] font-bold uppercase tracking-wider">
+                                <Medal className="w-3 h-3 text-yellow-400" /> New Records
+                            </div>
+                            <span className="text-xl font-black text-yellow-50">
+                                {prs.length} <span className="text-xs font-normal text-yellow-200/70">PRs Broken</span>
+                            </span>
                         </div>
-                        <span className="text-2xl font-black text-orange-50">
-                            {userProfile.currentStreak || 0} <span className="text-sm font-normal text-orange-200/70">days</span>
-                        </span>
-                    </div>
+                    ) : (
+                        <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-md rounded-2xl p-3 border border-orange-500/20 flex flex-col items-start space-y-0.5">
+                            <div className="flex items-center gap-1.5 text-orange-200 text-[10px] font-bold uppercase tracking-wider">
+                                <Flame className="w-3 h-3 text-orange-400" /> Streak
+                            </div>
+                            <span className="text-xl font-black text-orange-50">
+                                {userProfile.currentStreak || 0} <span className="text-xs font-normal text-orange-200/70">days</span>
+                            </span>
+                        </div>
+                    )}
 
-                    <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 backdrop-blur-md rounded-2xl p-4 border border-yellow-500/20 flex flex-col items-start space-y-1">
-                        <div className="flex items-center gap-2 text-yellow-200 text-xs font-bold uppercase tracking-wider">
-                            <Trophy className="w-3 h-3 text-yellow-400" /> Level
+                    {prs.length === 0 && (
+                        <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 backdrop-blur-md rounded-2xl p-3 border border-yellow-500/20 flex flex-col items-start space-y-0.5">
+                            <div className="flex items-center gap-1.5 text-yellow-200 text-[10px] font-bold uppercase tracking-wider">
+                                <Trophy className="w-3 h-3 text-yellow-400" /> Level
+                            </div>
+                            <span className="text-xl font-black text-yellow-50">
+                                {userProfile.level || 1}
+                            </span>
                         </div>
-                        <span className="text-2xl font-black text-yellow-50">
-                            {userProfile.level || 1}
-                        </span>
-                    </div>
+                    )}
                 </div>
 
                 {/* Footer */}
                 <div className="text-center">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold">
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-white/40 font-bold">
                         Generated by Fitness Repo
                     </p>
                 </div>
@@ -131,23 +144,27 @@ function ShareableSummaryCard({ log, userProfile, isVisible }: { log: WorkoutLog
 interface ShareWorkoutDialogProps {
     log: WorkoutLog;
     userProfile: UserProfile;
+    prs?: (PRResult & { exerciseId: string })[];
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
 }
 
-export function ShareWorkoutDialog({ log, userProfile, isOpen, onOpenChange }: ShareWorkoutDialogProps) {
+export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange }: ShareWorkoutDialogProps) {
     const { toast } = useToast();
     const shareCardRef = useRef<HTMLDivElement>(null);
 
     const handleShare = async () => {
-        if (!shareCardRef.current || !log) return;
+        // Find the div inside the dialog
+        const cardElement = document.getElementById('share-card-container');
+        if (!cardElement || !log) return;
 
         const playStoreUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
         const shareText = `I just crushed the '${log.workoutName}' workout on fRepo, lifting a total of ${log.volume.toLocaleString()} lbs! Come join me and track your own progress!`;
 
         try {
-            const canvas = await html2canvas(shareCardRef.current, {
+            const canvas = await html2canvas(cardElement, {
                 useCORS: true,
+                scale: 2, // Higher quality
                 backgroundColor: null,
             });
             const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -182,10 +199,12 @@ export function ShareWorkoutDialog({ log, userProfile, isOpen, onOpenChange }: S
     };
 
     const handleDownload = async () => {
-        if (!shareCardRef.current || !log) return;
+        const cardElement = document.getElementById('share-card-container');
+        if (!cardElement || !log) return;
         try {
-            const canvas = await html2canvas(shareCardRef.current, {
+            const canvas = await html2canvas(cardElement, {
                 useCORS: true,
+                scale: 2,
                 backgroundColor: null,
             });
             const url = canvas.toDataURL('image/png');
@@ -201,32 +220,30 @@ export function ShareWorkoutDialog({ log, userProfile, isOpen, onOpenChange }: S
     };
 
     return (
-        <>
-            <div ref={shareCardRef}>
-                <ShareableSummaryCard log={log} userProfile={userProfile} isVisible={false} />
-            </div>
-            <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Share Your Workout</DialogTitle>
-                        <DialogDescription>
-                            Here's a preview of the card you can share.
-                        </DialogDescription>
-                    </DialogHeader>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Share Your Workout</DialogTitle>
+                    <DialogDescription>
+                        Here's a preview of the card you can share.
+                    </DialogDescription>
+                </DialogHeader>
 
-                    <ShareableSummaryCard log={log} userProfile={userProfile} isVisible={true} />
+                <div className="flex justify-center p-2" id="share-card-container">
+                    <ShareableSummaryCard log={log} userProfile={userProfile} prs={prs} />
+                </div>
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button variant="outline" onClick={handleDownload} className="gap-2">
-                            <Download className="h-4 w-4" /> Save Image
-                        </Button>
-                        <Button onClick={handleShare} className="gap-2">
-                            <Share2 className="h-4 w-4" /> Share
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={handleDownload} className="gap-2">
+                        <Download className="h-4 w-4" /> Save Image
+                    </Button>
+                    <Button onClick={handleShare} className="gap-2">
+                        <Share2 className="h-4 w-4" /> Share
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
+

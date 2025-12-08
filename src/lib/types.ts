@@ -92,3 +92,12 @@ export type ProgressLog = {
   weight: number;
 };
 
+
+export type PRType = 'max_weight' | 'max_volume' | 'best_1rm';
+
+export type PRResult = {
+  isPR: boolean;
+  type: PRType;
+  oldValue: number;
+  newValue: number;
+};
