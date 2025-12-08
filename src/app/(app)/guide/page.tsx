@@ -148,13 +148,14 @@ export default function GuidePage() {
         return;
       }
 
-      const hasTodaysSuggestion = userProfile?.lastAiSuggestionDate && isToday(parseISO(userProfile.lastAiSuggestionDate)) && userProfile.todaysSuggestion;
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const hasTodaysSuggestion = userProfile?.lastAiSuggestionDate === todayStr && userProfile.todaysSuggestion;
 
       if (hasTodaysSuggestion) {
         // A valid suggestion for today already exists. Display it.
         setWorkoutSuggestion(userProfile.todaysSuggestion as SuggestWorkoutSetupOutput);
         // Check if there's also a workout generated for today
-        if (userProfile.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && userProfile.todaysAiWorkout) {
+        if (userProfile.lastAiWorkoutDate === todayStr && userProfile.todaysAiWorkout) {
           setGeneratedWorkout(userProfile.todaysAiWorkout as GenerateWorkoutOutput);
         }
       } else {
@@ -188,7 +189,7 @@ export default function GuidePage() {
           if (userProfileRef) {
             await setDocumentNonBlocking(userProfileRef, {
               todaysSuggestion: suggestion,
-              lastAiSuggestionDate: new Date().toISOString(),
+              lastAiSuggestionDate: format(new Date(), 'yyyy-MM-dd'),
               // Do NOT clear todaysAiWorkout here, as they are independent
             }, { merge: true });
           }
@@ -297,7 +298,7 @@ export default function GuidePage() {
       if (userProfileRef) {
         setDocumentNonBlocking(userProfileRef, {
           todaysAiWorkout: result,
-          lastAiWorkoutDate: new Date().toISOString()
+          lastAiWorkoutDate: format(new Date(), 'yyyy-MM-dd')
         }, { merge: true });
       }
     } catch (error) {
@@ -394,7 +395,7 @@ export default function GuidePage() {
     return groupAiExercises(generatedWorkout.exercises);
   }, [generatedWorkout]);
 
-  const hasTodaysWorkout = userProfile?.lastAiWorkoutDate && isToday(parseISO(userProfile.lastAiWorkoutDate)) && !!userProfile.todaysAiWorkout;
+  const hasTodaysWorkout = userProfile?.lastAiWorkoutDate === format(new Date(), 'yyyy-MM-dd') && !!userProfile.todaysAiWorkout;
   const displayWorkout = !!generatedWorkout || hasTodaysWorkout;
 
   const renderCheckboxGroup = (items: string[]) => (

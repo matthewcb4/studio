@@ -69,8 +69,8 @@ export type UserProfile = {
   muscleGoal?: string;
   fatLossGoal?: string;
   biologicalSex?: 'Male' | 'Female';
-  lastAiWorkoutDate?: string; // ISO string
-  lastAiSuggestionDate?: string; // ISO string
+  lastAiWorkoutDate?: string; // YYYY-MM-DD string
+  lastAiSuggestionDate?: string; // YYYY-MM-DD string
   hasCompletedOnboarding?: boolean;
   todaysAiWorkout?: object;
   todaysSuggestion?: object;
