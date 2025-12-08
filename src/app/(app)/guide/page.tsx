@@ -144,18 +144,11 @@ export default function GuidePage() {
     // This effect's sole job is to decide whether to fetch a new suggestion or use an existing one.
     const runSuggestionLogic = async () => {
       // Step 1: Wait until all necessary data is loaded.
-      if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !user || userProfile === undefined || !userProfile.id) {
+      if (isLoadingProfile || isLoadingLogs || isLoadingExercises || !user || !userProfile?.id) {
         return;
       }
 
       const todayStr = format(new Date(), 'yyyy-MM-dd');
-
-      console.log('DEBUG: Checking Suggestion Logic', {
-        todayStr,
-        lastAiSuggestionDate: userProfile?.lastAiSuggestionDate,
-        todaysSuggestion: !!userProfile?.todaysSuggestion,
-        match: userProfile?.lastAiSuggestionDate === todayStr
-      });
 
       const hasTodaysSuggestion = userProfile?.lastAiSuggestionDate === todayStr && userProfile.todaysSuggestion;
 
