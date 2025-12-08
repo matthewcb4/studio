@@ -27,7 +27,7 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
 
     return (
         <div
-            className={`relative overflow-hidden rounded-3xl w-full max-w-[360px] aspect-[9/16] text-white shadow-2xl ${gradientClass} mx-auto`}
+            className={`relative overflow-hidden rounded-3xl w-full max-w-[340px] aspect-[9/15] text-white shadow-2xl ${gradientClass} mx-auto`}
             style={{ fontFamily: 'Inter, sans-serif' }}
         >
             {/* Background Texture/Effects */}
@@ -53,19 +53,19 @@ function ShareableSummaryCard({ log, userProfile, prs = [] }: { log: WorkoutLog,
                 </div>
 
                 {/* Main Content: Heatmap & Title */}
-                <div className="flex flex-col items-center flex-1 justify-center space-y-2 my-1">
+                <div className="flex flex-col items-center flex-1 justify-center space-y-1 my-1">
                     <div className="text-center space-y-0.5">
-                        <h1 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+                        <h1 className="text-xl font-black text-white drop-shadow-md">
                             WORKOUT
                         </h1>
-                        <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 uppercase tracking-tight leading-tight line-clamp-2 px-2">
+                        <h2 className="text-2xl font-black text-blue-100 uppercase tracking-tight leading-tight line-clamp-2 px-2 drop-shadow-md">
                             {log.workoutName}
                         </h2>
                     </div>
 
-                    <div className="relative w-full aspect-square max-w-[240px]">
+                    <div className="relative w-full aspect-square max-w-[280px]">
                         {/* We pass a custom className or style to override default text colors for the dark card */}
-                        <div className="bg-white/5 rounded-3xl p-3 shadow-inner border border-white/5 w-full h-full flex items-center justify-center">
+                        <div className="bg-white/5 rounded-3xl p-1 shadow-inner border border-white/5 w-full h-full flex items-center justify-center">
                             <MuscleHeatmap
                                 userProfile={userProfile}
                                 thisWeeksLogs={[log]}
