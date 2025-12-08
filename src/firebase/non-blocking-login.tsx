@@ -33,7 +33,7 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
 /** Initiate Google sign-in with a redirect (non-blocking). */
 export function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
   const provider = new GoogleAuthProvider();
-  return signInWithRedirect(authInstance, provider);
+  return signInWithPopup(authInstance, provider);
 }
 
 /** Initiate Facebook sign-in with a popup (non-blocking). */
