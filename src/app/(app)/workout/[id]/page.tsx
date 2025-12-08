@@ -75,10 +75,8 @@ import { doc, collection, addDoc, query, orderBy, limit } from 'firebase/firesto
 import { Checkbox } from '@/components/ui/checkbox';
 import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
-import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
 import { checkPersonalRecord } from '@/lib/analytics';
 import { PlateCalculator } from '@/components/plate-calculator';
-
 
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
@@ -809,140 +807,126 @@ export default function WorkoutSessionPage() {
                             <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: e.target.value } })} className="h-14 text-2xl text-center" />
                           </div>
                         </div>
-                      </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`include-bodyweight-${exercise.id}`}
+                            checked={state.includeBodyweight}
+                            onCheckedChange={(checked) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, includeBodyweight: !!checked } })}
+                          />
+                          <Label htmlFor={`include-bodyweight-${exercise.id}`}>Include Bodyweight ({latestWeight} lbs)</Label>
                         </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`include-bodyweight-${exercise.id}`}
-                    checked={state.includeBodyweight}
-                    onCheckedChange={(checked) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, includeBodyweight: !!checked } })}
-                  />
-                  <Label htmlFor={`include-bodyweight-${exercise.id}`}>Include Bodyweight ({latestWeight} lbs)</Label>
-                </div>
-              </div>
+                      </div>
                     )}
-            </>
-          )
-        }
+                    {unit === 'seconds' && (
+                      <div className="space-y-2">
+                        <Label htmlFor={`duration-${exercise.id}`} className="text-base">Duration (seconds)</Label>
+                        <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, duration: e.target.value } })} className="h-14 text-2xl text-center" />
+                      </div>
+                    )}
+                  </>
+                )
+                }
 
                 {!isExerciseComplete && !isEditing && (
-          <div className="flex justify-end mb-2">
-            <Select value={state.setType} onValueChange={(val: any) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, setType: val } })}>
-              <SelectTrigger className="w-[140px] h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal">Normal Set</SelectItem>
-                <SelectItem value="warmup">Warm-up</SelectItem>
-                <SelectItem value="drop">Drop Set</SelectItem>
-                <SelectItem value="failure">Failure</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+                  <div className="flex justify-end mb-2">
+                    <Select value={state.setType} onValueChange={(val: any) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, setType: val } })}>
+                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="normal">Normal Set</SelectItem>
+                        <SelectItem value="warmup">Warm-up</SelectItem>
+                        <SelectItem value="drop">Drop Set</SelectItem>
+                        <SelectItem value="failure">Failure</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-        {!isExerciseComplete && (
-          <div className="flex gap-4">
-            onCheckedChange={(checked) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, includeBodyweight: !!checked } })}
-                          />
-            <Label htmlFor={`include-bodyweight-${exercise.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Include Bodyweight ({latestWeight} lbs)
-            </Label>
-          </div>
-                      </div>
-                    )}
-      {unit === 'seconds' && (
-        <div className="space-y-2">
-          <Label htmlFor={`duration-${exercise.id}`} className="text-base">Duration (seconds)</Label>
-          <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, duration: e.target.value } })} className="h-14 text-2xl text-center" />
-        </div>
-      )}
-      <div className="flex gap-2">
-        <Button onClick={() => handleLogSet(exercise)} className="w-full h-14 text-lg">
-          Log Set
-        </Button>
-        <Button onClick={() => handleLogSet(exercise, true)} variant="outline" size="icon" className="h-14 w-14 flex-shrink-0">
-          <SkipForward />
-          <span className="sr-only">Skip Set</span>
-        </Button>
-      </div>
-    </>
-  )
-}
-{
-  state.logs.length > 0 && (
-    <div className="mt-4">
-      <p className="text-base font-medium mb-2">Logged Sets</p>
-      <ul className="space-y-2">
-        {state.logs.map((set, index) => (
-          <li key={index} className="flex justify-between items-center text-base p-3 bg-secondary rounded-md">
-            <div className="flex items-center gap-3">
-              <Check className="h-5 w-5 text-green-500" />
-              <span className="font-medium text-secondary-foreground">Set {index + 1}</span>
-            </div>
-            {unit === 'seconds' ? (
-              <span className="text-muted-foreground">{set.duration} seconds</span>
-            ) : (
-              <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
+                {!isExerciseComplete && (
+                  <div className="flex gap-4">
+                    <Button className="flex-1 h-12 text-lg" onClick={() => handleLogSet(exercise)}>
+                      Log Set <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                    <Button onClick={() => handleLogSet(exercise, true)} variant="outline" size="icon" className="h-12 w-12 flex-shrink-0">
+                      <SkipForward />
+                      <span className="sr-only">Skip Set</span>
+                    </Button>
+                  </div>
+                )}
+
+                {state.logs.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-base font-medium mb-2">Logged Sets</p>
+                    <ul className="space-y-2">
+                      {state.logs.map((set, index) => (
+                        <li key={index} className="flex justify-between items-center text-base p-3 bg-secondary rounded-md">
+                          <div className="flex items-center gap-3">
+                            <Check className="h-5 w-5 text-green-500" />
+                            <span className="font-medium text-secondary-foreground">Set {index + 1}</span>
+                          </div>
+                          {unit === 'seconds' ? (
+                            <span className="text-muted-foreground">{set.duration} seconds</span>
+                          ) : (
+                            <span className="text-muted-foreground">{set.weight} lbs &times; {set.reps} reps</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </CardContent >
-  <CardContent>
-    <Collapsible>
-      <div className="flex gap-2">
-        {videoId && (
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" size="sm" className="w-full">
-              <Video className="mr-2 h-4 w-4" />
-              Show/Hide Video
-            </Button>
-          </CollapsibleTrigger>
-        )}
-        <Button
-          variant="outline" size="sm" className="w-full"
-          onClick={() => handleFindVideo(exercise.exerciseId, exercise.exerciseName)}
-          disabled={findingVideoFor === exercise.id}
-        >
-          {findingVideoFor === exercise.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Youtube className="h-4 w-4" />}
-          <span className="ml-2">Find Video</span>
-        </Button>
-      </div>
-      <CollapsibleContent>
-        {videoId ? <YouTubeEmbed videoId={videoId} /> : <p className="text-sm text-muted-foreground text-center mt-4">No video linked. Use "Find Video" to add one.</p>}
-      </CollapsibleContent>
-    </Collapsible>
-  </CardContent>
+              <CardContent>
+                <Collapsible>
+                  <div className="flex gap-2">
+                    {videoId && (
+                      <CollapsibleTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Video className="mr-2 h-4 w-4" />
+                          Show/Hide Video
+                        </Button>
+                      </CollapsibleTrigger>
+                    )}
+                    <Button
+                      variant="outline" size="sm" className="w-full"
+                      onClick={() => handleFindVideo(exercise.exerciseId, exercise.exerciseName)}
+                      disabled={findingVideoFor === exercise.id}
+                    >
+                      {findingVideoFor === exercise.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Youtube className="h-4 w-4" />}
+                      <span className="ml-2">Find Video</span>
+                    </Button>
+                  </div>
+                  <CollapsibleContent>
+                    {videoId ? <YouTubeEmbed videoId={videoId} /> : <p className="text-sm text-muted-foreground text-center mt-4">No video linked. Use "Find Video" to add one.</p>}
+                  </CollapsibleContent>
+                </Collapsible>
+              </CardContent>
             </Card >
           );
         })}
-<Button onClick={handleNextGroup} className="w-full h-14 text-lg" disabled={!isGroupFinished || isFinishing}>
-  {isFinishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-  {isLastGroup ? 'Finish Workout' : 'Next Exercise Group'}
-  <ChevronRight className="ml-2 h-4 w-4" />
-</Button>
+        <Button onClick={handleNextGroup} className="w-full h-14 text-lg" disabled={!isGroupFinished || isFinishing}>
+          {isFinishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {isLastGroup ? 'Finish Workout' : 'Next Exercise Group'}
+          <ChevronRight className="ml-2 h-4 w-4" />
+        </Button>
       </div >
 
-  { restTimer && restTimeRemaining > 0 && (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t p-4 z-50 flex items-center justify-between gap-4 shadow-lg animate-in slide-in-from-bottom">
-      <div className="flex items-center gap-4">
-        <Timer className="w-8 h-8 text-primary animate-pulse" />
-        <div>
-          <p className="text-sm text-muted-foreground font-semibold">Resting...</p>
-          <h3 className="text-2xl font-bold font-mono">{formatTime(restTimeRemaining)}</h3>
-        </div>
-      </div>
+      {restTimer && restTimeRemaining > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t p-4 z-50 flex items-center justify-between gap-4 shadow-lg animate-in slide-in-from-bottom">
+          <div className="flex items-center gap-4">
+            <Timer className="w-8 h-8 text-primary animate-pulse" />
+            <div>
+              <p className="text-sm text-muted-foreground font-semibold">Resting...</p>
+              <h3 className="text-2xl font-bold font-mono">{formatTime(restTimeRemaining)}</h3>
+            </div>
+          </div>
 
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => addRestTime(30)}>+30s</Button>
-        <Button onClick={skipRest} size="sm">Skip Rest</Button>
-      </div>
-    </div>
-  )}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => addRestTime(30)}>+30s</Button>
+            <Button onClick={skipRest} size="sm">Skip Rest</Button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
