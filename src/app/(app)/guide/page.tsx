@@ -657,7 +657,7 @@ export default function GuidePage() {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading || displayWorkout}>
+                  <Button type="submit" className="w-full" disabled={isLoading || !!displayWorkout}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -700,8 +700,8 @@ export default function GuidePage() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-2xl">{generatedWorkout.workoutName}</CardTitle>
-                    <CardDescription>{generatedWorkout.description}</CardDescription>
+                    <CardTitle className="text-2xl">{generatedWorkout?.workoutName}</CardTitle>
+                    <CardDescription>{generatedWorkout?.description}</CardDescription>
                   </div>
                   <div className="text-xs font-bold uppercase text-primary bg-primary/10 px-2 py-1 rounded-md">
                     Today's AI Workout

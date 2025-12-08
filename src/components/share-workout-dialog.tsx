@@ -17,7 +17,7 @@ import Logo from '@/components/logo';
 import type { WorkoutLog, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
-import { Flame, Trophy, Calendar, Dumbbell, Timer } from 'lucide-react';
+import { Flame, Trophy, Calendar, Dumbbell, Timer, Download, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 function ShareableSummaryCard({ log, userProfile, isVisible }: { log: WorkoutLog, userProfile: UserProfile, isVisible?: boolean }) {
@@ -157,8 +157,7 @@ export function ShareWorkoutDialog({ log, userProfile, isOpen, onOpenChange }: S
                 if (navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         title: 'My fRepo Workout',
-                        text: shareText,
-                        url: playStoreUrl,
+                        text: `${shareText}\n\n${playStoreUrl}`,
                         files: [file],
                     });
                     return;
@@ -182,6 +181,25 @@ export function ShareWorkoutDialog({ log, userProfile, isOpen, onOpenChange }: S
         }
     };
 
+    const handleDownload = async () => {
+        if (!shareCardRef.current || !log) return;
+        try {
+            const canvas = await html2canvas(shareCardRef.current, {
+                useCORS: true,
+                backgroundColor: null,
+            });
+            const url = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `frepo-workout-${format(new Date(log.date), 'yyyy-MM-dd')}.png`;
+            link.href = url;
+            link.click();
+            toast({ title: "Image Saved", description: "Workout card downloaded to your device." });
+        } catch (error) {
+            console.error("Download failed:", error);
+            toast({ title: "Download Failed", description: "Could not save image.", variant: "destructive" });
+        }
+    };
+
     return (
         <>
             <div ref={shareCardRef}>
@@ -200,7 +218,12 @@ export function ShareWorkoutDialog({ log, userProfile, isOpen, onOpenChange }: S
 
                     <DialogFooter>
                         <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button onClick={handleShare}>Share</Button>
+                        <Button variant="outline" onClick={handleDownload} className="gap-2">
+                            <Download className="h-4 w-4" /> Save Image
+                        </Button>
+                        <Button onClick={handleShare} className="gap-2">
+                            <Share2 className="h-4 w-4" /> Share
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
