@@ -323,7 +323,7 @@ export default function DashboardPage() {
         return { volume, workouts, time: timeInMinutes };
     }, [filteredLogs]);
 
-    const hasData = useMemo(() => allLogs && allLogs.length > 0, [allLogs]);
+    const hasData = useMemo(() => (allLogs?.length || 0) > 0, [allLogs]);
 
     const dateRangeLabel = useMemo(() => {
         const option = {
