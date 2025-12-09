@@ -500,7 +500,7 @@ export default function DashboardPage() {
                         <MuscleGroupVolumeChart
                             filteredLogs={filteredLogs}
                             masterExercises={masterExercises}
-                            isLoading={isLoading}
+                            isLoading={isLoading || shouldWaitForExercises}
                             dateRangeLabel={dateRangeLabel}
                         />
                     </div>
