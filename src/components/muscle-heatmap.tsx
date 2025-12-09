@@ -273,7 +273,7 @@ export function MuscleHeatmap({
     Female: "/Female_Back.png"
   };
 
-  if (isLoading || isLoadingExercises) {
+  if (isLoading) {
     return <div className="text-center p-8">Loading heatmap...</div>;
   }
 

@@ -336,7 +336,10 @@ export default function DashboardPage() {
         return option || `Last ${dateRange} days`;
     }, [dateRange]);
 
-    const isLoading = isLoadingLogs || isLoadingExercises;
+    const isLoading = isLoadingLogs;
+    // Only wait for exercises if we actually have logs to map them to.
+    // If logs are loaded and empty, we can render the empty state immediately.
+    const shouldWaitForExercises = hasData && isLoadingExercises;
 
     const exerciseOptions = useMemo(() => {
         if (!masterExercises) return [];
