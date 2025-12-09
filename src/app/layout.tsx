@@ -8,11 +8,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" }); // Initialize Outfit
 
-const APP_NAME = "Tonal Studio";
-const APP_DEFAULT_TITLE = "Tonal Studio - AI Workout Tracker";
-const APP_TITLE_TEMPLATE = "%s - Tonal Studio";
+const APP_NAME = "fRepo";
+const APP_DEFAULT_TITLE = "fitness Repo";
+const APP_TITLE_TEMPLATE = "%s - fRepo";
 const APP_DESCRIPTION =
-  "Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Visualize your gains with heatmaps and advanced analytics.";
+  "Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Welcome to your new personal best.";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
