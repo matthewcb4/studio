@@ -11,7 +11,12 @@ interface FirebaseClientProviderProps {
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const firebaseServices = useMemo(() => {
     // Initialize Firebase on the client side, once per component mount.
-    return initializeFirebase();
+    const sdks = initializeFirebase();
+    // Trigger analytics initialization (side effect)
+    sdks.analytics.then((val) => {
+      if (val) console.log("Analytics initialized");
+    });
+    return sdks;
   }, []); // Empty dependency array ensures this runs only once on mount
 
   return (

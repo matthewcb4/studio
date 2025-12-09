@@ -8,11 +8,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" }); // Initialize Outfit
 
-const APP_NAME = "fRepo";
-const APP_DEFAULT_TITLE = "fitness Repo";
-const APP_TITLE_TEMPLATE = "%s - fRepo";
+const APP_NAME = "Tonal Studio";
+const APP_DEFAULT_TITLE = "Tonal Studio - AI Workout Tracker";
+const APP_TITLE_TEMPLATE = "%s - Tonal Studio";
 const APP_DESCRIPTION =
-  "Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Welcome to your new personal best.";
+  "Your ultimate fitness companion. Generate AI-powered workouts, track your progress, and crush your goals. Visualize your gains with heatmaps and advanced analytics.";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -29,6 +29,26 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: APP_NAME,
+    title: APP_DEFAULT_TITLE,
+    description: APP_DESCRIPTION,
+    images: [
+      {
+        url: "/screenshots/dashboard.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Tonal Studio Dashboard",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_DEFAULT_TITLE,
+    description: APP_DESCRIPTION,
+    images: ["/screenshots/dashboard.jpg"],
   },
 };
 
