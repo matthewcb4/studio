@@ -205,6 +205,31 @@ export default function WorkoutSessionPage() {
   const [restTimer, setRestTimer] = useState<{ endTime: number; originalDuration: number } | null>(null);
   const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
 
+  // Exit Dialog State
+  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
+
+  // Prevent accidental back navigation
+  useEffect(() => {
+    if (isFinished) return; // Allow exit if finished
+
+    const handlePopState = (event: PopStateEvent) => {
+      // Prevent the back action
+      event.preventDefault();
+      // Push the state back so we stay on the page
+      window.history.pushState(null, '', window.location.href);
+      // Show confirmation
+      setIsExitDialogOpen(true);
+    };
+
+    // Push initial state so we have something to pop
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isFinished]);
+
   // Timer Effect
   useEffect(() => {
     if (!restTimer) return;
@@ -606,7 +631,7 @@ export default function WorkoutSessionPage() {
                 onClick={() => handleRatingSubmit(star)}
               />
             ))}
-          </div>
+          </div >
           <Card className="w-full text-left">
             <CardHeader>
               <CardTitle>{finishedLog.workoutName}</CardTitle>
@@ -651,7 +676,7 @@ export default function WorkoutSessionPage() {
               <Share2 className="mr-2 h-4 w-4" /> Share Workout
             </Button>
           </div>
-        </div>
+        </div >
       </>
     );
   }
@@ -665,29 +690,7 @@ export default function WorkoutSessionPage() {
     }
   };
 
-  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
 
-  // Prevent accidental back navigation
-  useEffect(() => {
-    if (isFinished) return; // Allow exit if finished
-
-    const handlePopState = (event: PopStateEvent) => {
-      // Prevent the back action
-      event.preventDefault();
-      // Push the state back so we stay on the page
-      window.history.pushState(null, '', window.location.href);
-      // Show confirmation
-      setIsExitDialogOpen(true);
-    };
-
-    // Push initial state so we have something to pop
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [isFinished]);
 
   return (
     <>
