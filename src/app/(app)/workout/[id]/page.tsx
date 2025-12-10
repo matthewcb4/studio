@@ -665,6 +665,30 @@ export default function WorkoutSessionPage() {
     }
   };
 
+  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
+
+  // Prevent accidental back navigation
+  useEffect(() => {
+    if (isFinished) return; // Allow exit if finished
+
+    const handlePopState = (event: PopStateEvent) => {
+      // Prevent the back action
+      event.preventDefault();
+      // Push the state back so we stay on the page
+      window.history.pushState(null, '', window.location.href);
+      // Show confirmation
+      setIsExitDialogOpen(true);
+    };
+
+    // Push initial state so we have something to pop
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isFinished]);
+
   return (
     <>
       <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
@@ -707,7 +731,7 @@ export default function WorkoutSessionPage() {
 
       <div className="space-y-6 max-w-2xl mx-auto">
         <div className="flex justify-between items-center">
-          <AlertDialog>
+          <AlertDialog open={isExitDialogOpen} onOpenChange={setIsExitDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Exit

@@ -26,6 +26,14 @@ import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firest
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise } from '@/lib/types';
 import { format, subDays } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export type SuggestWorkoutSetupInput = {
   fitnessGoals: string[];
@@ -88,6 +96,21 @@ export default function GuidePage() {
     , [firestore, user]);
 
   const { data: userEquipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
+
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null);
+
+  const openConfirmation = (values: z.infer<typeof formSchema>) => {
+    setPendingValues(values);
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmGenerate = () => {
+    if (pendingValues) {
+      setShowConfirmation(false);
+      onSubmit(pendingValues);
+    }
+  };
 
   const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
@@ -460,6 +483,31 @@ export default function GuidePage() {
         </div>
       </div>
 
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Equipment</DialogTitle>
+            <DialogDescription>
+              We'll build your workout using only these items. Is this correct?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="p-4 bg-secondary/50 rounded-lg max-h-[200px] overflow-y-auto">
+              <h4 className="font-semibold mb-2 text-sm text-primary">Selected Equipment:</h4>
+              <ul className="list-disc list-inside text-sm text-muted-foreground">
+                {pendingValues?.availableEquipment.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmation(false)}>Cancel</Button>
+            <Button onClick={handleConfirmGenerate}>Confirm & Generate</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="space-y-4">
         {isLoadingProfile && (
           <Card className="lg:col-span-3">
@@ -681,7 +729,7 @@ export default function GuidePage() {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading || !!displayWorkout}>
+                  <Button type="button" onClick={form.handleSubmit(openConfirmation)} className="w-full" disabled={isLoading || !!displayWorkout}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
