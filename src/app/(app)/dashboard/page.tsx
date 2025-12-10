@@ -227,372 +227,388 @@ export default function DashboardPage() {
     const allWorkoutLogsQuery = useMemoFirebase(() => {
         if (!user) return null;
         return query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc"));
+    }, [firestore, user]);
 
-        const exercisesQuery = useMemoFirebase(() =>
-            firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null,
-            [firestore]
-        );
-        const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
+    const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
 
-        const userProfileRef = useMemoFirebase(() =>
-            user ? doc(firestore, `users/${user.uid}/profile/main`) : null
-            , [firestore, user]);
-        const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+    const filteredLogs = useMemo(() => {
+        if (!allLogs) return [];
+        const now = new Date();
+        const days = parseInt(dateRange, 10);
+        const startDate = subDays(now, days);
 
-        const [showOnboarding, setShowOnboarding] = useState(false);
+        return allLogs.filter(log => {
+            const logDate = new Date(log.date);
+            return isWithinInterval(logDate, { start: startDate, end: now });
+        });
+    }, [allLogs, dateRange]);
 
-        useEffect(() => {
-            if (userProfile && !userProfile.hasCompletedOnboarding) {
-                // Use a timeout to ensure the state update doesn't happen during the initial render
-                const timer = setTimeout(() => setShowOnboarding(true), 50);
-                return () => clearTimeout(timer);
+
+    const exercisesQuery = useMemoFirebase(() =>
+        firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null,
+        [firestore]
+    );
+    const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
+
+    const userProfileRef = useMemoFirebase(() =>
+        user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+        , [firestore, user]);
+    const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+    const [showOnboarding, setShowOnboarding] = useState(false);
+
+    useEffect(() => {
+        if (userProfile && !userProfile.hasCompletedOnboarding) {
+            // Use a timeout to ensure the state update doesn't happen during the initial render
+            const timer = setTimeout(() => setShowOnboarding(true), 50);
+            return () => clearTimeout(timer);
+        }
+    }, [userProfile]);
+
+
+    const loggingExercise = useMemo(() => {
+        if (selectedExerciseId && masterExercises) {
+            return masterExercises.find(ex => ex.id === selectedExerciseId) || null;
+        }
+        return null;
+    }, [selectedExerciseId, masterExercises]);
+
+    const handleHeatmapView = (view: 'front' | 'back') => {
+        setSelectedHeatmapView(view);
+        setHeatmapModalOpen(true);
+    };
+
+    const handleOnboardingComplete = () => {
+        if (userProfileRef) {
+            const updates: Partial<UserProfile> = { hasCompletedOnboarding: true };
+            // Set default equipment if none exists
+            if (!userProfile?.availableEquipment || userProfile.availableEquipment.length === 0) {
+                updates.availableEquipment = ['Bodyweight'];
             }
-        }, [userProfile]);
+            setDocumentNonBlocking(userProfileRef, updates, { merge: true });
+        }
+        setShowOnboarding(false);
+        router.push('/settings?open=fitness-goals');
+    };
 
+    const handleQuickLog = async (exercise: Exercise, sets: LoggedSet[]) => {
+        if (!user) return;
 
-        const loggingExercise = useMemo(() => {
-            if (selectedExerciseId && masterExercises) {
-                return masterExercises.find(ex => ex.id === selectedExerciseId) || null;
-            }
-            return null;
-        }, [selectedExerciseId, masterExercises]);
+        const totalVolume = sets.reduce((acc, set) => acc + (set.weight || 0) * (set.reps || 0), 0);
 
-        const handleHeatmapView = (view: 'front' | 'back') => {
-            setSelectedHeatmapView(view);
-            setHeatmapModalOpen(true);
+        const workoutLog = {
+            userId: user.uid,
+            workoutName: `Quick Log: ${exercise.name}`,
+            date: new Date().toISOString(),
+            duration: "00:00", // Not tracked for quick logs
+            exercises: [{
+                exerciseId: exercise.id,
+                exerciseName: exercise.name,
+                sets: sets
+            }],
+            volume: totalVolume,
         };
+        const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
+        await addDoc(logsCollection, workoutLog);
+        toast({
+            title: "Exercise Logged!",
+            description: `${exercise.name} has been added to your history.`
+        });
+        setIsQuickLogOpen(false);
+        setSelectedExerciseId(null);
+    };
 
-        const handleOnboardingComplete = () => {
-            if (userProfileRef) {
-                const updates: Partial<UserProfile> = { hasCompletedOnboarding: true };
-                // Set default equipment if none exists
-                if (!userProfile?.availableEquipment || userProfile.availableEquipment.length === 0) {
-                    updates.availableEquipment = ['Bodyweight'];
-                }
-                setDocumentNonBlocking(userProfileRef, updates, { merge: true });
-            }
-            setShowOnboarding(false);
-            router.push('/settings?open=fitness-goals');
-        };
+    const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
 
-        const handleQuickLog = async (exercise: Exercise, sets: LoggedSet[]) => {
-            if (!user) return;
+    const dashboardStats = useMemo(() => {
+        const volume = filteredLogs.reduce((acc, log) => acc + (log.volume || 0), 0);
+        const workouts = filteredLogs.length;
+        const timeInSeconds = filteredLogs.reduce((acc, log) => acc + parseDuration(log.duration), 0);
+        const timeInMinutes = Math.floor(timeInSeconds / 60);
 
-            const totalVolume = sets.reduce((acc, set) => acc + (set.weight || 0) * (set.reps || 0), 0);
+        return { volume, workouts, time: timeInMinutes };
+    }, [filteredLogs]);
 
-            const workoutLog = {
-                userId: user.uid,
-                workoutName: `Quick Log: ${exercise.name}`,
-                date: new Date().toISOString(),
-                duration: "00:00", // Not tracked for quick logs
-                exercises: [{
-                    exerciseId: exercise.id,
-                    exerciseName: exercise.name,
-                    sets: sets
-                }],
-                volume: totalVolume,
-            };
-            const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
-            await addDoc(logsCollection, workoutLog);
-            toast({
-                title: "Exercise Logged!",
-                description: `${exercise.name} has been added to your history.`
-            });
-            setIsQuickLogOpen(false);
-            setSelectedExerciseId(null);
-        };
+    const hasData = useMemo(() => (allLogs?.length || 0) > 0, [allLogs]);
 
-        const recentLogs = useMemo(() => allLogs?.slice(0, 5) || [], [allLogs]);
+    const dateRangeLabel = useMemo(() => {
+        const option = {
+            '1': "Last 24 hours",
+            '3': "Last 3 days",
+            '7': "Last 7 days",
+            '14': "Last 14 days",
+            '30': "Last 30 days",
+        }[dateRange];
+        return option || `Last ${dateRange} days`;
+    }, [dateRange]);
 
-        const dashboardStats = useMemo(() => {
-            const volume = filteredLogs.reduce((acc, log) => acc + (log.volume || 0), 0);
-            const workouts = filteredLogs.length;
-            const timeInSeconds = filteredLogs.reduce((acc, log) => acc + parseDuration(log.duration), 0);
-            const timeInMinutes = Math.floor(timeInSeconds / 60);
+    const isLoading = isLoadingLogs;
+    // Only wait for exercises if we actually have logs to map them to.
+    // If logs are loaded and empty, we can render the empty state immediately.
+    const shouldWaitForExercises = hasData && isLoadingExercises;
 
-            return { volume, workouts, time: timeInMinutes };
-        }, [filteredLogs]);
+    const exerciseOptions = useMemo(() => {
+        if (!masterExercises) return [];
+        return masterExercises.map(ex => ({ value: ex.id, label: ex.name }));
+    }, [masterExercises]);
 
-        const hasData = useMemo(() => (allLogs?.length || 0) > 0, [allLogs]);
-
-        const dateRangeLabel = useMemo(() => {
-            const option = {
-                '1': "Last 24 hours",
-                '3': "Last 3 days",
-                '7': "Last 7 days",
-                '14': "Last 14 days",
-                '30': "Last 30 days",
-            }[dateRange];
-            return option || `Last ${dateRange} days`;
-        }, [dateRange]);
-
-        const isLoading = isLoadingLogs;
-        // Only wait for exercises if we actually have logs to map them to.
-        // If logs are loaded and empty, we can render the empty state immediately.
-        const shouldWaitForExercises = hasData && isLoadingExercises;
-
-        const exerciseOptions = useMemo(() => {
-            if (!masterExercises) return [];
-            return masterExercises.map(ex => ({ value: ex.id, label: ex.name }));
-        }, [masterExercises]);
-
-        // Prioritize recent workouts for Quick Start
-        const quickStartWorkouts = useMemo(() => {
-            if (!customWorkouts) return [];
-            // Simple logic: just show the most recently created for now
-            // A better enhancement later would be to track 'lastPlayed'
-            return [...customWorkouts].sort((a, b) => {
-                const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-                const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
-                return dateB - dateA;
-            }).slice(0, 3);
-        }, [customWorkouts]);
+    // Prioritize recent workouts for Quick Start
+    const quickStartWorkouts = useMemo(() => {
+        if (!customWorkouts) return [];
+        // Simple logic: just show the most recently created for now
+        // A better enhancement later would be to track 'lastPlayed'
+        return [...customWorkouts].sort((a, b) => {
+            const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+            const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+            return dateB - dateA;
+        }).slice(0, 3);
+    }, [customWorkouts]);
 
 
-        return (
-            <>
-                <OnboardingModal isOpen={showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
+    return (
+        <>
+            <OnboardingModal isOpen={showOnboarding} onOpenChange={setShowOnboarding} onComplete={handleOnboardingComplete} />
 
-                {selectedHeatmapView && (
-                    <HeatmapDetailModal
-                        isOpen={heatmapModalOpen}
-                        onOpenChange={setHeatmapModalOpen}
-                        view={selectedHeatmapView}
-                        intensities={muscleIntensities}
-                        userProfile={userProfile}
-                    />
-                )}
+            {selectedHeatmapView && (
+                <HeatmapDetailModal
+                    isOpen={heatmapModalOpen}
+                    onOpenChange={setHeatmapModalOpen}
+                    view={selectedHeatmapView}
+                    intensities={muscleIntensities}
+                    userProfile={userProfile}
+                />
+            )}
 
-                <div className="flex flex-col gap-4 md:gap-8">
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-3xl font-bold">Dashboard</h1>
-                        <div className="w-[180px]">
-                            <Select value={dateRange} onValueChange={setDateRange}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Time range" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="1">Last 24 hours</SelectItem>
-                                    <SelectItem value="3">Last 3 days</SelectItem>
-                                    <SelectItem value="7">Last 7 days</SelectItem>
-                                    <SelectItem value="14">Last 14 days</SelectItem>
-                                    <SelectItem value="30">Last 30 days</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+            <div className="flex flex-col gap-4 md:gap-8">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-3xl font-bold">Dashboard</h1>
+                    <div className="w-[180px]">
+                        <Select value={dateRange} onValueChange={setDateRange}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Time range" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="1">Last 24 hours</SelectItem>
+                                <SelectItem value="3">Last 3 days</SelectItem>
+                                <SelectItem value="7">Last 7 days</SelectItem>
+                                <SelectItem value="14">Last 14 days</SelectItem>
+                                <SelectItem value="30">Last 30 days</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-
-                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                        <UserStatsCard userProfile={userProfile} />
-
-                        <Card className="lg:col-span-1 flex flex-col">
-                            <CardHeader className="pb-3">
-                                <CardTitle>Quick Start</CardTitle>
-                                <CardDescription>
-                                    Jump back into your recent routines.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-1 flex flex-col gap-3">
-                                {isLoadingWorkouts ? (
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-10 w-full" />
-                                        <Skeleton className="h-10 w-full" />
-                                        <Skeleton className="h-10 w-full" />
-                                    </div>
-                                ) : quickStartWorkouts.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {quickStartWorkouts.map(workout => (
-                                            <div key={workout.id}>
-                                                <Button
-                                                    variant="secondary"
-                                                    className="w-full justify-between"
-                                                    onClick={() => setWorkoutToStart(workout)}
-                                                >
-                                                    <span className="truncate">{workout.name}</span>
-                                                    <Play className="h-4 w-4 ml-2 opacity-50" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                                        <p className="text-sm text-muted-foreground mb-4">No custom workouts yet.</p>
-                                        <Button size="sm" asChild>
-                                            <Link href="/workouts?edit=new">
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Create One
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                )}
-                                {quickStartWorkouts.length > 0 && (
-                                    <Button variant="ghost" size="sm" className="w-full mt-auto" asChild>
-                                        <Link href="/workouts">View All Workouts</Link>
-                                    </Button>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {hasData ? (
-                            <Card>
-                                <CardHeader className="pb-2">
-                                    <CardTitle>Total Volume</CardTitle>
-                                    <CardDescription>{dateRangeLabel}</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
-                                </CardContent>
-                            </Card>
-                        ) : (
-                            <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
-                                <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
-                                <CardTitle className="mt-4">Start Your Journey</CardTitle>
-                                <CardDescription>
-                                    Complete your first workout to unlock your dashboard.
-                                </CardDescription>
-                                <Button className="mt-4" asChild>
-                                    <Link href="/workouts">Browse Workouts</Link>
-                                </Button>
-                            </Card>
-                        )}
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Quick Log</CardTitle>
-                                <CardDescription>
-                                    Log a single exercise on the fly.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-col gap-4">
-                                    <Combobox
-                                        options={exerciseOptions || []}
-                                        value={selectedExerciseId || ''}
-                                        onSelect={setSelectedExerciseId}
-                                        placeholder="Select an exercise..."
-                                        searchPlaceholder="Search exercises..."
-                                    />
-                                    <Button disabled={!selectedExerciseId} onClick={() => setIsQuickLogOpen(true)}>Log Exercise</Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <ProgressSummaryCard />
-
-                        <div className="col-span-1 sm:col-span-2 lg:col-span-3">
-                            <MuscleHeatmap
-                                userProfile={userProfile}
-                                thisWeeksLogs={filteredLogs}
-                                isLoading={isLoading}
-                                dateRangeLabel={dateRangeLabel}
-                                onIntensitiesChange={setMuscleIntensities}
-                                onViewClick={handleHeatmapView}
-                            />
-                        </div>
-
-                        <div className="col-span-1 sm:col-span-2 lg:col-span-3">
-                            <MuscleGroupVolumeChart
-                                filteredLogs={filteredLogs}
-                                masterExercises={masterExercises}
-                                isLoading={isLoading || shouldWaitForExercises}
-                                dateRangeLabel={dateRangeLabel}
-                            />
-                        </div>
-
-                        <Card className="col-span-1 sm:col-span-2 lg:col-span-3">
-                            <CardHeader>
-                                <CardTitle>Recent Activity</CardTitle>
-                                <CardDescription>
-                                    A log of your most recent workouts.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Workout</TableHead>
-                                            <TableHead className="hidden sm:table-cell">Date</TableHead>
-                                            <TableHead className="hidden sm:table-cell">Rating</TableHead>
-                                            <TableHead className="text-right">Total Volume</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {isLoadingLogs && (
-                                            <>
-                                                <TableRow>
-                                                    <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
-                                                    <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                                                    <TableCell><Skeleton className="h-4 w-[50px]" /></TableCell>
-                                                    <TableCell className="text-right"><Skeleton className="h-4 w-[80px] ml-auto" /></TableCell>
-                                                </TableRow>
-                                                <TableRow>
-                                                    <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
-                                                    <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                                                    <TableCell><Skeleton className="h-4 w-[50px]" /></TableCell>
-                                                    <TableCell className="text-right"><Skeleton className="h-4 w-[80px] ml-auto" /></TableCell>
-                                                </TableRow>
-                                                <TableRow>
-                                                    <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
-                                                    <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                                                    <TableCell><Skeleton className="h-4 w-[50px]" /></TableCell>
-                                                    <TableCell className="text-right"><Skeleton className="h-4 w-[80px] ml-auto" /></TableCell>
-                                                </TableRow>
-                                            </>
-                                        )}
-                                        {!isLoadingLogs && recentLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No recent workouts found.</TableCell></TableRow>}
-                                        {recentLogs.map((log) => (
-                                            <TableRow key={log.id}>
-                                                <TableCell>
-                                                    <div className="font-medium">{log.workoutName}</div>
-                                                </TableCell>
-                                                <TableCell className="hidden sm:table-cell">
-                                                    {format(new Date(log.date), "PPP")}
-                                                </TableCell>
-                                                <TableCell className="hidden sm:table-cell">
-                                                    {log.rating ? (
-                                                        <div className="flex items-center">
-                                                            {log.rating} <Star className="w-3 h-3 ml-1 fill-primary text-primary" />
-                                                        </div>
-                                                    ) : "-"}
-                                                </TableCell>
-                                                <TableCell className="text-right font-medium">
-                                                    {log.volume?.toLocaleString() || 0} lbs
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <Dialog open={isQuickLogOpen} onOpenChange={(open) => { if (!open) { setSelectedExerciseId(null); setIsQuickLogOpen(false); } }}>
-                        <DialogContent>
-                            {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => { setIsQuickLogOpen(false); setSelectedExerciseId(null); }} />}
-                        </DialogContent>
-                    </Dialog>
                 </div>
 
-                <AlertDialog open={!!workoutToStart} onOpenChange={(open) => !open && setWorkoutToStart(null)}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Start "{workoutToStart?.name}"?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Are you ready to begin this workout?
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => {
-                                if (workoutToStart) {
-                                    router.push(`/workout/${workoutToStart.id}`);
-                                }
-                            }}>
-                                Start Workout
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </>
-        );
-    }
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                    <UserStatsCard userProfile={userProfile} />
+
+                    <Card className="lg:col-span-1 flex flex-col">
+                        <CardHeader className="pb-3">
+                            <CardTitle>Quick Start</CardTitle>
+                            <CardDescription>
+                                Jump back into your recent routines.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col gap-3">
+                            {isLoadingWorkouts ? (
+                                <div className="space-y-2">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                            ) : quickStartWorkouts.length > 0 ? (
+                                <div className="space-y-2">
+                                    {quickStartWorkouts.map(workout => (
+                                        <div key={workout.id}>
+                                            <Button
+                                                variant="secondary"
+                                                className="w-full justify-between"
+                                                onClick={() => setWorkoutToStart(workout)}
+                                            >
+                                                <span className="truncate">{workout.name}</span>
+                                                <Play className="h-4 w-4 ml-2 opacity-50" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                                    <p className="text-sm text-muted-foreground mb-4">No custom workouts yet.</p>
+                                    <Button size="sm" asChild>
+                                        <Link href="/workouts?edit=new">
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Create One
+                                        </Link>
+                                    </Button>
+                                </div>
+                            )}
+                            {quickStartWorkouts.length > 0 && (
+                                <Button variant="ghost" size="sm" className="w-full mt-auto" asChild>
+                                    <Link href="/workouts">View All Workouts</Link>
+                                </Button>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {hasData ? (
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle>Total Volume</CardTitle>
+                                <CardDescription>{dateRangeLabel}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
+                            <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <CardTitle className="mt-4">Start Your Journey</CardTitle>
+                            <CardDescription>
+                                Complete your first workout to unlock your dashboard.
+                            </CardDescription>
+                            <Button className="mt-4" asChild>
+                                <Link href="/workouts">Browse Workouts</Link>
+                            </Button>
+                        </Card>
+                    )}
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Quick Log</CardTitle>
+                            <CardDescription>
+                                Log a single exercise on the fly.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col gap-4">
+                                <Combobox
+                                    options={exerciseOptions || []}
+                                    value={selectedExerciseId || ''}
+                                    onSelect={setSelectedExerciseId}
+                                    placeholder="Select an exercise..."
+                                    searchPlaceholder="Search exercises..."
+                                />
+                                <Button disabled={!selectedExerciseId} onClick={() => setIsQuickLogOpen(true)}>Log Exercise</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <ProgressSummaryCard />
+
+                    <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                        <MuscleHeatmap
+                            userProfile={userProfile}
+                            thisWeeksLogs={filteredLogs}
+                            isLoading={isLoading}
+                            dateRangeLabel={dateRangeLabel}
+                            onIntensitiesChange={setMuscleIntensities}
+                            onViewClick={handleHeatmapView}
+                        />
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                        <MuscleGroupVolumeChart
+                            filteredLogs={filteredLogs}
+                            masterExercises={masterExercises}
+                            isLoading={isLoading || shouldWaitForExercises}
+                            dateRangeLabel={dateRangeLabel}
+                        />
+                    </div>
+
+                    <Card className="col-span-1 sm:col-span-2 lg:col-span-3">
+                        <CardHeader>
+                            <CardTitle>Recent Activity</CardTitle>
+                            <CardDescription>
+                                A log of your most recent workouts.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Workout</TableHead>
+                                        <TableHead className="hidden sm:table-cell">Date</TableHead>
+                                        <TableHead className="hidden sm:table-cell">Rating</TableHead>
+                                        <TableHead className="text-right">Total Volume</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoadingLogs && (
+                                        <>
+                                            <TableRow>
+                                                <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
+                                                <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                                                <TableCell><Skeleton className="h-4 w-[50px]" /></TableCell>
+                                                <TableCell className="text-right"><Skeleton className="h-4 w-[80px] ml-auto" /></TableCell>
+                                            </TableRow>
+                                            <TableRow>
+                                                <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
+                                                <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                                                <TableCell><Skeleton className="h-4 w-[50px]" /></TableCell>
+                                                <TableCell className="text-right"><Skeleton className="h-4 w-[80px] ml-auto" /></TableCell>
+                                            </TableRow>
+                                            <TableRow>
+                                                <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
+                                                <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                                                <TableCell><Skeleton className="h-4 w-[50px]" /></TableCell>
+                                                <TableCell className="text-right"><Skeleton className="h-4 w-[80px] ml-auto" /></TableCell>
+                                            </TableRow>
+                                        </>
+                                    )}
+                                    {!isLoadingLogs && recentLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No recent workouts found.</TableCell></TableRow>}
+                                    {recentLogs.map((log) => (
+                                        <TableRow key={log.id}>
+                                            <TableCell>
+                                                <div className="font-medium">{log.workoutName}</div>
+                                            </TableCell>
+                                            <TableCell className="hidden sm:table-cell">
+                                                {format(new Date(log.date), "PPP")}
+                                            </TableCell>
+                                            <TableCell className="hidden sm:table-cell">
+                                                {log.rating ? (
+                                                    <div className="flex items-center">
+                                                        {log.rating} <Star className="w-3 h-3 ml-1 fill-primary text-primary" />
+                                                    </div>
+                                                ) : "-"}
+                                            </TableCell>
+                                            <TableCell className="text-right font-medium">
+                                                {log.volume?.toLocaleString() || 0} lbs
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <Dialog open={isQuickLogOpen} onOpenChange={(open) => { if (!open) { setSelectedExerciseId(null); setIsQuickLogOpen(false); } }}>
+                    <DialogContent>
+                        {loggingExercise && <QuickLogForm exercise={loggingExercise} onLog={(sets) => handleQuickLog(loggingExercise, sets)} onCancel={() => { setIsQuickLogOpen(false); setSelectedExerciseId(null); }} />}
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            <AlertDialog open={!!workoutToStart} onOpenChange={(open) => !open && setWorkoutToStart(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Start "{workoutToStart?.name}"?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you ready to begin this workout?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                            if (workoutToStart) {
+                                router.push(`/workout/${workoutToStart.id}`);
+                            }
+                        }}>
+                            Start Workout
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+}
