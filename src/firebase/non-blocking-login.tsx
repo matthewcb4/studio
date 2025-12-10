@@ -10,6 +10,8 @@ import {
   signInWithPopup,
   sendEmailVerification,
   signOut,
+  getAdditionalUserInfo,
+  deleteUser,
   // Assume getAuth and app are initialized elsewhere
 } from 'firebase/auth';
 
@@ -34,6 +36,21 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
 export function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
   const provider = new GoogleAuthProvider();
   return signInWithPopup(authInstance, provider);
+}
+
+/** Initiate Google sign-in but BLOCK new user creation (non-blocking). */
+export async function initiateGoogleLogin(authInstance: Auth): Promise<any> {
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(authInstance, provider);
+  const additionalUserInfo = getAdditionalUserInfo(result);
+
+  if (additionalUserInfo?.isNewUser) {
+    // If it's a new user, delete the account and throw an error
+    await deleteUser(result.user);
+    throw new Error("Account creation is not allowed here. Please use the mobile app or Sign Up page.");
+  }
+
+  return result;
 }
 
 /** Initiate Facebook sign-in with a popup (non-blocking). */

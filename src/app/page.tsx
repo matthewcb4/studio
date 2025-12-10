@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/logo";
-import { useAuth, initiateEmailSignIn, initiateGoogleSignIn, useUser, initiateFacebookSignIn } from "@/firebase";
+import { useAuth, initiateEmailSignIn, initiateGoogleLogin, useUser, initiateFacebookSignIn } from "@/firebase";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -69,7 +69,7 @@ export default function LoginPage() {
   async function onGoogleSignIn() {
     setIsLoading(true);
     try {
-      await initiateGoogleSignIn(auth);
+      await initiateGoogleLogin(auth);
     } catch (error: any) {
       console.error(error);
       toast({
