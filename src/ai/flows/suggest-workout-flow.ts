@@ -20,6 +20,8 @@ const PastWorkoutSchema = z.object({
 const SuggestWorkoutSetupInputSchema = z.object({
   fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals."),
   workoutHistory: z.array(PastWorkoutSchema).describe("The user's workout history for the last 7 days."),
+  weeklyWorkoutGoal: z.number().describe("The user's target number of workouts per week (1-7)."),
+  workoutsThisWeek: z.number().describe("The number of workouts the user has already completed this week (Monday to today)."),
 });
 
 
@@ -46,6 +48,10 @@ const prompt = ai.definePrompt({
   - {{{this}}}
   {{/each}}
 
+  **User's Weekly Workout Goal:** {{weeklyWorkoutGoal}} workouts per week
+  **Workouts Completed This Week (Mon-Sun):** {{workoutsThisWeek}}
+  **Today's Workout Would Be:** Day {{add workoutsThisWeek 1}} of {{weeklyWorkoutGoal}}
+
   **User's Workout History (Last 7 Days):**
   {{#if workoutHistory.length}}
     {{#each workoutHistory}}
@@ -55,20 +61,49 @@ const prompt = ai.definePrompt({
     The user has no workouts logged in the last 7 days.
   {{/if}}
 
+  **SPLIT PROGRAMMING GUIDELINES (CRITICAL):**
+  Based on the user's weekly workout goal, you MUST follow these standard split patterns to suggest the appropriate focus for today:
+
+  - **2 days/week:** Full Body both days. Always suggest "Full Body".
+  
+  - **3 days/week (Push/Pull/Legs):**
+    - Day 1: Upper Body (Push focus - Chest, Shoulders, Triceps)
+    - Day 2: Upper Body (Pull focus - Back, Biceps) 
+    - Day 3: Lower Body (Legs, Glutes)
+  
+  - **4 days/week (Upper/Lower):**
+    - Day 1: Upper Body
+    - Day 2: Lower Body
+    - Day 3: Upper Body
+    - Day 4: Lower Body
+  
+  - **5 days/week:**
+    - Day 1: Upper Body (Push)
+    - Day 2: Lower Body
+    - Day 3: Upper Body (Pull)
+    - Day 4: Lower Body
+    - Day 5: Upper Body or Full Body
+  
+  - **6+ days/week (Bro Split):**
+    - Rotate through: Chest, Back, Shoulders, Arms, Legs, Core
+    - Be more granular with focus areas
+
   **Your Task:**
 
-  1.  **Analyze the History:** Look at the muscle groups worked and the volume. Identify which muscle groups are well-rested and which have been heavily trained. Notice trends in volume.
-  2.  **Consider Goals:** Align your suggestion with the user's goals (e.g., if the goal is 'gain_overall_mass', suggest higher volume workouts; if 'reduce_body_fat', maybe suggest a full-body workout or higher intensity).
-  3.  **Create a Suggestion:**
-      *   **Focus Area:** Based on your analysis, suggest a primary 'focusArea' for today. This is the most important part. If they've hit 'Upper Body' hard, suggest 'Lower Body' or 'Full Body'. If they've been inconsistent, suggest 'Full Body' to get back on track. CRITICAL: Only use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'. Do not use specific muscles like 'Legs' or 'Chest'.
+  1.  **Determine Today's Day Number:** Calculate which day of the split this is based on workoutsThisWeek + 1.
+  2.  **Apply the Split Pattern:** Based on the weekly goal and today's day number, determine what the focus should be according to the split patterns above.
+  3.  **Cross-check with History:** Verify the suggestion makes sense given recent workouts. If they just did that muscle group yesterday, adjust if needed.
+  4.  **Create a Suggestion:**
+      *   **Focus Area:** Suggest the focus area that matches the split pattern for today's day number. CRITICAL: Only use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'. Do not use specific muscles like 'Legs' or 'Chest'.
       *   **Duration:** Suggest a 'workoutDuration'. A standard duration is 45-60 minutes. Suggest longer for mass goals, maybe shorter and more intense for fat loss.
-      *   **Superset Strategy:** Suggest a 'supersetStrategy'. Use 'mixed' for full-body or antagonist muscle days (like Chest/Back). Use 'focused' for days dedicated to a single muscle group (like Legs).
-      *   **Summary:** Write a 2-3 sentence 'summary'. Start with a positive, encouraging observation about their recent work (e.g., "Great work on the consistent volume this week!"). Then, state your recommendation and the reason for it (e.g., "Your upper body has been working hard, so let's give it a rest and focus on Lower Body today to ensure balanced development."). If they have no history, welcome them and suggest a 'Full Body' workout to start.
+      *   **Superset Strategy:** Use 'mixed' for full-body or Upper Body days. Use 'focused' for Lower Body days.
+      *   **Summary:** Write a 2-3 sentence 'summary'. Mention the split context (e.g., "This is Day 2 of your 4-day split, so we're focusing on Lower Body."). Be encouraging about their progress.
 
   **IMPORTANT:**
+  - Follow the split pattern based on weekly goal. Do NOT just default to "Full Body" or "Lower Body" to balance things out.
   - Be concise and encouraging.
   - The output MUST be a valid JSON object matching the output schema.
-  - The 'focusArea' must be an array of strings (e.g., ["Lower Body"], ["Full Body"]).
+  - The 'focusArea' must be an array of strings (e.g., ["Lower Body"], ["Upper Body"]).
 `,
 });
 

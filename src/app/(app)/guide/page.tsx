@@ -25,7 +25,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBl
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise } from '@/lib/types';
-import { format, subDays } from 'date-fns';
+import { format, subDays, startOfWeek, parseISO as parseISODateFns } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,8 @@ export type SuggestWorkoutSetupInput = {
     volume: number;
     muscleGroups: string[];
   }[];
+  weeklyWorkoutGoal: number;
+  workoutsThisWeek: number;
 };
 
 export type SuggestWorkoutSetupOutput = {
@@ -157,6 +159,17 @@ export default function GuidePage() {
 
   const topLevelGroups = ["Full Body", "Upper Body", "Lower Body", "Core"];
 
+  // Helper function to calculate workouts completed this week (Monday to today)
+  const getWorkoutsThisWeek = (logs: WorkoutLog[] | null): number => {
+    if (!logs) return 0;
+    const now = new Date();
+    const monday = startOfWeek(now, { weekStartsOn: 1 }); // Start week on Monday
+    return logs.filter(log => {
+      const logDate = parseISODateFns(log.date);
+      return logDate >= monday && logDate <= now;
+    }).length;
+  };
+
   // UI Display Groups
   const workoutTypes = ["Full Body", "Upper Body", "Lower Body", "Core"];
   const muscleGroups = ["Chest", "Back", "Shoulders", "Arms", "Legs"];
@@ -230,6 +243,8 @@ export default function GuidePage() {
           const suggestion = await suggestWorkoutSetup({
             fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
             workoutHistory: history,
+            weeklyWorkoutGoal: userProfile?.weeklyWorkoutGoal || 3,
+            workoutsThisWeek: getWorkoutsThisWeek(recentLogs),
           });
 
           if (userProfileRef) {
