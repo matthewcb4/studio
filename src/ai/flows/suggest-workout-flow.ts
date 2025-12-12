@@ -58,7 +58,7 @@ const prompt = ai.definePrompt({
   **User's Workout History (Last 7 Days):**
   {{#if workoutHistory.length}}
     {{#each workoutHistory}}
-    - On {{date}}: {{#if activityType}}{{#if (eq activityType 'run')}}🏃 RUN{{/if}}{{#if (eq activityType 'walk')}}🚶 WALK{{/if}}{{#if (eq activityType 'cycle')}}🚴 CYCLE{{/if}}{{#if (eq activityType 'hiit')}}💪 HIIT{{/if}}{{#unless (or (eq activityType 'run') (eq activityType 'walk') (eq activityType 'cycle') (eq activityType 'hiit'))}}🏋️ RESISTANCE{{/unless}}{{else}}🏋️ RESISTANCE{{/if}} "{{name}}"{{#if duration}} ({{duration}}){{/if}}. {{#if (gt volume 0)}}Volume: {{volume}} lbs. {{/if}}Muscles: {{#each muscleGroups}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
+    - On {{date}}: [{{activityType}}] "{{name}}" ({{duration}}). Volume: {{volume}} lbs. Muscles: {{#each muscleGroups}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
     {{/each}}
   {{else}}
     The user has no workouts logged in the last 7 days.

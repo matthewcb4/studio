@@ -85,7 +85,19 @@ const prompt = ai.definePrompt({
   - If Superset Strategy is 'focused': Create supersets where both exercises target the SAME muscle group from the user's focus areas. For example, if focus is "Chest", superset Bench Press with Chest Fly.
   - If Superset Strategy is 'mixed': Create supersets by pairing exercises from DIFFERENT muscle groups from the user's focus areas. For example, if focus is "Chest" and "Back", superset Bench Press (Chest) with Bent-over Row (Back). This is great for antagonist muscle pairing.
   
-  If "Bodyweight" is listed as available equipment, you can include exercises like Push-ups, Pull-ups, Dips, and Squats.
+  EQUIPMENT-BASED EXERCISE SELECTION:
+  - If "Bodyweight" or "Calisthenics" is listed as available equipment, STRONGLY PREFER calisthenics exercises:
+    * Push-ups (standard, diamond, archer, decline, wide)
+    * Pull-ups, Chin-ups, Inverted Rows
+    * Dips (parallel bars or bench)
+    * Squats (bodyweight, pistol, Bulgarian split squat)
+    * Lunges (forward, reverse, walking)
+    * Planks, L-Sits, Hollow Body Holds
+    * Burpees, Mountain Climbers
+    * Handstand Push-ups, Pike Push-ups
+    * Muscle-ups (for advanced)
+  - If only "Bodyweight" is available with no other equipment, generate a 100% calisthenics workout.
+  - You can mix weighted exercises with calisthenics when both equipment types are available.
 
   The workout should be effective and safe. Only use the equipment specified by the user. The total workout time should be close to the desired duration.
   Provide a creative name for the workout.
@@ -101,7 +113,7 @@ const workoutGuideFlow = ai.defineFlow(
   async (input) => {
     const { output } = await prompt(input);
     // Ensure superset IDs are strings, not numbers, to be safe.
-    if(output?.exercises) {
+    if (output?.exercises) {
       output.exercises.forEach(ex => {
         ex.supersetId = String(ex.supersetId);
       });
