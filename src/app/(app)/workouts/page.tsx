@@ -303,7 +303,7 @@ function WorkoutForm({
         </SheetDescription>
       </SheetHeader>
 
-      <div className="flex-1 overflow-y-auto p-1 -mx-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 -mx-1">
         <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
           <DialogContent className="sm:max-w-lg w-full max-w-[95vw]">
             <DialogHeader>
@@ -353,35 +353,35 @@ function WorkoutForm({
 
 
         <div className="grid gap-4 py-4 px-1">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
+          <div className="flex flex-col sm:grid sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="name" className="sm:text-right">
               Name
             </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="col-span-3"
+              className="sm:col-span-3 w-full"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
+          <div className="flex flex-col sm:grid sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="description" className="sm:text-right">
               Description
             </Label>
             <Input
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="col-span-3"
+              className="sm:col-span-3 w-full"
             />
           </div>
           {locations && locations.length > 0 && (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="location" className="text-right">
+            <div className="flex flex-col sm:grid sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+              <Label htmlFor="location" className="sm:text-right">
                 Location
               </Label>
               <Select value={selectedLocationId || 'none'} onValueChange={(value) => setSelectedLocationId(value === 'none' ? undefined : value)}>
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="sm:col-span-3 w-full">
                   <SelectValue placeholder="Select a location" />
                 </SelectTrigger>
                 <SelectContent>
