@@ -624,36 +624,6 @@ export default function SettingsPage() {
                         </AccordionContent>
                     </Card>
                 </AccordionItem>
-                <AccordionItem value="data-management" className="border-none">
-                    <Card>
-                        <AccordionTrigger className="p-6 text-left">
-                            <div className="flex items-center gap-3">
-                                <Database className="w-6 h-6 text-primary" />
-                                <div>
-                                    <CardTitle>Data Management</CardTitle>
-                                    <CardDescription className="mt-1.5 text-left">
-                                        Manage your workout data and statistics.
-                                    </CardDescription>
-                                </div>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <h4 className="text-sm font-medium leading-none">Recalculate Statistics</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Sync your gamification stats (Level, XP, Streaks) with your entire workout history.
-                                        Use this if your Dashboard stats look incorrect.
-                                    </p>
-                                </div>
-                                <Button onClick={handleRecalculateStats} disabled={isRecalculating}>
-                                    {isRecalculating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                    Recalculate Stats
-                                </Button>
-                            </CardContent>
-                        </AccordionContent>
-                    </Card>
-                </AccordionItem>
                 <AccordionItem value="workout-locations" className="border-none">
                     <Card>
                         <AccordionTrigger className="p-6 text-left">
