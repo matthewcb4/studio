@@ -17,6 +17,7 @@ import {
   Edit,
   Save,
   Share2,
+  Music2,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -756,9 +757,32 @@ export default function WorkoutSessionPage() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <div className="flex items-center gap-2 text-lg font-medium text-muted-foreground">
-            <Timer className="h-5 w-5" />
-            <span>{formatTime(elapsedTime)}</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-lg font-medium text-muted-foreground">
+              <Timer className="h-5 w-5" />
+              <span>{formatTime(elapsedTime)}</span>
+            </div>
+            {userProfile?.preferredMusicApp && userProfile.preferredMusicApp !== 'none' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => {
+                  const musicUrls: Record<string, string> = {
+                    'spotify': 'https://open.spotify.com',
+                    'apple-music': 'https://music.apple.com',
+                    'youtube-music': 'https://music.youtube.com',
+                    'amazon-music': 'https://music.amazon.com',
+                    'pandora': 'https://www.pandora.com',
+                  };
+                  const url = musicUrls[userProfile.preferredMusicApp!];
+                  if (url) window.open(url, '_blank');
+                }}
+                title="Open Music App"
+              >
+                <Music2 className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </div>
 

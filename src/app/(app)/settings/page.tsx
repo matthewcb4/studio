@@ -592,25 +592,54 @@ export default function SettingsPage() {
                                     <CardContent className="space-y-4">
                                         {isLoadingProfile && <p>Loading profile...</p>}
                                         {!isLoadingProfile && (
-                                            <FormField
-                                                control={goalsForm.control}
-                                                name="biologicalSex"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Body Type for Heatmap</FormLabel>
-                                                        <Select onValueChange={field.onChange} value={field.value}>
-                                                            <FormControl>
-                                                                <SelectTrigger><SelectValue placeholder="Select a body type" /></SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                <SelectItem value="Male">Male</SelectItem>
-                                                                <SelectItem value="Female">Female</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
+                                            <>
+                                                <FormField
+                                                    control={goalsForm.control}
+                                                    name="biologicalSex"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Body Type for Heatmap</FormLabel>
+                                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                                <FormControl>
+                                                                    <SelectTrigger><SelectValue placeholder="Select a body type" /></SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Male">Male</SelectItem>
+                                                                    <SelectItem value="Female">Female</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <div className="pt-4 border-t">
+                                                    <h4 className="font-medium mb-2">Workout Music</h4>
+                                                    <p className="text-sm text-muted-foreground mb-3">
+                                                        Select your preferred music app to show a quick-access button during workouts.
+                                                    </p>
+                                                    <Select
+                                                        value={userProfile?.preferredMusicApp || 'none'}
+                                                        onValueChange={(value) => {
+                                                            if (userProfileRef) {
+                                                                setDocumentNonBlocking(userProfileRef, { preferredMusicApp: value }, { merge: true });
+                                                                toast({ title: 'Music App Updated' });
+                                                            }
+                                                        }}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select a music app" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="none">None (Hide button)</SelectItem>
+                                                            <SelectItem value="spotify">🎵 Spotify</SelectItem>
+                                                            <SelectItem value="apple-music">🍎 Apple Music</SelectItem>
+                                                            <SelectItem value="youtube-music">▶️ YouTube Music</SelectItem>
+                                                            <SelectItem value="amazon-music">📦 Amazon Music</SelectItem>
+                                                            <SelectItem value="pandora">📻 Pandora</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </>
                                         )}
                                     </CardContent>
                                     <CardFooter>

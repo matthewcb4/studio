@@ -119,6 +119,9 @@ export type UserProfile = {
 
   // Workout Locations
   activeLocationId?: string; // ID of the currently selected workout location
+
+  // Media preferences
+  preferredMusicApp?: 'spotify' | 'apple-music' | 'youtube-music' | 'amazon-music' | 'pandora' | 'none';
 }
 
 export type ProgressLog = {
