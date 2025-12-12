@@ -204,12 +204,6 @@ export function MuscleGroupVolumeChart({
     return headerContent;
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        {headerContent}
-      </CardHeader>
-      {renderChart()}
-    </Card>
-  )
+  // When not a trigger, just return the chart content (parent provides the Card wrapper)
+  return renderChart();
 }
