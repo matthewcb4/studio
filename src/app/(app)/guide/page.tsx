@@ -42,6 +42,8 @@ export type SuggestWorkoutSetupInput = {
     name: string;
     volume: number;
     muscleGroups: string[];
+    activityType?: 'resistance' | 'calisthenics' | 'run' | 'walk' | 'cycle' | 'hiit';
+    duration?: string;
   }[];
   weeklyWorkoutGoal: number;
   workoutsThisWeek: number;
@@ -52,6 +54,7 @@ export type SuggestWorkoutSetupOutput = {
   focusArea: string[];
   supersetStrategy: 'focused' | 'mixed';
   workoutDuration: number;
+  cardioRecommendation?: string;
 };
 
 
@@ -231,18 +234,32 @@ export default function GuidePage() {
         // No suggestion for today. Generate one.
         const history: SuggestWorkoutSetupInput['workoutHistory'] = (recentLogs || []).map(log => {
           const muscleGroups = new Set<string>();
-          (log.exercises || []).forEach(ex => {
-            const masterEx = masterExercises?.find(me => me.id === ex.exerciseId);
-            if (masterEx?.category) {
-              const groups = categoryToMuscleGroup[masterEx.category] || [];
-              groups.forEach(g => muscleGroups.add(g));
-            }
-          });
+
+          // For resistance/calisthenics, get muscle groups from exercises
+          if (log.exercises && log.exercises.length > 0) {
+            log.exercises.forEach(ex => {
+              const masterEx = masterExercises?.find(me => me.id === ex.exerciseId);
+              if (masterEx?.category) {
+                const groups = categoryToMuscleGroup[masterEx.category] || [];
+                groups.forEach(g => muscleGroups.add(g));
+              }
+            });
+          }
+
+          // For cardio, use the activity type to infer muscle groups
+          const activityType = log.activityType || 'resistance';
+          if (['run', 'walk', 'cycle', 'hiit'].includes(activityType)) {
+            const cardioMuscles = categoryToMuscleGroup[activityType.charAt(0).toUpperCase() + activityType.slice(1)] || [];
+            cardioMuscles.forEach(g => muscleGroups.add(g));
+          }
+
           return {
             date: format(parseISO(log.date), 'PPP'),
             name: log.workoutName,
-            volume: log.volume,
+            volume: log.volume || 0,
             muscleGroups: Array.from(muscleGroups),
+            activityType: activityType as SuggestWorkoutSetupInput['workoutHistory'][0]['activityType'],
+            duration: log.duration,
           };
         });
 

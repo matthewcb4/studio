@@ -86,7 +86,7 @@ function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Total Volume</span>
-          <span className="font-medium">{log.volume.toLocaleString()} lbs</span>
+          <span className="font-medium">{(log.volume || 0).toLocaleString()} lbs</span>
         </div>
         {log.rating && (
           <div className="flex justify-between text-sm">
@@ -98,7 +98,7 @@ function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
       <div className="flex-1 overflow-y-auto -mx-1 pr-1">
         <div className="space-y-4 px-1">
           <h3 className="font-semibold text-lg">Logged Exercises</h3>
-          {log.exercises.map((ex, index) => (
+          {(log.exercises || []).map((ex, index) => (
             <div key={index} className="p-4 border rounded-lg">
               <h4 className="font-semibold">{ex.exerciseName}</h4>
               <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
@@ -133,7 +133,7 @@ function EditWorkoutLog({ log, onSave, onCancel }: { log: WorkoutLog, onSave: (u
   };
 
   const handleSetChange = (exIndex: number, setIndex: number, field: keyof LoggedSet, value: string) => {
-    const newExercises = [...editedLog.exercises];
+    const newExercises = [...(editedLog.exercises || [])];
     const newSets = [...newExercises[exIndex].sets];
 
     const updatedSet = { ...newSets[setIndex], [field]: field === 'type' ? value : (parseFloat(value) || 0) };
@@ -146,7 +146,7 @@ function EditWorkoutLog({ log, onSave, onCancel }: { log: WorkoutLog, onSave: (u
   const handleSaveChanges = () => {
     setIsSaving(true);
     // Recalculate volume
-    const totalVolume = editedLog.exercises.reduce(
+    const totalVolume = (editedLog.exercises || []).reduce(
       (total, ex) =>
         total + ex.sets.reduce((sum, set) => {
           if (set.type === 'warmup') return sum;
@@ -187,7 +187,7 @@ function EditWorkoutLog({ log, onSave, onCancel }: { log: WorkoutLog, onSave: (u
           </div>
           <div className="space-y-4">
             <h3 className="font-semibold text-lg mt-4">Logged Exercises</h3>
-            {editedLog.exercises.map((ex, exIndex) => (
+            {(editedLog.exercises || []).map((ex, exIndex) => (
               <div key={exIndex} className="p-4 border rounded-lg">
                 <h4 className="font-semibold">{ex.exerciseName}</h4>
                 <div className="mt-2 space-y-2">
@@ -327,7 +327,7 @@ export default function HistoryPage() {
                     </TableCell>
                     <TableCell>{log.workoutName}</TableCell>
                     <TableCell className="hidden md:table-cell">{log.duration}</TableCell>
-                    <TableCell>{log.volume.toLocaleString()} lbs</TableCell>
+                    <TableCell>{(log.volume || 0).toLocaleString()} lbs</TableCell>
                     <TableCell>
                       {log.rating ? <StarRating rating={log.rating} /> : <span className="text-muted-foreground text-xs">N/A</span>}
                     </TableCell>

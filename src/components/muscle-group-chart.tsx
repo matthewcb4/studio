@@ -78,7 +78,7 @@ export function MuscleGroupVolumeChart({
         });
       }
 
-      log.exercises.forEach(loggedEx => {
+      (log.exercises || []).forEach(loggedEx => {
         const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
         if (masterEx?.category) {
           const exerciseVolume = loggedEx.sets.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0);

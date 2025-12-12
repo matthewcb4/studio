@@ -3,6 +3,8 @@ export type Exercise = {
   id: string;
   name: string;
   category?: string;
+  activityType?: ActivityType;        // Defaults to 'resistance'
+  isCardioActivity?: boolean;         // For run, walk, cycle pseudo-exercises
   defaultUnit?: 'reps' | 'seconds' | 'bodyweight' | 'reps-only';
 };
 
@@ -47,14 +49,31 @@ export type LoggedExercise = {
   sets: LoggedSet[];
 };
 
+// Activity types supported by the app
+export type ActivityType = 'resistance' | 'calisthenics' | 'run' | 'walk' | 'cycle' | 'hiit';
+
+// Cardio-specific metrics
+export type CardioMetrics = {
+  distance?: number;           // in user's preferred unit
+  distanceUnit?: 'mi' | 'km';  // miles or kilometers
+  avgPace?: string;            // e.g., "9:45 /mi"
+  avgHeartRate?: number;       // bpm
+  incline?: number;            // percentage (for treadmill)
+  elevation?: number;          // feet or meters (for outdoor/GPS)
+  calories?: number;           // estimated calories burned
+};
+
 export type WorkoutLog = {
   id: string;
   userId: string;
   workoutName: string;
   date: string; // ISO string
   duration: string; // e.g. "45 min"
-  exercises: LoggedExercise[];
-  volume: number;
+  activityType?: ActivityType;              // Defaults to 'resistance' if undefined
+  exercises?: LoggedExercise[];             // Optional (not used for pure cardio)
+  volume?: number;                          // Optional (not used for pure cardio)
+  cardioMetrics?: CardioMetrics;            // Optional (only for cardio types)
+  musclesWorked?: Record<string, number>;   // Pre-calculated muscle intensities
   rating?: number;
 };
 

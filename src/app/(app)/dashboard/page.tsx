@@ -47,10 +47,12 @@ import { HeatmapDetailModal } from "@/components/heatmap-detail-modal";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { MuscleGroupVolumeChart } from "@/components/muscle-group-chart";
 import { QuickLogForm } from "@/components/quick-log-form";
+import { CardioLogForm } from "@/components/cardio-log-form";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox } from "@/components/ui/combobox";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { ActivityType } from "@/lib/types";
 
 
 const parseDuration = (duration: string): number => {
@@ -216,6 +218,9 @@ export default function DashboardPage() {
 
     const [workoutToStart, setWorkoutToStart] = useState<CustomWorkout | null>(null);
 
+    // Cardio logging state
+    const [isCardioLogOpen, setIsCardioLogOpen] = useState(false);
+    const [cardioActivityType, setCardioActivityType] = useState<ActivityType>('run');
 
 
     const customWorkoutsQuery = useMemoFirebase(() => {
@@ -499,6 +504,48 @@ export default function DashboardPage() {
                                     <Link href="/workouts">View All Workouts</Link>
                                 </Button>
                             )}
+                            {/* Cardio Quick Buttons */}
+                            <div className="pt-3 border-t mt-auto">
+                                <p className="text-xs text-muted-foreground mb-2">Quick Cardio</p>
+                                <div className="grid grid-cols-4 gap-1">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-col h-auto py-2 px-1"
+                                        onClick={() => { setCardioActivityType('run'); setIsCardioLogOpen(true); }}
+                                    >
+                                        <span className="text-lg">🏃</span>
+                                        <span className="text-[10px]">Run</span>
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-col h-auto py-2 px-1"
+                                        onClick={() => { setCardioActivityType('walk'); setIsCardioLogOpen(true); }}
+                                    >
+                                        <span className="text-lg">🚶</span>
+                                        <span className="text-[10px]">Walk</span>
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-col h-auto py-2 px-1"
+                                        onClick={() => { setCardioActivityType('cycle'); setIsCardioLogOpen(true); }}
+                                    >
+                                        <span className="text-lg">🚴</span>
+                                        <span className="text-[10px]">Bike</span>
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-col h-auto py-2 px-1"
+                                        onClick={() => { setCardioActivityType('hiit'); setIsCardioLogOpen(true); }}
+                                    >
+                                        <span className="text-lg">💪</span>
+                                        <span className="text-[10px]">HIIT</span>
+                                    </Button>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -662,6 +709,12 @@ export default function DashboardPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <CardioLogForm
+                isOpen={isCardioLogOpen}
+                onOpenChange={setIsCardioLogOpen}
+                defaultActivity={cardioActivityType as 'run' | 'walk' | 'cycle' | 'hiit'}
+            />
         </>
     );
 }

@@ -88,7 +88,7 @@ function ShareableSummaryCard({ log, userProfile, prs = [], className = "" }: { 
                             <Dumbbell className="w-3 h-3" /> Volume
                         </div>
                         <span className="text-lg font-black text-white">
-                            {(log.volume / 1000).toFixed(1)}k <span className="text-xs font-normal text-white/60">lbs</span>
+                            {((log.volume || 0) / 1000).toFixed(1)}k <span className="text-xs font-normal text-white/60">lbs</span>
                         </span>
                     </div>
 
@@ -162,7 +162,7 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
         if (!cardElement || !log) return;
 
         const playStoreUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
-        const shareText = `I just crushed the '${log.workoutName}' workout on fRepo, lifting a total of ${log.volume.toLocaleString()} lbs! Come join me and track your own progress!`;
+        const shareText = `I just crushed the '${log.workoutName}' workout on fRepo, lifting a total of ${(log.volume || 0).toLocaleString()} lbs! Come join me and track your own progress!`;
 
         try {
             const canvas = await html2canvas(cardElement, {

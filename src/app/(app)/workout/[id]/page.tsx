@@ -647,11 +647,11 @@ export default function WorkoutSessionPage() {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Total Volume</span>
                 <span className="font-bold text-primary">
-                  {finishedLog.volume.toLocaleString()} lbs
+                  {(finishedLog.volume || 0).toLocaleString()} lbs
                 </span>
               </div>
               <div className="space-y-2">
-                {finishedLog.exercises.map((exercise) => {
+                {(finishedLog.exercises || []).map((exercise) => {
                   const totalVolume = exercise.sets.reduce(
                     (acc, set) => acc + (set.weight || 0) * (set.reps || 0),
                     0

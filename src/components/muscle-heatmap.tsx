@@ -195,7 +195,7 @@ export function MuscleHeatmap({
       // Decay factor: fresher workouts have higher impact. 1 for today, 0.5 for yesterday, etc.
       const decayFactor = isSingleWorkout ? 1 : 1 / (daysSince + 1);
 
-      log.exercises.forEach(loggedEx => {
+      (log.exercises || []).forEach(loggedEx => {
         const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
         if (masterEx?.category) {
           const muscleGroups = categoryToMuscleGroup[masterEx.category];

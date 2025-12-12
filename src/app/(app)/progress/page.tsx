@@ -73,13 +73,13 @@ export default function ProgressPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  
+
   const exercisesQuery = useMemoFirebase(() =>
-      firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null,
-      [firestore]
+    firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null,
+    [firestore]
   );
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
-  
+
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | undefined>(undefined);
   const [isSubmittingWeight, setIsSubmittingWeight] = useState(false);
   const [dateRange, setDateRange] = useState('30');
@@ -109,13 +109,13 @@ export default function ProgressPage() {
   );
   const { data: progressLogs, isLoading: isLoadingProgressLogs } =
     useCollection<ProgressLog>(progressLogsQuery);
-    
+
   const loggedExercises = useMemo(() => {
     if (!workoutLogs || !masterExercises) return [];
-    
+
     const loggedExerciseIds = new Set<string>();
     workoutLogs.forEach(log => {
-      log.exercises.forEach(ex => {
+      (log.exercises || []).forEach(ex => {
         loggedExerciseIds.add(ex.exerciseId);
       });
     });
@@ -126,7 +126,7 @@ export default function ProgressPage() {
 
   useEffect(() => {
     if (!selectedExerciseId && loggedExercises && loggedExercises.length > 0) {
-        setSelectedExerciseId(loggedExercises[0].id);
+      setSelectedExerciseId(loggedExercises[0].id);
     }
   }, [loggedExercises, selectedExerciseId])
 
@@ -135,10 +135,10 @@ export default function ProgressPage() {
     const now = new Date();
     const days = parseInt(dateRange, 10);
     const startDate = subDays(now, days);
-    
+
     return workoutLogs.filter(log => {
-        const logDate = new Date(log.date);
-        return isWithinInterval(logDate, { start: startDate, end: now });
+      const logDate = new Date(log.date);
+      return isWithinInterval(logDate, { start: startDate, end: now });
     });
   }, [workoutLogs, dateRange]);
 
@@ -182,7 +182,7 @@ export default function ProgressPage() {
 
     const data: { date: Date; maxWeight: number }[] = [];
     workoutLogs.forEach((log) => {
-      const exerciseLog = log.exercises.find(
+      const exerciseLog = (log.exercises || []).find(
         (e) => e.exerciseId === selectedExerciseId
       );
       if (exerciseLog) {
@@ -235,17 +235,17 @@ export default function ProgressPage() {
           </p>
         </div>
         <div className="w-[180px]">
-            <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Time range" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="7">Last 7 days</SelectItem>
-                    <SelectItem value="14">Last 14 days</SelectItem>
-                    <SelectItem value="30">Last 30 days</SelectItem>
-                    <SelectItem value="90">Last 90 days</SelectItem>
-                </SelectContent>
-            </Select>
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Time range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="14">Last 14 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -300,12 +300,12 @@ export default function ProgressPage() {
         <AccordionItem value="weight-progression" className="border-none">
           <Card>
             <AccordionTrigger className="p-6 text-left">
-                <div>
-                    <CardTitle>Weight Progression</CardTitle>
-                    <CardDescription className="mt-1.5 text-left">
-                        Your body weight over time.
-                    </CardDescription>
-                </div>
+              <div>
+                <CardTitle>Weight Progression</CardTitle>
+                <CardDescription className="mt-1.5 text-left">
+                  Your body weight over time.
+                </CardDescription>
+              </div>
             </AccordionTrigger>
             <AccordionContent>
               <CardContent>
@@ -360,37 +360,37 @@ export default function ProgressPage() {
             </AccordionContent>
           </Card>
         </AccordionItem>
-        
+
         <AccordionItem value="volume-chart" className="border-none">
-            <Card>
-                <AccordionTrigger className="p-6 text-left">
-                    <MuscleGroupVolumeChart
-                        isTrigger={true}
-                        filteredLogs={filteredLogs}
-                        masterExercises={masterExercises}
-                        isLoading={isLoading}
-                    />
-                </AccordionTrigger>
-                <AccordionContent>
-                     <MuscleGroupVolumeChart
-                        isTrigger={false}
-                        filteredLogs={filteredLogs}
-                        masterExercises={masterExercises}
-                        isLoading={isLoading}
-                    />
-                </AccordionContent>
-            </Card>
+          <Card>
+            <AccordionTrigger className="p-6 text-left">
+              <MuscleGroupVolumeChart
+                isTrigger={true}
+                filteredLogs={filteredLogs}
+                masterExercises={masterExercises}
+                isLoading={isLoading}
+              />
+            </AccordionTrigger>
+            <AccordionContent>
+              <MuscleGroupVolumeChart
+                isTrigger={false}
+                filteredLogs={filteredLogs}
+                masterExercises={masterExercises}
+                isLoading={isLoading}
+              />
+            </AccordionContent>
+          </Card>
         </AccordionItem>
 
         <AccordionItem value="exercise-performance" className="border-none">
           <Card>
             <AccordionTrigger className="p-6 text-left">
-                <div>
-                    <CardTitle>Exercise Performance</CardTitle>
-                    <CardDescription className="mt-1.5 text-left">
-                        Select an exercise to see your lift progression.
-                    </CardDescription>
-                </div>
+              <div>
+                <CardTitle>Exercise Performance</CardTitle>
+                <CardDescription className="mt-1.5 text-left">
+                  Select an exercise to see your lift progression.
+                </CardDescription>
+              </div>
             </AccordionTrigger>
             <AccordionContent>
               <CardContent className="space-y-4">

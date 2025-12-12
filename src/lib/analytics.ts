@@ -32,7 +32,7 @@ export const checkPersonalRecord = (
 
     // Iterate through all historical logs
     history.forEach(log => {
-        log.exercises.forEach(ex => {
+        (log.exercises || []).forEach(ex => {
             if (ex.exerciseId === exerciseId) {
                 ex.sets.forEach(set => {
                     const w = set.weight || 0;
