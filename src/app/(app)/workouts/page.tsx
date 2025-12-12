@@ -119,17 +119,20 @@ function WorkoutForm({
   workout,
   masterExercises,
   exercisePreferences,
+  locations,
   onSave,
   onCancel,
 }: {
   workout: CustomWorkout | null;
   masterExercises: MasterExercise[];
   exercisePreferences: UserExercisePreference[] | null;
+  locations: WorkoutLocation[] | null;
   onSave: (workout: Partial<CustomWorkout>, isNew: boolean) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(workout?.name || '');
   const [description, setDescription] = useState(workout?.description || '');
+  const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>(workout?.locationId);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(
     workout?.exercises?.map(ex => ({ ...ex, unit: ex.unit || 'reps' })) || []
   );
@@ -258,10 +261,15 @@ function WorkoutForm({
 
     const isNew = !workout;
 
+    // Get location name for the selected location
+    const selectedLocation = locations?.find(l => l.id === selectedLocationId);
+
     const newWorkout: Partial<CustomWorkout> = {
       name,
       description,
       exercises: finalizedExercises,
+      locationId: selectedLocationId,
+      locationName: selectedLocation?.name,
     };
     onSave(newWorkout, isNew);
   };
@@ -367,6 +375,31 @@ function WorkoutForm({
               className="col-span-3"
             />
           </div>
+          {locations && locations.length > 0 && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="location" className="text-right">
+                Location
+              </Label>
+              <Select value={selectedLocationId || 'none'} onValueChange={(value) => setSelectedLocationId(value === 'none' ? undefined : value)}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    <span className="text-muted-foreground">No location</span>
+                  </SelectItem>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{location.icon || '📍'}</span>
+                        {location.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <h3 className="font-semibold mt-4">Exercise Groups</h3>
           <div className="space-y-4">
@@ -713,6 +746,7 @@ function WorkoutsPageContent() {
                     workout={editingWorkout}
                     masterExercises={masterExercises || []}
                     exercisePreferences={exercisePreferences || []}
+                    locations={locations || []}
                     onSave={handleSaveWorkout}
                     onCancel={() => handleSheetOpenChange(false)}
                   />
