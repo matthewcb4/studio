@@ -49,6 +49,7 @@ import type {
   WorkoutExercise,
   Exercise as MasterExercise,
   UserExercisePreference,
+  WorkoutLocation,
 } from '@/lib/types';
 import {
   useCollection,
@@ -539,6 +540,7 @@ function WorkoutsPageContent() {
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState('date_desc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationFilter, setLocationFilter] = useState<string>('all');
 
 
   const workoutsCollection = useMemoFirebase(() => {
@@ -559,6 +561,12 @@ function WorkoutsPageContent() {
     user ? collection(firestore, `users/${user.uid}/exercisePreferences`) : null
     , [firestore, user]);
   const { data: exercisePreferences } = useCollection<UserExercisePreference>(exercisePreferencesQuery);
+
+  // Locations for filtering
+  const locationsCollection = useMemoFirebase(() =>
+    user ? collection(firestore, `users/${user.uid}/locations`) : null
+    , [firestore, user]);
+  const { data: locations } = useCollection<WorkoutLocation>(locationsCollection);
 
   const editingWorkout = useMemo(() => {
     if (!editingWorkoutId || !workouts) return null;
@@ -648,13 +656,23 @@ function WorkoutsPageContent() {
         return 0; // no dates, keep original order
       });
     }
-    const filtered = sorted.filter(w =>
+
+    // Apply location filter
+    let filtered = sorted;
+    if (locationFilter === 'unassigned') {
+      filtered = sorted.filter(w => !w.locationId);
+    } else if (locationFilter !== 'all') {
+      filtered = sorted.filter(w => w.locationId === locationFilter);
+    }
+
+    // Apply search filter
+    filtered = filtered.filter(w =>
       w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (w.description && w.description.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     return filtered;
-  }, [workouts, sortOrder, searchQuery]);
+  }, [workouts, sortOrder, searchQuery, locationFilter]);
 
   const groupedWorkouts = useMemo(() => {
     return sortedWorkouts?.map(w => ({ ...w, groupedExercises: groupExercises(w.exercises || []) })) || [];
@@ -711,6 +729,32 @@ function WorkoutsPageContent() {
               <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
             </SelectContent>
           </Select>
+          {locations && locations.length > 0 && (
+            <Select value={locationFilter} onValueChange={setLocationFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <span className="flex items-center gap-2">
+                    <MapPin className="h-3 w-3" />
+                    All Locations
+                  </span>
+                </SelectItem>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{location.icon || '📍'}</span>
+                      {location.name}
+                    </span>
+                  </SelectItem>
+                ))}
+                <SelectItem value="unassigned">
+                  <span className="text-muted-foreground">Unassigned</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
       {isLoading && <div className="text-center">Loading workouts...</div>}
