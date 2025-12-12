@@ -21,7 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
 import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
-import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise, WorkoutLocation } from '@/lib/types';
@@ -320,6 +320,47 @@ export default function GuidePage() {
     }
   };
 
+  // Migration: Create "Home" location from existing equipment for users without locations
+  useEffect(() => {
+    const migrateEquipment = async () => {
+      // Wait for all data to load
+      if (isLoadingLocations || isLoadingEquipment || !user || !locationsCollection) return;
+
+      // Only migrate if user has no locations but has old equipment
+      if (locations && locations.length > 0) return;
+      if (!userEquipment || userEquipment.length === 0) return;
+
+      console.log('Guide: Migrating equipment to Home location...');
+
+      const homeLocation: Omit<WorkoutLocation, 'id'> = {
+        userId: user.uid,
+        name: "Home",
+        equipment: userEquipment.map(e => e.name),
+        icon: "🏠",
+        type: 'home',
+        isDefault: true,
+        createdAt: new Date().toISOString(),
+      };
+
+      try {
+        const newLocationDoc = await addDocumentNonBlocking(locationsCollection, homeLocation);
+
+        // Update profile with active location
+        if (userProfileRef && newLocationDoc) {
+          await setDocumentNonBlocking(userProfileRef, {
+            activeLocationId: newLocationDoc.id,
+          }, { merge: true });
+        }
+
+        console.log('Guide: Equipment migration complete!');
+      } catch (error) {
+        console.error('Guide: Error migrating equipment:', error);
+      }
+    };
+
+    migrateEquipment();
+  }, [user, locations, userEquipment, isLoadingLocations, isLoadingEquipment, locationsCollection, userProfileRef]);
+
   const handleFocusAreaChange = (group: string, checked: boolean) => {
     const currentValues = form.getValues('focusArea');
     let newValues = [...currentValues];
@@ -467,6 +508,8 @@ export default function GuidePage() {
         description: generatedWorkout.description,
         exercises: processedExercises,
         createdAt: new Date().toISOString(),
+        locationId: selectedLocation?.id || undefined,
+        locationName: selectedLocation?.name || undefined,
       };
 
       const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);

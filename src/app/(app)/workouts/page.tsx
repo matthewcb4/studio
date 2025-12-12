@@ -43,7 +43,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown, Loader2, Video, Search } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Layers, Youtube, ArrowUp, ArrowDown, Loader2, Video, Search, MapPin } from 'lucide-react';
 import type {
   CustomWorkout,
   WorkoutExercise,
@@ -732,6 +732,12 @@ function WorkoutsPageContent() {
                 <CardHeader className="flex-1 text-left">
                   <CardTitle>{workout.name}</CardTitle>
                   <CardDescription>
+                    {workout.locationName && (
+                      <span className="inline-flex items-center gap-1 mr-2">
+                        <MapPin className="h-3 w-3" />
+                        {workout.locationName}
+                      </span>
+                    )}
                     {workout.description || `${(workout.exercises?.length || 0)} exercises in ${(workout.groupedExercises || []).length} groups`}
                   </CardDescription>
                 </CardHeader>

@@ -30,6 +30,8 @@ export type CustomWorkout = {
   exercises: WorkoutExercise[];
   createdAt?: string; // ISO string for creation date
   updatedAt?: string; // ISO string for last update date
+  locationId?: string; // ID of the location this workout was created for
+  locationName?: string; // Name of the location (denormalized for display)
 };
 
 export type LoggedSet = {
