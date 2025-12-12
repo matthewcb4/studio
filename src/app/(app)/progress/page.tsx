@@ -110,18 +110,26 @@ export default function ProgressPage() {
   const { data: progressLogs, isLoading: isLoadingProgressLogs } =
     useCollection<ProgressLog>(progressLogsQuery);
 
+  // Build list of unique exercises from workout logs (by name, not by master exercise ID)
   const loggedExercises = useMemo(() => {
-    if (!workoutLogs || !masterExercises) return [];
+    if (!workoutLogs) return [];
 
-    const loggedExerciseIds = new Set<string>();
+    const exerciseMap = new Map<string, { id: string; name: string }>();
+
     workoutLogs.forEach(log => {
       (log.exercises || []).forEach(ex => {
-        loggedExerciseIds.add(ex.exerciseId);
+        // Use exercise name as key to deduplicate, but keep the exerciseId for chart lookup
+        if (!exerciseMap.has(ex.exerciseName)) {
+          exerciseMap.set(ex.exerciseName, {
+            id: ex.exerciseId || ex.exerciseName, // Fallback to name as ID if missing
+            name: ex.exerciseName
+          });
+        }
       });
     });
 
-    return masterExercises.filter(ex => loggedExerciseIds.has(ex.id));
-  }, [workoutLogs, masterExercises]);
+    return Array.from(exerciseMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [workoutLogs]);
 
 
   useEffect(() => {
@@ -180,10 +188,13 @@ export default function ProgressPage() {
   const exerciseChartData = useMemo(() => {
     if (!selectedExerciseId || !workoutLogs) return [];
 
+    // Find the exercise name for the selected ID (which is now the name itself)
+    const selectedName = selectedExerciseId;
+
     const data: { date: Date; maxWeight: number }[] = [];
     workoutLogs.forEach((log) => {
       const exerciseLog = (log.exercises || []).find(
-        (e) => e.exerciseId === selectedExerciseId
+        (e) => e.exerciseName === selectedName
       );
       if (exerciseLog) {
         const maxWeight = Math.max(0, ...exerciseLog.sets.map((s) => s.weight ?? 0));
@@ -205,9 +216,8 @@ export default function ProgressPage() {
     }));
   }, [progressLogs]);
 
-  const selectedExerciseName = masterExercises?.find(
-    (e) => e.id === selectedExerciseId
-  )?.name;
+  // selectedExerciseId is now the exercise name itself
+  const selectedExerciseName = selectedExerciseId;
 
   const maxWeightChartConfig = {
     maxWeight: {
@@ -408,7 +418,7 @@ export default function ProgressPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {loggedExercises?.map((exercise) => (
-                        <SelectItem key={exercise.id} value={exercise.id}>
+                        <SelectItem key={exercise.name} value={exercise.name}>
                           {exercise.name}
                         </SelectItem>
                       ))}
