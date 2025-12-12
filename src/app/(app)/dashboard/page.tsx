@@ -53,6 +53,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ActivityType } from "@/lib/types";
+import { getStarterWorkouts } from "@/lib/starter-workouts";
 
 
 const parseDuration = (duration: string): number => {
@@ -336,15 +337,33 @@ export default function DashboardPage() {
         setHeatmapModalOpen(true);
     };
 
-    const handleOnboardingComplete = () => {
-        if (userProfileRef) {
-            const updates: Partial<UserProfile> = { hasCompletedOnboarding: true };
-            // Set default equipment if none exists
-            if (!userProfile?.availableEquipment || userProfile.availableEquipment.length === 0) {
-                updates.availableEquipment = ['Bodyweight'];
-            }
-            setDocumentNonBlocking(userProfileRef, updates, { merge: true });
+    const handleOnboardingComplete = async () => {
+        if (!user || !userProfileRef) return;
+
+        const updates: Partial<UserProfile> = { hasCompletedOnboarding: true };
+        // Set default equipment if none exists
+        if (!userProfile?.availableEquipment || userProfile.availableEquipment.length === 0) {
+            updates.availableEquipment = ['Bodyweight'];
         }
+        await setDocumentNonBlocking(userProfileRef, updates, { merge: true });
+
+        // Create starter workouts for new users
+        try {
+            const workoutsCollection = collection(firestore, `users/${user.uid}/customWorkouts`);
+            const starterWorkouts = getStarterWorkouts(user.uid);
+
+            for (const workout of starterWorkouts) {
+                await addDocumentNonBlocking(workoutsCollection, workout);
+            }
+
+            toast({
+                title: "Welcome to fRepo!",
+                description: "We've added some starter workouts to help you get going.",
+            });
+        } catch (error) {
+            console.error("Error creating starter workouts:", error);
+        }
+
         setShowOnboarding(false);
         router.push('/settings?open=fitness-goals');
     };
