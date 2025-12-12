@@ -110,6 +110,17 @@ service cloud.firestore {
         allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; //Immutable user ID
         allow delete: if isOwner(userId);
       }
+
+      /**
+       * @description Manages workout locations for users (home gym, commercial gym, etc.).
+       * @path /users/{userId}/locations/{locationId}
+       */
+      match /locations/{locationId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; //Immutable user ID
+        allow delete: if isOwner(userId);
+      }
     }
     
     /**
