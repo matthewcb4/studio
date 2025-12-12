@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Bot, Wand2, Loader2, Dumbbell, PlusCircle, Sparkles } from 'lucide-react';
+import { Bot, Wand2, Loader2, Dumbbell, PlusCircle, Sparkles, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { isToday, parseISO } from 'date-fns';
 
@@ -24,7 +24,7 @@ import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise } from '@/lib/types';
+import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise, WorkoutLocation } from '@/lib/types';
 import { format, subDays, startOfWeek, parseISO as parseISODateFns } from 'date-fns';
 import {
   Dialog,
@@ -98,6 +98,15 @@ export default function GuidePage() {
     , [firestore, user]);
 
   const { data: userEquipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
+
+  // Locations collection
+  const locationsCollection = useMemoFirebase(() =>
+    user ? collection(firestore, `users/${user.uid}/locations`) : null
+    , [firestore, user]);
+  const { data: locations, isLoading: isLoadingLocations } = useCollection<WorkoutLocation>(locationsCollection);
+
+  // Selected location state
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null);
@@ -269,12 +278,47 @@ export default function GuidePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, userProfile, isLoadingProfile, isLoadingLogs, isLoadingExercises]);
 
+  // Set selected location from profile or default
   useEffect(() => {
-    if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
+    if (!isLoadingLocations && locations && locations.length > 0 && !selectedLocationId) {
+      // Try to use the active location from profile, or fall back to default
+      const activeLocation = userProfile?.activeLocationId
+        ? locations.find(l => l.id === userProfile.activeLocationId)
+        : locations.find(l => l.isDefault);
+
+      if (activeLocation) {
+        setSelectedLocationId(activeLocation.id);
+      } else {
+        setSelectedLocationId(locations[0].id);
+      }
+    }
+  }, [locations, isLoadingLocations, userProfile?.activeLocationId, selectedLocationId]);
+
+  // Get the currently selected location
+  const selectedLocation = useMemo(() => {
+    if (!locations || !selectedLocationId) return null;
+    return locations.find(l => l.id === selectedLocationId) || null;
+  }, [locations, selectedLocationId]);
+
+  // Load equipment from selected location into form
+  useEffect(() => {
+    if (selectedLocation && selectedLocation.equipment.length > 0) {
+      form.setValue('availableEquipment', selectedLocation.equipment);
+    } else if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
+      // Fallback to old equipment collection if no locations exist
       const defaultEquipment = userEquipment.map(e => e.name);
       form.setValue('availableEquipment', defaultEquipment);
     }
-  }, [userEquipment, form]);
+  }, [selectedLocation, userEquipment, form]);
+
+  // Handle location change
+  const handleLocationChange = (locationId: string) => {
+    setSelectedLocationId(locationId);
+    const newLocation = locations?.find(l => l.id === locationId);
+    if (newLocation) {
+      form.setValue('availableEquipment', newLocation.equipment);
+    }
+  };
 
   const handleFocusAreaChange = (group: string, checked: boolean) => {
     const currentValues = form.getValues('focusArea');
@@ -584,6 +628,35 @@ export default function GuidePage() {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
+                  {/* Location Selector */}
+                  {locations && locations.length > 0 && (
+                    <div className="space-y-2 pb-4 border-b">
+                      <label className="text-base font-medium flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Workout Location
+                      </label>
+                      <Select value={selectedLocationId || ''} onValueChange={handleLocationChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {locations.map((location) => (
+                            <SelectItem key={location.id} value={location.id}>
+                              <span className="flex items-center gap-2">
+                                <span>{location.icon || '📍'}</span>
+                                <span>{location.name}</span>
+                                {location.isDefault && <span className="text-xs text-muted-foreground">(Default)</span>}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground">
+                        Equipment from this location will be used.
+                      </p>
+                    </div>
+                  )}
+
                   <FormField
                     control={form.control}
                     name="availableEquipment"
@@ -592,43 +665,85 @@ export default function GuidePage() {
                         <div className="mb-4">
                           <FormLabel className="text-base">Available Equipment</FormLabel>
                           <FormDescription>
-                            Select the equipment you have access to.
+                            {selectedLocation
+                              ? `Equipment from ${selectedLocation.name}`
+                              : 'Select the equipment you have access to.'
+                            }
                           </FormDescription>
                         </div>
                         <div className="space-y-2">
-                          {isLoadingEquipment ? <p>Loading equipment...</p> : userEquipment?.map((item) => (
-                            <FormField
-                              key={item.id}
-                              control={form.control}
-                              name="availableEquipment"
-                              render={({ field }) => {
-                                return (
+                          {isLoadingLocations || isLoadingEquipment ? (
+                            <p>Loading equipment...</p>
+                          ) : selectedLocation ? (
+                            // Render equipment from selected location
+                            selectedLocation.equipment.map((equipmentName) => (
+                              <FormField
+                                key={equipmentName}
+                                control={form.control}
+                                name="availableEquipment"
+                                render={({ field }) => (
                                   <FormItem
-                                    key={item.id}
+                                    key={equipmentName}
                                     className="flex flex-row items-start space-x-3 space-y-0"
                                   >
                                     <FormControl>
                                       <Checkbox
-                                        checked={field.value?.includes(item.name)}
+                                        checked={field.value?.includes(equipmentName)}
                                         onCheckedChange={(checked) => {
                                           return checked
-                                            ? field.onChange([...(field.value || []), item.name])
+                                            ? field.onChange([...(field.value || []), equipmentName])
                                             : field.onChange(
                                               field.value?.filter(
-                                                (value) => value !== item.name
+                                                (value) => value !== equipmentName
                                               )
                                             )
                                         }}
                                       />
                                     </FormControl>
                                     <FormLabel className="font-normal">
-                                      {item.name}
+                                      {equipmentName}
                                     </FormLabel>
                                   </FormItem>
-                                )
-                              }}
+                                )}
+                              />
+                            ))
+                          ) : userEquipment?.map((item) => (
+                            // Fallback to old equipment if no locations
+                            <FormField
+                              key={item.id}
+                              control={form.control}
+                              name="availableEquipment"
+                              render={({ field }) => (
+                                <FormItem
+                                  key={item.id}
+                                  className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(item.name)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...(field.value || []), item.name])
+                                          : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== item.name
+                                            )
+                                          )
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal">
+                                    {item.name}
+                                  </FormLabel>
+                                </FormItem>
+                              )}
                             />
                           ))}
+                          {!isLoadingLocations && !isLoadingEquipment && !selectedLocation && (!userEquipment || userEquipment.length === 0) && (
+                            <p className="text-sm text-muted-foreground py-4 text-center">
+                              No equipment found. Add a workout location in Settings.
+                            </p>
+                          )}
                         </div>
                         <FormMessage />
                       </FormItem>

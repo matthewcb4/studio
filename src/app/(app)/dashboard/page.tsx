@@ -38,9 +38,9 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { format, isWithinInterval, subDays } from "date-fns";
-import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc } from "@/firebase";
+import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc, addDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
-import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise, LoggedSet } from "@/lib/types";
+import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise, LoggedSet, UserEquipment, WorkoutLocation } from "@/lib/types";
 import { Dumbbell, Target, TrendingDown, TrendingUp, Star, Play, Plus, Zap, Trophy, Flame } from "lucide-react";
 import { MuscleHeatmap, type MuscleGroupIntensities } from "@/components/muscle-heatmap";
 import { HeatmapDetailModal } from "@/components/heatmap-detail-modal";
@@ -255,6 +255,18 @@ export default function DashboardPage() {
         , [firestore, user]);
     const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
+    // Equipment collection (for migration)
+    const equipmentCollection = useMemoFirebase(() =>
+        user ? collection(firestore, `users/${user.uid}/equipment`) : null
+        , [firestore, user]);
+    const { data: oldEquipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
+
+    // Locations collection
+    const locationsCollection = useMemoFirebase(() =>
+        user ? collection(firestore, `users/${user.uid}/locations`) : null
+        , [firestore, user]);
+    const { data: locations, isLoading: isLoadingLocations } = useCollection<WorkoutLocation>(locationsCollection);
+
     const [showOnboarding, setShowOnboarding] = useState(false);
 
     useEffect(() => {
@@ -264,6 +276,47 @@ export default function DashboardPage() {
             return () => clearTimeout(timer);
         }
     }, [userProfile]);
+
+    // Migration: Create "Home" location from existing equipment for users without locations
+    useEffect(() => {
+        const migrateEquipment = async () => {
+            // Wait for all data to load
+            if (isLoadingLocations || isLoadingEquipment || !user || !locationsCollection) return;
+
+            // Only migrate if user has no locations but has old equipment
+            if (locations && locations.length > 0) return;
+            if (!oldEquipment || oldEquipment.length === 0) return;
+
+            console.log('Migrating equipment to Home location...');
+
+            const homeLocation: Omit<WorkoutLocation, 'id'> = {
+                userId: user.uid,
+                name: "Home",
+                equipment: oldEquipment.map(e => e.name),
+                icon: "🏠",
+                type: 'home',
+                isDefault: true,
+                createdAt: new Date().toISOString(),
+            };
+
+            try {
+                const newLocationDoc = await addDocumentNonBlocking(locationsCollection, homeLocation);
+
+                // Update profile with active location
+                if (userProfileRef && newLocationDoc) {
+                    await setDocumentNonBlocking(userProfileRef, {
+                        activeLocationId: newLocationDoc.id,
+                    }, { merge: true });
+                }
+
+                console.log('Equipment migration complete!');
+            } catch (error) {
+                console.error('Error migrating equipment:', error);
+            }
+        };
+
+        migrateEquipment();
+    }, [user, locations, oldEquipment, isLoadingLocations, isLoadingEquipment, locationsCollection, userProfileRef]);
 
 
     const loggingExercise = useMemo(() => {

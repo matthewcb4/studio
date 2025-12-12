@@ -62,6 +62,17 @@ export type UserEquipment = {
   name: string;
 };
 
+export type WorkoutLocation = {
+  id: string;
+  userId: string;
+  name: string;                    // "Home", "YMCA Downtown", etc.
+  equipment: string[];             // List of equipment names
+  icon?: string;                   // Optional emoji: 🏠, 🏋️, etc.
+  type: 'home' | 'gym' | 'other';  // Determines equipment input mode
+  isDefault?: boolean;             // One location should be marked as default
+  createdAt?: string;              // ISO string
+};
+
 export type UserProfile = {
   id: string;
   targetWeight?: number;
@@ -84,6 +95,9 @@ export type UserProfile = {
   lifetimeVolume?: number;
   xp?: number;
   level?: number;
+
+  // Workout Locations
+  activeLocationId?: string; // ID of the currently selected workout location
 }
 
 export type ProgressLog = {

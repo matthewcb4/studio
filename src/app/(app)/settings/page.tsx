@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { useCollection, useUser, useFirestore, useAuth, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase, useDoc, setDocumentNonBlocking, deleteUser, linkFacebookAccount } from '@/firebase';
 import { collection, doc, query, orderBy, getDocs } from 'firebase/firestore'; // Added query, orderBy, getDocs
-import type { UserEquipment, UserProfile, WorkoutLog } from '@/lib/types'; // Added WorkoutLog
+import type { UserEquipment, UserProfile, WorkoutLog, WorkoutLocation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -31,12 +31,36 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ThemeSelector } from '@/components/theme-selector';
-import { Facebook } from 'lucide-react';
+import { Facebook, MapPin, Edit, Check, X } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from '@/components/ui/badge';
 
 
 const equipmentFormSchema = z.object({
     name: z.string().min(2, { message: 'Equipment name must be at least 2 characters.' }),
 });
+
+const locationFormSchema = z.object({
+    name: z.string().min(2, { message: 'Location name must be at least 2 characters.' }),
+    type: z.enum(['home', 'gym', 'other']),
+    icon: z.string().optional(),
+});
+
+const COMMON_GYM_EQUIPMENT = [
+    "Barbell", "Dumbbells", "Cable Machine", "Lat Pulldown",
+    "Leg Press", "Smith Machine", "Bench Press", "Squat Rack",
+    "Pull-up Bar", "Dip Station", "Rowing Machine", "Treadmill",
+    "Stationary Bike", "Kettlebells", "Medicine Ball", "Battle Ropes"
+];
+
+const LOCATION_ICONS = ["🏠", "🏋️", "💪", "🏃", "🎯", "⭐"];
 
 const goalsFormSchema = z.object({
     targetWeight: z.coerce.number().optional(),
@@ -69,15 +93,37 @@ export default function SettingsPage() {
         , [firestore, user]);
     const { data: equipment, isLoading: isLoadingEquipment } = useCollection<UserEquipment>(equipmentCollection);
 
+    // Locations collection
+    const locationsCollection = useMemoFirebase(() =>
+        user ? collection(firestore, `users/${user.uid}/locations`) : null
+        , [firestore, user]);
+    const { data: locations, isLoading: isLoadingLocations } = useCollection<WorkoutLocation>(locationsCollection);
+
     const userProfileRef = useMemoFirebase(() =>
         user ? doc(firestore, `users/${user.uid}/profile/main`) : null
         , [firestore, user]);
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
 
+    // Location management state
+    const [showAddLocationDialog, setShowAddLocationDialog] = useState(false);
+    const [editingLocation, setEditingLocation] = useState<WorkoutLocation | null>(null);
+    const [editingEquipment, setEditingEquipment] = useState<string[]>([]);
+    const [newEquipmentName, setNewEquipmentName] = useState('');
+    const [isSubmittingLocation, setIsSubmittingLocation] = useState(false);
+
     const equipmentForm = useForm<z.infer<typeof equipmentFormSchema>>({
         resolver: zodResolver(equipmentFormSchema),
         defaultValues: {
             name: '',
+        },
+    });
+
+    const locationForm = useForm<z.infer<typeof locationFormSchema>>({
+        resolver: zodResolver(locationFormSchema),
+        defaultValues: {
+            name: '',
+            type: 'home',
+            icon: '🏠',
         },
     });
 
@@ -162,6 +208,127 @@ export default function SettingsPage() {
         const equipmentDoc = doc(equipmentCollection, equipmentId);
         deleteDocumentNonBlocking(equipmentDoc);
         toast({ title: 'Equipment Removed' });
+    };
+
+    // Location management handlers
+    const onLocationSubmit = async (values: z.infer<typeof locationFormSchema>) => {
+        if (!locationsCollection || !user?.uid) return;
+        setIsSubmittingLocation(true);
+        try {
+            const isFirstLocation = !locations || locations.length === 0;
+            const newLocation: Omit<WorkoutLocation, 'id'> = {
+                userId: user.uid,
+                name: values.name,
+                type: values.type,
+                icon: values.icon || (values.type === 'home' ? '🏠' : values.type === 'gym' ? '🏋️' : '📍'),
+                equipment: values.type === 'gym' ? ['Bodyweight'] : ['Bodyweight'],
+                isDefault: isFirstLocation,
+                createdAt: new Date().toISOString(),
+            };
+            await addDocumentNonBlocking(locationsCollection, newLocation);
+            toast({ title: 'Location Created', description: `${values.name} has been added.` });
+            locationForm.reset();
+            setShowAddLocationDialog(false);
+        } catch (error) {
+            console.error("Error creating location:", error);
+            toast({ title: 'Error', description: 'Failed to create location.', variant: 'destructive' });
+        } finally {
+            setIsSubmittingLocation(false);
+        }
+    };
+
+    const handleSetDefaultLocation = async (locationId: string) => {
+        if (!locationsCollection || !locations) return;
+        try {
+            // Unset all other defaults
+            for (const loc of locations) {
+                if (loc.isDefault && loc.id !== locationId) {
+                    const locDoc = doc(locationsCollection, loc.id);
+                    await setDocumentNonBlocking(locDoc, { isDefault: false }, { merge: true });
+                }
+            }
+            // Set new default
+            const locDoc = doc(locationsCollection, locationId);
+            await setDocumentNonBlocking(locDoc, { isDefault: true }, { merge: true });
+
+            // Update active location in profile
+            if (userProfileRef) {
+                await setDocumentNonBlocking(userProfileRef, { activeLocationId: locationId }, { merge: true });
+            }
+
+            toast({ title: 'Default Location Updated' });
+        } catch (error) {
+            console.error("Error setting default location:", error);
+            toast({ title: 'Error', description: 'Failed to set default location.', variant: 'destructive' });
+        }
+    };
+
+    const handleDeleteLocation = async (locationId: string) => {
+        if (!locationsCollection || !locations) return;
+
+        // Prevent deleting the last location
+        if (locations.length <= 1) {
+            toast({ title: 'Cannot Delete', description: 'You must have at least one location.', variant: 'destructive' });
+            return;
+        }
+
+        const locationToDelete = locations.find(l => l.id === locationId);
+
+        try {
+            const locDoc = doc(locationsCollection, locationId);
+            await deleteDocumentNonBlocking(locDoc);
+
+            // If deleted location was default, set another as default
+            if (locationToDelete?.isDefault && locations.length > 1) {
+                const newDefault = locations.find(l => l.id !== locationId);
+                if (newDefault) {
+                    await handleSetDefaultLocation(newDefault.id);
+                }
+            }
+
+            toast({ title: 'Location Deleted' });
+        } catch (error) {
+            console.error("Error deleting location:", error);
+            toast({ title: 'Error', description: 'Failed to delete location.', variant: 'destructive' });
+        }
+    };
+
+    const handleEditLocation = (location: WorkoutLocation) => {
+        setEditingLocation(location);
+        setEditingEquipment([...location.equipment]);
+        setNewEquipmentName('');
+    };
+
+    const handleSaveLocationEquipment = async () => {
+        if (!editingLocation || !locationsCollection) return;
+        try {
+            const locDoc = doc(locationsCollection, editingLocation.id);
+            await setDocumentNonBlocking(locDoc, { equipment: editingEquipment }, { merge: true });
+            toast({ title: 'Equipment Updated' });
+            setEditingLocation(null);
+        } catch (error) {
+            console.error("Error updating location equipment:", error);
+            toast({ title: 'Error', description: 'Failed to update equipment.', variant: 'destructive' });
+        }
+    };
+
+    const handleAddEquipmentToLocation = () => {
+        if (!newEquipmentName.trim()) return;
+        if (editingEquipment.includes(newEquipmentName.trim())) {
+            toast({ title: 'Already Added', description: 'This equipment is already in the list.', variant: 'destructive' });
+            return;
+        }
+        setEditingEquipment([...editingEquipment, newEquipmentName.trim()]);
+        setNewEquipmentName('');
+    };
+
+    const handleRemoveEquipmentFromLocation = (equipmentName: string) => {
+        setEditingEquipment(editingEquipment.filter(e => e !== equipmentName));
+    };
+
+    const handleAddSuggestedEquipment = (equipmentName: string) => {
+        if (editingEquipment.includes(equipmentName)) return;
+        setEditingEquipment([...editingEquipment, equipmentName]);
     };
 
     const handleAccountDelete = async () => {
@@ -487,61 +654,116 @@ export default function SettingsPage() {
                         </AccordionContent>
                     </Card>
                 </AccordionItem>
-                <AccordionItem value="my-equipment" className="border-none">
+                <AccordionItem value="workout-locations" className="border-none">
                     <Card>
                         <AccordionTrigger className="p-6 text-left">
                             <div className="flex items-center gap-3">
-                                <Dumbbell className="w-6 h-6 text-primary" />
+                                <MapPin className="w-6 h-6 text-primary" />
                                 <div>
-                                    <CardTitle>My Equipment</CardTitle>
+                                    <CardTitle>Workout Locations</CardTitle>
                                     <CardDescription className="mt-1.5 text-left">
-                                        Add or remove the gym equipment you have access to.
+                                        Manage equipment for different workout locations.
                                     </CardDescription>
                                 </div>
                             </div>
                         </AccordionTrigger>
                         <AccordionContent>
                             <CardContent className="space-y-6">
-                                <Form {...equipmentForm}>
-                                    <form onSubmit={equipmentForm.handleSubmit(onEquipmentSubmit)} className="flex gap-2">
-                                        <FormField
-                                            control={equipmentForm.control}
-                                            name="name"
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormControl>
-                                                        <Input placeholder="e.g., Barbell, Dumbbells, Tonal" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <Button type="submit" disabled={isSubmittingEquipment}>
-                                            {isSubmittingEquipment ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <PlusCircle className="h-4 w-4" />
-                                            )}
-                                            <span className="ml-2 hidden sm:inline">Add</span>
-                                        </Button>
-                                    </form>
-                                </Form>
+                                {/* Add Location Button */}
+                                <Button onClick={() => setShowAddLocationDialog(true)} className="w-full">
+                                    <PlusCircle className="h-4 w-4 mr-2" />
+                                    Add Location
+                                </Button>
 
-                                <div className="space-y-2">
-                                    {isLoadingEquipment && <p>Loading your equipment...</p>}
-                                    {equipment && equipment.length > 0 ? (
-                                        equipment.map((item) => (
-                                            <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                                                <p className="font-medium">{item.name}</p>
-                                                {item.name !== 'Bodyweight' &&
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteEquipment(item.id)}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                }
+                                {/* Location List */}
+                                <div className="space-y-3">
+                                    {isLoadingLocations && <p>Loading locations...</p>}
+                                    {locations && locations.length > 0 ? (
+                                        locations.map((location) => (
+                                            <div key={location.id} className="p-4 bg-secondary rounded-lg space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-2xl">{location.icon || '📍'}</span>
+                                                        <div>
+                                                            <p className="font-semibold flex items-center gap-2">
+                                                                {location.name}
+                                                                {location.isDefault && (
+                                                                    <Badge variant="secondary" className="text-xs">Default</Badge>
+                                                                )}
+                                                            </p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {location.equipment?.length || 0} equipment items
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleEditLocation(location)}
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        {!location.isDefault && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleSetDefaultLocation(location.id)}
+                                                                title="Set as default"
+                                                            >
+                                                                <Check className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    disabled={locations.length <= 1}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Delete Location?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        This will permanently delete "{location.name}" and all its equipment. This action cannot be undone.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDeleteLocation(location.id)}>
+                                                                        Delete
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </div>
+                                                </div>
+                                                {/* Equipment preview */}
+                                                <div className="flex flex-wrap gap-1">
+                                                    {location.equipment?.slice(0, 5).map((eq) => (
+                                                        <Badge key={eq} variant="outline" className="text-xs">
+                                                            {eq}
+                                                        </Badge>
+                                                    ))}
+                                                    {(location.equipment?.length || 0) > 5 && (
+                                                        <Badge variant="outline" className="text-xs">
+                                                            +{(location.equipment?.length || 0) - 5} more
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))
                                     ) : (
-                                        !isLoadingEquipment && <p className="text-sm text-muted-foreground text-center py-4">No equipment added yet.</p>
+                                        !isLoadingLocations && (
+                                            <div className="text-center py-8 text-muted-foreground">
+                                                <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                                <p className="font-medium">No locations yet</p>
+                                                <p className="text-sm">Add your first workout location to get started.</p>
+                                            </div>
+                                        )
                                     )}
                                 </div>
                             </CardContent>
@@ -690,6 +912,181 @@ export default function SettingsPage() {
                     </Card>
                 </AccordionItem>
             </Accordion>
+
+            {/* Add Location Dialog */}
+            <Dialog open={showAddLocationDialog} onOpenChange={setShowAddLocationDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Workout Location</DialogTitle>
+                        <DialogDescription>
+                            Create a new location to organize your equipment.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...locationForm}>
+                        <form onSubmit={locationForm.handleSubmit(onLocationSubmit)} className="space-y-4">
+                            <FormField
+                                control={locationForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Location Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Home Gym, YMCA, Planet Fitness" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={locationForm.control}
+                                name="type"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Location Type</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="home">🏠 Home (free-form equipment)</SelectItem>
+                                                <SelectItem value="gym">🏋️ Gym (with suggestions)</SelectItem>
+                                                <SelectItem value="other">📍 Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={locationForm.control}
+                                name="icon"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Icon</FormLabel>
+                                        <div className="flex gap-2 flex-wrap">
+                                            {LOCATION_ICONS.map((icon) => (
+                                                <Button
+                                                    key={icon}
+                                                    type="button"
+                                                    variant={field.value === icon ? "default" : "outline"}
+                                                    size="icon"
+                                                    onClick={() => field.onChange(icon)}
+                                                >
+                                                    {icon}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setShowAddLocationDialog(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={isSubmittingLocation}>
+                                    {isSubmittingLocation ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                    Create Location
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Location Equipment Dialog */}
+            <Dialog open={!!editingLocation} onOpenChange={(open) => !open && setEditingLocation(null)}>
+                <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <span className="text-2xl">{editingLocation?.icon}</span>
+                            Edit {editingLocation?.name}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Add or remove equipment for this location.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        {/* Add equipment input */}
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="Add equipment..."
+                                value={newEquipmentName}
+                                onChange={(e) => setNewEquipmentName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleAddEquipmentToLocation();
+                                    }
+                                }}
+                            />
+                            <Button type="button" onClick={handleAddEquipmentToLocation}>
+                                <PlusCircle className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        {/* Suggestions for gym locations */}
+                        {editingLocation?.type === 'gym' && (
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Quick Add:</p>
+                                <div className="flex flex-wrap gap-1">
+                                    {COMMON_GYM_EQUIPMENT.filter(eq => !editingEquipment.includes(eq)).slice(0, 8).map((eq) => (
+                                        <Button
+                                            key={eq}
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleAddSuggestedEquipment(eq)}
+                                            className="text-xs"
+                                        >
+                                            + {eq}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Current equipment list */}
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium">Equipment ({editingEquipment.length}):</p>
+                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                                {editingEquipment.map((eq) => (
+                                    <div key={eq} className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                                        <span>{eq}</span>
+                                        {eq !== 'Bodyweight' && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleRemoveEquipmentFromLocation(eq)}
+                                            >
+                                                <X className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                                {editingEquipment.length === 0 && (
+                                    <p className="text-sm text-muted-foreground text-center py-4">
+                                        No equipment added yet.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setEditingLocation(null)}>
+                            Cancel
+                        </Button>
+                        <Button type="button" onClick={handleSaveLocationEquipment}>
+                            Save Changes
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
