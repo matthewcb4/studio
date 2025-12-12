@@ -445,11 +445,12 @@ function WorkoutForm({
                         <Label className="text-xs">Exercise {exIndex + 1}</Label>
                         <Button
                           variant="destructive"
-                          size="sm"
+                          size="icon"
                           onClick={() => removeExercise(ex.id)}
-                          className='h-7'
+                          className='h-7 w-7'
+                          title="Remove exercise"
                         >
-                          <Trash2 className="h-4 w-4 mr-1" /> Remove
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                       <div className="flex flex-col gap-4">
@@ -513,7 +514,7 @@ function WorkoutForm({
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch gap-2">
                           {preference?.videoId && (
                             <Button variant="outline" size="sm" className="w-full" onClick={() => setViewingVideoId(preference.videoId!)}>
                               <Video className="h-4 w-4 mr-2" />
