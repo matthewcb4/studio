@@ -50,7 +50,7 @@ const prompt = ai.definePrompt({
 
   **User's Weekly Workout Goal:** {{weeklyWorkoutGoal}} workouts per week
   **Workouts Completed This Week (Mon-Sun):** {{workoutsThisWeek}}
-  **Today's Workout Would Be:** Day {{add workoutsThisWeek 1}} of {{weeklyWorkoutGoal}}
+  **Today's Workout Would Be:** Day (workoutsThisWeek + 1) of {{weeklyWorkoutGoal}}
 
   **User's Workout History (Last 7 Days):**
   {{#if workoutHistory.length}}
