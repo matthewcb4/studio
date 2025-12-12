@@ -783,7 +783,7 @@ export default function SettingsPage() {
                             </div>
                         </AccordionTrigger>
                         <AccordionContent>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-6">
                                 <div className="space-y-2">
                                     <h4 className="font-medium">Recalculate Statistics</h4>
                                     <p className="text-sm text-muted-foreground">
@@ -803,6 +803,19 @@ export default function SettingsPage() {
                                         ) : (
                                             "Recalculate Statistics"
                                         )}
+                                    </Button>
+                                </div>
+                                <div className="border-t pt-4 space-y-2">
+                                    <h4 className="font-medium">Merge Duplicate Exercises</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        If you have exercises with slightly different names (e.g., &quot;Close grip Push-ups&quot; vs &quot;Close-Grip Push-ups&quot;),
+                                        you can merge them to consolidate your progress tracking.
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => router.push('/exercises?merge=true')}
+                                    >
+                                        Open Exercise Manager
                                     </Button>
                                 </div>
                             </CardContent>

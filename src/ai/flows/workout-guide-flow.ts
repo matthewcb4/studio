@@ -99,6 +99,19 @@ const prompt = ai.definePrompt({
   - If only "Bodyweight" is available with no other equipment, generate a 100% calisthenics workout.
   - You can mix weighted exercises with calisthenics when both equipment types are available.
 
+  **CRITICAL - EXERCISE NAMING RULES:**
+  You MUST use EXACTLY these exercise names (case-sensitive, exact spelling). Do NOT create variations or add extra words:
+  
+  CHEST: Barbell Bench Press, Dumbbell Bench Press, Incline Dumbbell Press, Chest Fly, Push-up, Dip, Diamond Push-up, Archer Push-up, Decline Push-up, Wide Push-up
+  BACK: Pull-up, Lat Pulldown, Bent-over Row, Seated Cable Row, Deadlift, T-Bar Row, Chin-up, Inverted Row, Australian Pull-up, Negative Pull-up
+  LEGS: Barbell Squat, Goblet Squat, Lunge, Leg Press, Leg Extension, Hamstring Curl, Calf Raise, Pistol Squat, Bulgarian Split Squat, Nordic Curl, Box Jump, Jump Squat, Wall Sit
+  SHOULDERS: Overhead Press, Arnold Press, Lateral Raise, Front Raise, Face Pull, Shrug, Handstand Push-up, Handstand Hold, Pike Push-up
+  ARMS: Bicep Curl, Hammer Curl, Triceps Pushdown, Skull Crusher, Overhead Triceps Extension, Preacher Curl
+  CORE: Crunch, Plank, Leg Raise, Russian Twist, Ab Rollout, L-Sit, Hollow Body Hold, Dragon Flag, Hanging Leg Raise, Dead Bug, Bird Dog
+  FULL BODY: Muscle-up, Burpee, Mountain Climber
+  
+  If you need an exercise not on this list, use the closest match. NEVER create variations like "Close Grip Push-up" when "Diamond Push-up" exists.
+
   The workout should be effective and safe. Only use the equipment specified by the user. The total workout time should be close to the desired duration.
   Provide a creative name for the workout.
   `,
