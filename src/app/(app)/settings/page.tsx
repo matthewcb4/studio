@@ -482,11 +482,22 @@ export default function SettingsPage() {
                                             <SelectValue placeholder="Select color scheme" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {(Object.keys(colorSchemes) as HeatmapColorScheme[]).map((key) => (
-                                                <SelectItem key={key} value={key}>
-                                                    {colorSchemes[key].label}
-                                                </SelectItem>
-                                            ))}
+                                            {(Object.keys(colorSchemes) as HeatmapColorScheme[]).map((key) => {
+                                                const scheme = colorSchemes[key];
+                                                return (
+                                                    <SelectItem key={key} value={key}>
+                                                        <div className="flex items-center gap-3">
+                                                            <div
+                                                                className="w-16 h-4 rounded-full shrink-0"
+                                                                style={{
+                                                                    background: `linear-gradient(to right, ${scheme.low}, ${scheme.mid}, ${scheme.high})`
+                                                                }}
+                                                            />
+                                                            <span className="capitalize">{key}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                 </div>
