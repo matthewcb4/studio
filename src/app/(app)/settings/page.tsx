@@ -65,6 +65,7 @@ const LOCATION_ICONS = ["🏠", "🏋️", "💪", "🏃", "🎯", "⭐"];
 const goalsFormSchema = z.object({
     targetWeight: z.coerce.number().optional(),
     weeklyWorkoutGoal: z.coerce.number().min(1, "Goal must be at least 1").max(21, "Goal cannot exceed 21").optional(),
+    weeklyCardioGoal: z.coerce.number().min(1, "Goal must be at least 1 minute").max(600, "Goal cannot exceed 600 minutes").optional(),
     strengthGoal: z.string().optional(),
     muscleGoal: z.string().optional(),
     fatLossGoal: z.string().optional(),
@@ -132,6 +133,7 @@ export default function SettingsPage() {
         defaultValues: {
             targetWeight: undefined,
             weeklyWorkoutGoal: 3,
+            weeklyCardioGoal: undefined,
             strengthGoal: '',
             muscleGoal: '',
             fatLossGoal: '',
@@ -144,6 +146,7 @@ export default function SettingsPage() {
             goalsForm.reset({
                 targetWeight: userProfile.targetWeight,
                 weeklyWorkoutGoal: userProfile.weeklyWorkoutGoal ?? 3,
+                weeklyCardioGoal: userProfile.weeklyCardioGoal,
                 strengthGoal: userProfile.strengthGoal,
                 muscleGoal: userProfile.muscleGoal,
                 fatLossGoal: userProfile.fatLossGoal,
@@ -499,6 +502,19 @@ export default function SettingsPage() {
                                                             <FormLabel>Weekly Workout Goal</FormLabel>
                                                             <FormControl>
                                                                 <Input type="number" placeholder="Days per week (e.g. 3)" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={goalsForm.control}
+                                                    name="weeklyCardioGoal"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Weekly Cardio Goal (minutes)</FormLabel>
+                                                            <FormControl>
+                                                                <Input type="number" placeholder="e.g. 90" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                                                             </FormControl>
                                                             <FormMessage />
                                                         </FormItem>

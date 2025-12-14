@@ -110,7 +110,7 @@ function UserStatsCard({ userProfile }: { userProfile: UserProfile | null | unde
     );
 }
 
-function ProgressSummaryCard() {
+function ProgressSummaryCard({ thisWeeksLogs }: { thisWeeksLogs: WorkoutLog[] }) {
     const { user } = useUser();
     const firestore = useFirestore();
 
@@ -124,15 +124,43 @@ function ProgressSummaryCard() {
         , [firestore, user]);
     const { data: latestProgress, isLoading: isLoadingProgress } = useCollection<ProgressLog>(progressLogsQuery);
 
+    // Calculate weekly stats from thisWeeksLogs
+    const weeklyStats = useMemo(() => {
+        const resistanceWorkouts = thisWeeksLogs.filter(log => !log.activityType || log.activityType === 'resistance' || log.activityType === 'calisthenics');
+        const cardioWorkouts = thisWeeksLogs.filter(log => log.activityType && ['run', 'walk', 'cycle', 'hiit'].includes(log.activityType));
+
+        // Calculate total cardio minutes
+        let totalCardioMinutes = 0;
+        cardioWorkouts.forEach(log => {
+            const durationStr = log.duration || '';
+            if (durationStr.includes('min')) {
+                totalCardioMinutes += parseInt(durationStr) || 0;
+            } else if (durationStr.includes(':')) {
+                const [mins, secs] = durationStr.split(':').map(Number);
+                totalCardioMinutes += mins + (secs || 0) / 60;
+            }
+        });
+
+        return {
+            resistanceCount: resistanceWorkouts.length,
+            cardioMinutes: Math.round(totalCardioMinutes),
+        };
+    }, [thisWeeksLogs]);
+
     const isLoading = isLoadingProfile || isLoadingProgress;
     const currentWeight = latestProgress?.[0]?.weight;
     const targetWeight = userProfile?.targetWeight;
+    const weeklyWorkoutGoal = userProfile?.weeklyWorkoutGoal;
+    const weeklyCardioGoal = userProfile?.weeklyCardioGoal;
+
+    // Check if any goals are set
+    const hasAnyGoal = targetWeight || weeklyWorkoutGoal || weeklyCardioGoal;
 
     if (isLoading) {
         return (
             <Card>
-                <CardHeader>
-                    <CardTitle>Progress Summary</CardTitle>
+                <CardHeader className="pb-2">
+                    <CardTitle>Weekly Goals</CardTitle>
                     <CardDescription>Loading your progress...</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -142,64 +170,117 @@ function ProgressSummaryCard() {
         );
     }
 
-    if (!targetWeight) {
+    if (!hasAnyGoal) {
         return (
             <Card>
-                <CardHeader>
-                    <CardTitle>Set Your Goal</CardTitle>
-                    <CardDescription>Add a target weight in settings to see your progress.</CardDescription>
+                <CardHeader className="pb-2">
+                    <CardTitle>Set Your Goals</CardTitle>
+                    <CardDescription>Configure your weekly targets in settings.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button asChild>
-                        <Link href="/settings">Go to Settings</Link>
+                    <Button asChild size="sm">
+                        <Link href="/settings?open=fitness-goals">Go to Settings</Link>
                     </Button>
                 </CardContent>
             </Card>
         )
     }
 
-    if (!currentWeight) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Log Your Weight</CardTitle>
-                    <CardDescription>Log your weight on the progress page to see your status.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button asChild>
-                        <Link href="/progress">Log Progress</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        )
+    // Calculate workout progress
+    const workoutProgress = weeklyWorkoutGoal ? Math.min((weeklyStats.resistanceCount / weeklyWorkoutGoal) * 100, 100) : 0;
+    const workoutComplete = weeklyWorkoutGoal && weeklyStats.resistanceCount >= weeklyWorkoutGoal;
+
+    // Calculate cardio progress
+    const cardioProgress = weeklyCardioGoal ? Math.min((weeklyStats.cardioMinutes / weeklyCardioGoal) * 100, 100) : 0;
+    const cardioComplete = weeklyCardioGoal && weeklyStats.cardioMinutes >= weeklyCardioGoal;
+
+    // Calculate weight status
+    let weightStatus: 'at_goal' | 'above' | 'below' | 'no_log' = 'no_log';
+    let weightDiff = 0;
+    if (targetWeight && currentWeight) {
+        weightDiff = Math.round((currentWeight - targetWeight) * 10) / 10;
+        if (weightDiff === 0) weightStatus = 'at_goal';
+        else if (weightDiff > 0) weightStatus = 'above';
+        else weightStatus = 'below';
     }
-
-    const diff = Math.round((currentWeight - targetWeight) * 10) / 10;
-    const isAbove = diff > 0;
-    const isAtGoal = diff === 0;
-
-    let message;
-    if (isAtGoal) {
-        message = "You've hit your target weight. Amazing work!";
-    } else if (isAbove) {
-        message = `You are ${diff} lbs above your target. Keep pushing!`;
-    } else {
-        message = `You are ${Math.abs(diff)} lbs away from your target. You're getting closer!`;
-    }
-
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Progress to Goal</CardTitle>
-                <CardDescription>Your journey to {targetWeight} lbs</CardDescription>
+        <Card className="bg-gradient-to-br from-card to-green-500/10">
+            <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5" /> Weekly Goals
+                </CardTitle>
+                <CardDescription>This week's progress</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="flex items-center gap-4">
-                    {isAtGoal ? <Target className="w-8 h-8 text-green-500" /> : isAbove ? <TrendingDown className="w-8 h-8 text-yellow-500" /> : <TrendingUp className="w-8 h-8 text-blue-500" />}
-                    <div className="text-3xl font-bold">{currentWeight} <span className="text-lg text-muted-foreground">lbs</span></div>
-                </div>
-                <p className="text-sm text-muted-foreground">{message}</p>
+                {/* Workout Goal */}
+                {weeklyWorkoutGoal && (
+                    <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                            <span className="flex items-center gap-1">
+                                <Dumbbell className="w-4 h-4" /> Workouts
+                            </span>
+                            <span className={workoutComplete ? "text-green-500 font-medium" : "text-muted-foreground"}>
+                                {weeklyStats.resistanceCount}/{weeklyWorkoutGoal}
+                            </span>
+                        </div>
+                        <Progress value={workoutProgress} className="h-2" />
+                    </div>
+                )}
+
+                {/* Cardio Goal */}
+                {weeklyCardioGoal && (
+                    <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                            <span className="flex items-center gap-1">
+                                <Flame className="w-4 h-4" /> Cardio
+                            </span>
+                            <span className={cardioComplete ? "text-green-500 font-medium" : "text-muted-foreground"}>
+                                {weeklyStats.cardioMinutes}/{weeklyCardioGoal} min
+                            </span>
+                        </div>
+                        <Progress value={cardioProgress} className="h-2" />
+                    </div>
+                )}
+
+                {/* Weight Goal */}
+                {targetWeight && (
+                    <div className="pt-2 border-t">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm flex items-center gap-1">
+                                {weightStatus === 'at_goal' ? (
+                                    <Target className="w-4 h-4 text-green-500" />
+                                ) : weightStatus === 'above' ? (
+                                    <TrendingDown className="w-4 h-4 text-yellow-500" />
+                                ) : weightStatus === 'below' ? (
+                                    <TrendingUp className="w-4 h-4 text-blue-500" />
+                                ) : null}
+                                Weight Goal
+                            </span>
+                            {currentWeight ? (
+                                <span className="text-sm">
+                                    <span className="font-medium">{currentWeight}</span>
+                                    <span className="text-muted-foreground"> / {targetWeight} lbs</span>
+                                </span>
+                            ) : (
+                                <Link href="/progress" className="text-xs text-primary hover:underline">
+                                    Log weight →
+                                </Link>
+                            )}
+                        </div>
+                        {currentWeight && weightStatus !== 'at_goal' && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {weightStatus === 'above'
+                                    ? `${weightDiff} lbs above target`
+                                    : `${Math.abs(weightDiff)} lbs to go`
+                                }
+                            </p>
+                        )}
+                        {weightStatus === 'at_goal' && (
+                            <p className="text-xs text-green-500 mt-1">🎉 At your target weight!</p>
+                        )}
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
@@ -613,7 +694,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    <ProgressSummaryCard />
+                    <ProgressSummaryCard thisWeeksLogs={filteredLogs} />
 
                     <CardioStatsCard
                         filteredLogs={filteredLogs}

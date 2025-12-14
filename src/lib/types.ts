@@ -98,6 +98,7 @@ export type UserProfile = {
   id: string;
   targetWeight?: number;
   weeklyWorkoutGoal?: number;
+  weeklyCardioGoal?: number; // Weekly cardio goal in minutes
   strengthGoal?: string;
   muscleGoal?: string;
   fatLossGoal?: string;
