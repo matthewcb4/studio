@@ -129,8 +129,9 @@ function ProgressSummaryCard({ thisWeeksLogs }: { thisWeeksLogs: WorkoutLog[] })
         const resistanceWorkouts = thisWeeksLogs.filter(log => !log.activityType || log.activityType === 'resistance' || log.activityType === 'calisthenics');
         const cardioWorkouts = thisWeeksLogs.filter(log => log.activityType && ['run', 'walk', 'cycle', 'hiit'].includes(log.activityType));
 
-        // Calculate total cardio minutes
+        // Calculate total cardio minutes and distance
         let totalCardioMinutes = 0;
+        let totalDistance = 0;
         cardioWorkouts.forEach(log => {
             const durationStr = log.duration || '';
             if (durationStr.includes('min')) {
@@ -139,11 +140,21 @@ function ProgressSummaryCard({ thisWeeksLogs }: { thisWeeksLogs: WorkoutLog[] })
                 const [mins, secs] = durationStr.split(':').map(Number);
                 totalCardioMinutes += mins + (secs || 0) / 60;
             }
+            // Add distance from cardio metrics (convert km to miles if needed)
+            if (log.cardioMetrics?.distance) {
+                const dist = log.cardioMetrics.distance;
+                if (log.cardioMetrics.distanceUnit === 'km') {
+                    totalDistance += dist * 0.621371; // Convert km to miles
+                } else {
+                    totalDistance += dist; // Already in miles
+                }
+            }
         });
 
         return {
             resistanceCount: resistanceWorkouts.length,
             cardioMinutes: Math.round(totalCardioMinutes),
+            totalDistance: Math.round(totalDistance * 10) / 10, // Round to 1 decimal
         };
     }, [thisWeeksLogs]);
 
@@ -152,9 +163,10 @@ function ProgressSummaryCard({ thisWeeksLogs }: { thisWeeksLogs: WorkoutLog[] })
     const targetWeight = userProfile?.targetWeight;
     const weeklyWorkoutGoal = userProfile?.weeklyWorkoutGoal;
     const weeklyCardioGoal = userProfile?.weeklyCardioGoal;
+    const weeklyDistanceGoal = userProfile?.weeklyDistanceGoal;
 
     // Check if any goals are set
-    const hasAnyGoal = targetWeight || weeklyWorkoutGoal || weeklyCardioGoal;
+    const hasAnyGoal = targetWeight || weeklyWorkoutGoal || weeklyCardioGoal || weeklyDistanceGoal;
 
     if (isLoading) {
         return (
@@ -193,6 +205,10 @@ function ProgressSummaryCard({ thisWeeksLogs }: { thisWeeksLogs: WorkoutLog[] })
     // Calculate cardio progress
     const cardioProgress = weeklyCardioGoal ? Math.min((weeklyStats.cardioMinutes / weeklyCardioGoal) * 100, 100) : 0;
     const cardioComplete = weeklyCardioGoal && weeklyStats.cardioMinutes >= weeklyCardioGoal;
+
+    // Calculate distance progress
+    const distanceProgress = weeklyDistanceGoal ? Math.min((weeklyStats.totalDistance / weeklyDistanceGoal) * 100, 100) : 0;
+    const distanceComplete = weeklyDistanceGoal && weeklyStats.totalDistance >= weeklyDistanceGoal;
 
     // Calculate weight status
     let weightStatus: 'at_goal' | 'above' | 'below' | 'no_log' = 'no_log';
@@ -240,6 +256,21 @@ function ProgressSummaryCard({ thisWeeksLogs }: { thisWeeksLogs: WorkoutLog[] })
                             </span>
                         </div>
                         <Progress value={cardioProgress} className="h-2" />
+                    </div>
+                )}
+
+                {/* Distance Goal */}
+                {weeklyDistanceGoal && (
+                    <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                            <span className="flex items-center gap-1">
+                                <TrendingUp className="w-4 h-4" /> Distance
+                            </span>
+                            <span className={distanceComplete ? "text-green-500 font-medium" : "text-muted-foreground"}>
+                                {weeklyStats.totalDistance}/{weeklyDistanceGoal} mi
+                            </span>
+                        </div>
+                        <Progress value={distanceProgress} className="h-2" />
                     </div>
                 )}
 
