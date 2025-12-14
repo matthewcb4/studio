@@ -18,6 +18,7 @@ import {
   Save,
   Share2,
   Music2,
+  Mic,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -78,6 +79,7 @@ import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find
 import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
 import { checkPersonalRecord } from '@/lib/analytics';
 import { PlateCalculator } from '@/components/plate-calculator';
+import { VoiceLogModal } from '@/components/voice-log-modal';
 
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
@@ -208,6 +210,9 @@ export default function WorkoutSessionPage() {
 
   // Exit Dialog State
   const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
+
+  // Voice Logging State
+  const [voiceLoggingExercise, setVoiceLoggingExercise] = useState<WorkoutExercise | null>(null);
 
   // Prevent accidental back navigation
   useEffect(() => {
@@ -456,6 +461,71 @@ export default function WorkoutSessionPage() {
     }
   }
 
+  // Handler for voice logging completion
+  const handleVoiceLogComplete = (exercise: WorkoutExercise, data: { weight: number; reps: number }) => {
+    const state = exerciseStates[exercise.id];
+    const unit = exercise.unit || 'reps';
+
+    let newLog: LoggedSet;
+
+    if (unit === 'reps-only' || unit === 'bodyweight') {
+      newLog = { weight: data.weight, reps: data.reps };
+    } else {
+      newLog = { weight: data.weight, reps: data.reps };
+    }
+
+    newLog.type = state.setType;
+
+    const fullSessionLog = sessionLog[exercise.id] || [];
+    const updatedFullSessionLog = [...fullSessionLog, newLog];
+    setSessionLog({ ...sessionLog, [exercise.id]: updatedFullSessionLog });
+
+    // Update exercise state (move to next set)
+    setExerciseStates(prev => ({
+      ...prev,
+      [exercise.id]: {
+        ...prev[exercise.id],
+        currentSet: prev[exercise.id].currentSet + 1,
+        logs: [...prev[exercise.id].logs, newLog]
+      }
+    }));
+
+    // Check for PRs
+    if (workoutHistory) {
+      const prs = checkPersonalRecord(exercise.exerciseId, newLog, workoutHistory);
+      if (prs) {
+        prs.forEach(pr => {
+          setSessionPRs(prev => {
+            const exists = prev.some(p => p.type === pr.type && p.newValue === pr.newValue && p.exerciseId === exercise.exerciseId);
+            if (exists) return prev;
+            return [...prev, { ...pr, exerciseId: exercise.exerciseId }];
+          });
+
+          toast({
+            title: "🏆 New Personal Record!",
+            description: pr.type === 'max_weight'
+              ? `Heaviest Weight: ${pr.newValue} lbs (Prev: ${pr.oldValue} lbs)`
+              : `Best 1RM: ${pr.newValue} lbs (Prev: ${pr.oldValue} lbs)`,
+            className: "bg-amber-100 border-amber-400 text-amber-900 dark:bg-amber-900 dark:border-amber-600 dark:text-amber-100 shadow-lg",
+            duration: 5000,
+          });
+        });
+      }
+    }
+
+    // Auto-Rest Timer
+    if (state.currentSet < exercise.sets) {
+      const REST_DURATION = 90;
+      setRestTimer({
+        endTime: Date.now() + REST_DURATION * 1000,
+        originalDuration: REST_DURATION
+      });
+      setRestTimeRemaining(REST_DURATION);
+    }
+
+    toast({ title: 'Set Logged!', description: `${data.weight} lbs × ${data.reps} reps` });
+  };
+
   const isGroupFinished = currentGroup.every(ex => {
     const state = exerciseStates[ex.id];
     return state && state.currentSet >= ex.sets && state.logs.length >= ex.sets;
@@ -695,6 +765,22 @@ export default function WorkoutSessionPage() {
 
   return (
     <>
+      {/* Voice Logging Modal */}
+      {voiceLoggingExercise && (
+        <VoiceLogModal
+          open={!!voiceLoggingExercise}
+          onOpenChange={(open) => !open && setVoiceLoggingExercise(null)}
+          exerciseName={voiceLoggingExercise.exerciseName}
+          unit={voiceLoggingExercise.unit}
+          currentSet={exerciseStates[voiceLoggingExercise.id]?.currentSet || 1}
+          totalSets={voiceLoggingExercise.sets}
+          onComplete={(data) => {
+            handleVoiceLogComplete(voiceLoggingExercise, data);
+            setVoiceLoggingExercise(null);
+          }}
+        />
+      )}
+
       <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
         <DialogContent className="sm:max-w-lg w-full max-w-[95vw]">
           <DialogHeader>
@@ -909,9 +995,19 @@ export default function WorkoutSessionPage() {
                 )}
 
                 {!isExerciseComplete && (
-                  <div className="flex gap-4">
+                  <div className="flex gap-2">
                     <Button className="flex-1 h-12 text-lg" onClick={() => handleLogSet(exercise)}>
                       Log Set <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
+                    <Button
+                      onClick={() => setVoiceLoggingExercise(exercise)}
+                      variant="secondary"
+                      size="icon"
+                      className="h-12 w-12 flex-shrink-0"
+                      title="Voice Log"
+                    >
+                      <Mic className="h-5 w-5" />
+                      <span className="sr-only">Voice Log</span>
                     </Button>
                     <Button onClick={() => handleLogSet(exercise, true)} variant="outline" size="icon" className="h-12 w-12 flex-shrink-0">
                       <SkipForward />
