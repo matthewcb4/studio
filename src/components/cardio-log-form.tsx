@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -99,18 +99,33 @@ export function CardioLogForm({ isOpen, onOpenChange, defaultActivity = 'run' }:
         return `${mins}:${secs.toString().padStart(2, '0')} /${watchedUnit}`;
     })();
 
+    // Reset form when dialog opens or activity type changes from buttons
+    useEffect(() => {
+        if (isOpen) {
+            form.reset({
+                activityType: defaultActivity,
+                durationMinutes: undefined,
+                distance: undefined,
+                distanceUnit: 'mi',
+                avgHeartRate: undefined,
+                incline: undefined,
+                notes: '',
+            });
+        }
+    }, [isOpen, defaultActivity, form]);
+
     const onSubmit = async (values: CardioLogFormValues) => {
         if (!user) return;
         setIsSubmitting(true);
 
         try {
-            const cardioMetrics: CardioMetrics = {
-                distance: values.distance,
-                distanceUnit: values.distanceUnit,
-                avgPace: calculatedPace || undefined,
-                avgHeartRate: values.avgHeartRate,
-                incline: values.incline,
-            };
+            // Filter out undefined values to avoid Firebase errors
+            const cardioMetrics: CardioMetrics = {};
+            if (values.distance !== undefined) cardioMetrics.distance = values.distance;
+            if (values.distanceUnit) cardioMetrics.distanceUnit = values.distanceUnit;
+            if (calculatedPace) cardioMetrics.avgPace = calculatedPace;
+            if (values.avgHeartRate !== undefined) cardioMetrics.avgHeartRate = values.avgHeartRate;
+            if (values.incline !== undefined) cardioMetrics.incline = values.incline;
 
             // Get activity display name
             const activityName = activityOptions.find(a => a.value === values.activityType)?.label || 'Cardio';
