@@ -49,6 +49,7 @@ import { MuscleGroupVolumeChart } from "@/components/muscle-group-chart";
 import { QuickLogForm } from "@/components/quick-log-form";
 import { CardioLogForm } from "@/components/cardio-log-form";
 import { CardioStatsCard } from "@/components/cardio-stats-card";
+import { LiftingStatsCard } from "@/components/lifting-stats-card";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox } from "@/components/ui/combobox";
 import { Progress } from "@/components/ui/progress";
@@ -682,15 +683,11 @@ export default function DashboardPage() {
                     </Card>
 
                     {hasData ? (
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle>Total Volume</CardTitle>
-                                <CardDescription>{dateRangeLabel}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-4xl font-bold">{dashboardStats.volume.toLocaleString()} lbs</div>
-                            </CardContent>
-                        </Card>
+                        <LiftingStatsCard
+                            filteredLogs={filteredLogs}
+                            dateRangeLabel={dateRangeLabel}
+                            isLoading={isLoading}
+                        />
                     ) : (
                         <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
                             <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
