@@ -682,25 +682,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    {hasData ? (
-                        <LiftingStatsCard
-                            filteredLogs={filteredLogs}
-                            dateRangeLabel={dateRangeLabel}
-                            isLoading={isLoading}
-                        />
-                    ) : (
-                        <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
-                            <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
-                            <CardTitle className="mt-4">Start Your Journey</CardTitle>
-                            <CardDescription>
-                                Complete your first workout to unlock your dashboard.
-                            </CardDescription>
-                            <Button className="mt-4" asChild>
-                                <Link href="/workouts">Browse Workouts</Link>
-                            </Button>
-                        </Card>
-                    )}
-
+                    {/* Quick Log Card */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Quick Log</CardTitle>
@@ -722,8 +704,30 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
+                    {/* Weekly Goals */}
                     <ProgressSummaryCard thisWeeksLogs={filteredLogs} />
 
+                    {/* Lifting Summary */}
+                    {hasData ? (
+                        <LiftingStatsCard
+                            filteredLogs={filteredLogs}
+                            dateRangeLabel={dateRangeLabel}
+                            isLoading={isLoading}
+                        />
+                    ) : (
+                        <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
+                            <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <CardTitle className="mt-4">Start Your Journey</CardTitle>
+                            <CardDescription>
+                                Complete your first workout to unlock your dashboard.
+                            </CardDescription>
+                            <Button className="mt-4" asChild>
+                                <Link href="/workouts">Browse Workouts</Link>
+                            </Button>
+                        </Card>
+                    )}
+
+                    {/* Cardio Summary */}
                     <CardioStatsCard
                         filteredLogs={filteredLogs}
                         dateRangeLabel={dateRangeLabel}
