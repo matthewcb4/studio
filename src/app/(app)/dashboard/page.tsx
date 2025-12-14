@@ -48,6 +48,7 @@ import { OnboardingModal } from "@/components/onboarding-modal";
 import { MuscleGroupVolumeChart } from "@/components/muscle-group-chart";
 import { QuickLogForm } from "@/components/quick-log-form";
 import { CardioLogForm } from "@/components/cardio-log-form";
+import { CardioStatsCard } from "@/components/cardio-stats-card";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox } from "@/components/ui/combobox";
 import { Progress } from "@/components/ui/progress";
@@ -613,6 +614,12 @@ export default function DashboardPage() {
                     </Card>
 
                     <ProgressSummaryCard />
+
+                    <CardioStatsCard
+                        filteredLogs={filteredLogs}
+                        dateRangeLabel={dateRangeLabel}
+                        isLoading={isLoading}
+                    />
 
                     <div className="col-span-1 sm:col-span-2 lg:col-span-3">
                         <MuscleHeatmap
