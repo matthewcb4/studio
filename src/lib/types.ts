@@ -105,6 +105,7 @@ export type UserProfile = {
   fatLossGoal?: string;
   availableEquipment?: string[];
   biologicalSex?: 'Male' | 'Female';
+  heatmapColorScheme?: 'classic' | 'sunset' | 'ocean' | 'monochrome' | 'neon';
   lastAiWorkoutDate?: string; // YYYY-MM-DD string
   lastAiSuggestionDate?: string; // YYYY-MM-DD string
   hasCompletedOnboarding?: boolean;

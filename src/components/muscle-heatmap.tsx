@@ -50,7 +50,85 @@ export const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top:
   },
 };
 
-export const HeatPoint = ({ intensity, size, coords, bodyType, view }: { intensity: number; size: string; coords: { top: string, left: string }, bodyType: 'Male' | 'Female', view: 'front' | 'back' }) => {
+// Color scheme definitions for heatmap gradients
+// Each scheme defines colors at 0% (low), 50% (medium), and 100% (high) intensity
+export type HeatmapColorScheme = 'classic' | 'sunset' | 'ocean' | 'monochrome' | 'neon';
+
+export const colorSchemes: Record<HeatmapColorScheme, { low: string; mid: string; high: string; label: string }> = {
+  classic: {
+    low: 'hsl(240, 100%, 40%)',   // Blue
+    mid: 'hsl(100, 100%, 40%)',   // Green
+    high: 'hsl(0, 100%, 40%)',    // Red
+    label: '🔵 Classic (Blue → Green → Red)',
+  },
+  sunset: {
+    low: 'hsl(280, 80%, 45%)',    // Purple
+    mid: 'hsl(35, 100%, 50%)',    // Orange
+    high: 'hsl(350, 100%, 50%)',  // Pink-Red
+    label: '🌅 Sunset (Purple → Orange → Red)',
+  },
+  ocean: {
+    low: 'hsl(200, 80%, 35%)',    // Deep blue
+    mid: 'hsl(180, 70%, 45%)',    // Teal
+    high: 'hsl(160, 80%, 50%)',   // Aqua
+    label: '🌊 Ocean (Deep Blue → Teal → Aqua)',
+  },
+  monochrome: {
+    low: 'hsl(0, 0%, 40%)',       // Dark gray
+    mid: 'hsl(0, 0%, 55%)',       // Medium gray
+    high: 'hsl(0, 0%, 95%)',      // Near white
+    label: '⚪ Monochrome (Gray Scale)',
+  },
+  neon: {
+    low: 'hsl(180, 100%, 50%)',   // Cyan
+    mid: 'hsl(280, 100%, 60%)',   // Magenta
+    high: 'hsl(60, 100%, 50%)',   // Yellow
+    label: '💜 Neon (Cyan → Magenta → Yellow)',
+  },
+};
+
+// Helper function to interpolate between three colors based on intensity
+function getColorForScheme(intensity: number, scheme: HeatmapColorScheme): string {
+  const colors = colorSchemes[scheme];
+
+  // Parse HSL values
+  const parseHSL = (hsl: string) => {
+    const match = hsl.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+    if (!match) return { h: 0, s: 0, l: 0 };
+    return { h: parseInt(match[1]), s: parseInt(match[2]), l: parseInt(match[3]) };
+  };
+
+  const low = parseHSL(colors.low);
+  const mid = parseHSL(colors.mid);
+  const high = parseHSL(colors.high);
+
+  let h: number, s: number, l: number;
+
+  if (intensity <= 0.5) {
+    // Interpolate between low and mid
+    const t = intensity * 2;
+    h = low.h + (mid.h - low.h) * t;
+    s = low.s + (mid.s - low.s) * t;
+    l = low.l + (mid.l - low.l) * t;
+  } else {
+    // Interpolate between mid and high
+    const t = (intensity - 0.5) * 2;
+    h = mid.h + (high.h - mid.h) * t;
+    s = mid.s + (high.s - mid.s) * t;
+    l = mid.l + (high.l - mid.l) * t;
+  }
+
+  return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
+}
+
+export const HeatPoint = ({ intensity, size, coords, bodyType, view, colorScheme = 'classic' }: {
+  intensity: number;
+  size: string;
+  coords: { top: string, left: string };
+  bodyType: 'Male' | 'Female';
+  view: 'front' | 'back';
+  colorScheme?: HeatmapColorScheme;
+}) => {
   const muscle = Object.keys(heatmapCoordinates[bodyType]).find(key => heatmapCoordinates[bodyType][key] === coords);
 
   const frontMirrored = ['chest', 'shoulders_front', 'biceps', 'quads'];
@@ -63,11 +141,8 @@ export const HeatPoint = ({ intensity, size, coords, bodyType, view }: { intensi
     isMirrored = true;
   }
 
-  // Gradient: Blue (0%, hue 240) -> Green (50%, hue 100) -> Red (100%, hue 0)
-  const hue = intensity <= 0.5
-    ? 240 - (intensity * 2 * 140) // Transition from Blue (240) to deeper Green (100)
-    : 100 - ((intensity - 0.5) * 2 * 100); // Transition from Green (100) to Red (0)
-  const color = `hsl(${hue}, 100%, 40%)`;
+  // Get color based on scheme and intensity
+  const color = getColorForScheme(intensity, colorScheme);
 
   const renderPoints = () => {
     const mainPoint = (
@@ -335,7 +410,7 @@ export function MuscleHeatmap({
               size = '10%';
             }
 
-            return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} bodyType={bodyType} view={view} />;
+            return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} bodyType={bodyType} view={view} colorScheme={userProfile?.heatmapColorScheme || 'classic'} />;
           })}
         </div>
         {/* Layer 3: Main body outline PNG */}

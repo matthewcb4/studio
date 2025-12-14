@@ -41,6 +41,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
+import { colorSchemes, type HeatmapColorScheme } from '@/components/muscle-heatmap';
 
 
 const equipmentFormSchema = z.object({
@@ -460,8 +461,35 @@ export default function SettingsPage() {
                             </div>
                         </AccordionTrigger>
                         <AccordionContent>
-                            <CardContent>
+                            <CardContent className="space-y-6">
                                 <ThemeSelector />
+
+                                <div className="pt-4 border-t">
+                                    <h4 className="font-medium mb-2">Heatmap Colors</h4>
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                        Choose how muscle intensity is displayed on the heatmap.
+                                    </p>
+                                    <Select
+                                        value={userProfile?.heatmapColorScheme || 'classic'}
+                                        onValueChange={(value: HeatmapColorScheme) => {
+                                            if (userProfileRef) {
+                                                setDocumentNonBlocking(userProfileRef, { heatmapColorScheme: value }, { merge: true });
+                                                toast({ title: 'Heatmap Colors Updated' });
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select color scheme" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {(Object.keys(colorSchemes) as HeatmapColorScheme[]).map((key) => (
+                                                <SelectItem key={key} value={key}>
+                                                    {colorSchemes[key].label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </CardContent>
                         </AccordionContent>
                     </Card>
