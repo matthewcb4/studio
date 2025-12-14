@@ -195,6 +195,30 @@ export function MuscleHeatmap({
       // Decay factor: fresher workouts have higher impact. 1 for today, 0.5 for yesterday, etc.
       const decayFactor = isSingleWorkout ? 1 : 1 / (daysSince + 1);
 
+      // Process cardio workouts with pre-calculated musclesWorked
+      if (log.musclesWorked) {
+        // Parse duration for cardio intensity scaling
+        let minutes = 0;
+        if (log.duration) {
+          const durationStr = log.duration;
+          if (durationStr.includes('min')) {
+            minutes = parseInt(durationStr) || 0;
+          } else if (durationStr.includes(':')) {
+            const [mins, secs] = durationStr.split(':').map(Number);
+            minutes = mins + (secs || 0) / 60;
+          }
+        }
+
+        // Scale cardio effort: 30 min session = ~5000 volume equivalent per target muscle
+        const cardioBaseEffort = (minutes / 30) * 5000;
+
+        for (const [muscle, multiplier] of Object.entries(log.musclesWorked)) {
+          const effort = cardioBaseEffort * (multiplier as number) * decayFactor;
+          muscleGroupEffort[muscle] = (muscleGroupEffort[muscle] || 0) + effort;
+        }
+      }
+
+      // Process resistance training exercises
       (log.exercises || []).forEach(loggedEx => {
         const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
         if (masterEx?.category) {

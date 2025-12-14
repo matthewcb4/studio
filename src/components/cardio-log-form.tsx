@@ -37,6 +37,9 @@ import type { ActivityType, CardioMetrics, WorkoutLog } from '@/lib/types';
 import { useUser, useFirestore, addDoc } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { cardioIntensityMultipliers } from '@/lib/muscle-mapping';
 
 const cardioLogSchema = z.object({
     activityType: z.enum(['run', 'walk', 'cycle', 'hiit']),
@@ -60,6 +63,17 @@ const activityOptions: { value: CardioActivityType; label: string; icon: string 
     { value: 'hiit', label: 'HIIT', icon: '💪' },
 ];
 
+// HIIT muscle group options for selection
+const hiitMuscleOptions = [
+    { value: 'quads', label: 'Legs (Quads)', icon: '🦵' },
+    { value: 'glutes', label: 'Glutes', icon: '🍑' },
+    { value: 'abs', label: 'Core', icon: '💪' },
+    { value: 'chest', label: 'Chest', icon: '🏋️' },
+    { value: 'shoulders_front', label: 'Shoulders', icon: '💪' },
+    { value: 'lats', label: 'Back', icon: '🔙' },
+    { value: 'biceps', label: 'Arms', icon: '💪' },
+];
+
 interface CardioLogFormProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
@@ -71,6 +85,7 @@ export function CardioLogForm({ isOpen, onOpenChange, defaultActivity = 'run' }:
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedHiitMuscles, setSelectedHiitMuscles] = useState<string[]>(['quads', 'glutes', 'abs', 'chest', 'shoulders_front']);
 
     const form = useForm<CardioLogFormValues>({
         resolver: zodResolver(cardioLogSchema),
@@ -111,6 +126,8 @@ export function CardioLogForm({ isOpen, onOpenChange, defaultActivity = 'run' }:
                 incline: undefined,
                 notes: '',
             });
+            // Reset HIIT muscles to default full-body selection
+            setSelectedHiitMuscles(['quads', 'glutes', 'abs', 'chest', 'shoulders_front']);
         }
     }, [isOpen, defaultActivity, form]);
 
@@ -130,6 +147,27 @@ export function CardioLogForm({ isOpen, onOpenChange, defaultActivity = 'run' }:
             // Get activity display name
             const activityName = activityOptions.find(a => a.value === values.activityType)?.label || 'Cardio';
 
+            // Calculate muscles worked based on activity type
+            let musclesWorked: Record<string, number> | undefined;
+            const activityKey = activityName; // 'Run', 'Walk', 'Cycle', 'HIIT'
+
+            if (values.activityType === 'hiit') {
+                // Use user-selected muscles for HIIT
+                const intensity = values.durationMinutes / 30; // Normalize: 30 min = 1.0 intensity
+                musclesWorked = {};
+                selectedHiitMuscles.forEach(muscle => {
+                    musclesWorked![muscle] = intensity / selectedHiitMuscles.length;
+                });
+            } else if (cardioIntensityMultipliers[activityKey]) {
+                // Use predefined multipliers for other cardio
+                const intensity = values.durationMinutes / 30; // Normalize: 30 min = 1.0 intensity
+                musclesWorked = {};
+                const multipliers = cardioIntensityMultipliers[activityKey];
+                for (const [muscle, multiplier] of Object.entries(multipliers)) {
+                    musclesWorked[muscle] = intensity * multiplier;
+                }
+            }
+
             const workoutLog: Omit<WorkoutLog, 'id'> = {
                 userId: user.uid,
                 workoutName: `${activityName} Session`,
@@ -137,6 +175,7 @@ export function CardioLogForm({ isOpen, onOpenChange, defaultActivity = 'run' }:
                 duration: `${values.durationMinutes} min`,
                 activityType: values.activityType,
                 cardioMetrics,
+                musclesWorked,
                 // No exercises or volume for pure cardio
             };
 
@@ -322,6 +361,38 @@ export function CardioLogForm({ isOpen, onOpenChange, defaultActivity = 'run' }:
                                     </FormItem>
                                 )}
                             />
+                        )}
+
+                        {watchedActivity === 'hiit' && (
+                            <div className="space-y-3">
+                                <div>
+                                    <Label className="text-sm font-medium">Muscles Worked</Label>
+                                    <p className="text-xs text-muted-foreground">Select the muscle groups you targeted</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {hiitMuscleOptions.map((option) => (
+                                        <div key={option.value} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`hiit-muscle-${option.value}`}
+                                                checked={selectedHiitMuscles.includes(option.value)}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) {
+                                                        setSelectedHiitMuscles(prev => [...prev, option.value]);
+                                                    } else {
+                                                        setSelectedHiitMuscles(prev => prev.filter(m => m !== option.value));
+                                                    }
+                                                }}
+                                            />
+                                            <Label
+                                                htmlFor={`hiit-muscle-${option.value}`}
+                                                className="text-sm cursor-pointer"
+                                            >
+                                                {option.icon} {option.label}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         )}
 
                         <DialogFooter className="gap-2 sm:gap-0">
