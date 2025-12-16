@@ -37,7 +37,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format, isWithinInterval, subDays } from "date-fns";
+import { format, isWithinInterval, subDays, startOfWeek } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc, addDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise, LoggedSet, UserEquipment, WorkoutLocation } from "@/lib/types";
@@ -111,7 +111,7 @@ function UserStatsCard({ userProfile }: { userProfile: UserProfile | null | unde
     );
 }
 
-function ProgressSummaryCard({ thisWeeksLogs }: { thisWeeksLogs: WorkoutLog[] }) {
+function ProgressSummaryCard() {
     const { user } = useUser();
     const firestore = useFirestore();
 
@@ -125,8 +125,26 @@ function ProgressSummaryCard({ thisWeeksLogs }: { thisWeeksLogs: WorkoutLog[] })
         , [firestore, user]);
     const { data: latestProgress, isLoading: isLoadingProgress } = useCollection<ProgressLog>(progressLogsQuery);
 
-    // Calculate weekly stats from thisWeeksLogs
+    // Fetch all workout logs to calculate the current calendar week's stats
+    const allLogsQuery = useMemoFirebase(() =>
+        user ? query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc")) : null
+        , [firestore, user]);
+    const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allLogsQuery);
+
+    // Calculate weekly stats from the CURRENT CALENDAR WEEK (Monday to Sunday)
     const weeklyStats = useMemo(() => {
+        if (!allLogs) return { resistanceCount: 0, cardioMinutes: 0, totalDistance: 0 };
+
+        const now = new Date();
+        // Get the start of the current week (Monday)
+        const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // 1 = Monday
+
+        // Filter logs to only include workouts from the current calendar week
+        const thisWeeksLogs = allLogs.filter(log => {
+            const logDate = new Date(log.date);
+            return isWithinInterval(logDate, { start: weekStart, end: now });
+        });
+
         const resistanceWorkouts = thisWeeksLogs.filter(log => !log.activityType || log.activityType === 'resistance' || log.activityType === 'calisthenics');
         const cardioWorkouts = thisWeeksLogs.filter(log => log.activityType && ['run', 'walk', 'cycle', 'hiit'].includes(log.activityType));
 
@@ -157,7 +175,7 @@ function ProgressSummaryCard({ thisWeeksLogs }: { thisWeeksLogs: WorkoutLog[] })
             cardioMinutes: Math.round(totalCardioMinutes),
             totalDistance: Math.round(totalDistance * 10) / 10, // Round to 1 decimal
         };
-    }, [thisWeeksLogs]);
+    }, [allLogs]);
 
     const isLoading = isLoadingProfile || isLoadingProgress;
     const currentWeight = latestProgress?.[0]?.weight;
@@ -705,15 +723,11 @@ export default function DashboardPage() {
                     </Card>
 
                     {/* Weekly Goals */}
-                    <ProgressSummaryCard thisWeeksLogs={filteredLogs} />
+                    <ProgressSummaryCard />
 
                     {/* Lifting Summary */}
                     {hasData ? (
-                        <LiftingStatsCard
-                            filteredLogs={filteredLogs}
-                            dateRangeLabel={dateRangeLabel}
-                            isLoading={isLoading}
-                        />
+                        <LiftingStatsCard />
                     ) : (
                         <Card className="lg:col-span-1 flex flex-col items-center justify-center p-6 text-center">
                             <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -728,11 +742,7 @@ export default function DashboardPage() {
                     )}
 
                     {/* Cardio Summary */}
-                    <CardioStatsCard
-                        filteredLogs={filteredLogs}
-                        dateRangeLabel={dateRangeLabel}
-                        isLoading={isLoading}
-                    />
+                    <CardioStatsCard />
 
                     <div className="col-span-1 sm:col-span-2 lg:col-span-3">
                         <MuscleHeatmap

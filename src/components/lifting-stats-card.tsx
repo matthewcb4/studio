@@ -4,17 +4,35 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dumbbell, TrendingUp, Target, Zap } from 'lucide-react';
 import type { WorkoutLog } from '@/lib/types';
+import { startOfWeek, isWithinInterval } from 'date-fns';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
 
-interface LiftingStatsCardProps {
-    filteredLogs: WorkoutLog[];
-    dateRangeLabel: string;
-    isLoading?: boolean;
-}
+export function LiftingStatsCard() {
+    const { user } = useUser();
+    const firestore = useFirestore();
 
-export function LiftingStatsCard({ filteredLogs, dateRangeLabel, isLoading }: LiftingStatsCardProps) {
+    // Fetch all workout logs
+    const allLogsQuery = useMemoFirebase(() =>
+        user ? query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc")) : null
+        , [firestore, user]);
+    const { data: allLogs, isLoading } = useCollection<WorkoutLog>(allLogsQuery);
+
     const liftingStats = useMemo(() => {
+        if (!allLogs) return null;
+
+        const now = new Date();
+        // Get the start of the current week (Monday)
+        const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // 1 = Monday
+
+        // Filter logs to only include workouts from the current calendar week
+        const thisWeeksLogs = allLogs.filter(log => {
+            const logDate = new Date(log.date);
+            return isWithinInterval(logDate, { start: weekStart, end: now });
+        });
+
         // Filter only lifting workouts (those WITHOUT activityType = cardio)
-        const liftingLogs = filteredLogs.filter(log => !log.activityType);
+        const liftingLogs = thisWeeksLogs.filter(log => !log.activityType);
 
         if (liftingLogs.length === 0) return null;
 
@@ -53,7 +71,7 @@ export function LiftingStatsCard({ filteredLogs, dateRangeLabel, isLoading }: Li
             maxWeight,
             uniqueExercises: exerciseSet.size,
         };
-    }, [filteredLogs]);
+    }, [allLogs]);
 
     if (isLoading) {
         return (
@@ -74,7 +92,7 @@ export function LiftingStatsCard({ filteredLogs, dateRangeLabel, isLoading }: Li
                     <CardTitle className="flex items-center gap-2">
                         <Dumbbell className="w-5 h-5" /> Lifting Summary
                     </CardTitle>
-                    <CardDescription>{dateRangeLabel}</CardDescription>
+                    <CardDescription>This week</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <p className="text-sm text-muted-foreground">
@@ -91,7 +109,7 @@ export function LiftingStatsCard({ filteredLogs, dateRangeLabel, isLoading }: Li
                 <CardTitle className="flex items-center gap-2">
                     <Dumbbell className="w-5 h-5" /> Lifting Summary
                 </CardTitle>
-                <CardDescription>{dateRangeLabel}</CardDescription>
+                <CardDescription>This week</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">

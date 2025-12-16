@@ -54,7 +54,9 @@ export type SuggestWorkoutSetupOutput = {
   focusArea: string[];
   supersetStrategy: 'focused' | 'mixed';
   workoutDuration: number;
+  intensityLevel?: 'standard' | 'high' | 'brutal';
   cardioRecommendation?: string;
+  coachingTip?: string;
 };
 
 
@@ -91,6 +93,7 @@ export default function GuidePage() {
   const { toast } = useToast();
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [workoutSuggestion, setWorkoutSuggestion] = useState<SuggestWorkoutSetupOutput | null>(null);
+  const [currentIntensity, setCurrentIntensity] = useState<'standard' | 'high' | 'brutal'>('standard');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   // Separate loading state for initial data fetch vs AI generation
@@ -433,9 +436,14 @@ export default function GuidePage() {
     form.setValue('supersetStrategy', suggestion.supersetStrategy);
     form.setValue('workoutDuration', suggestion.workoutDuration);
 
+    // Set the intensity level from the suggestion
+    if (suggestion.intensityLevel) {
+      setCurrentIntensity(suggestion.intensityLevel);
+    }
+
     toast({
       title: "Suggestions Applied!",
-      description: "Workout preferences have been updated."
+      description: `Workout preferences updated. Intensity: ${suggestion.intensityLevel?.toUpperCase() || 'STANDARD'}`
     })
   }
 
@@ -456,6 +464,7 @@ export default function GuidePage() {
         ...values,
         fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
         workoutHistory: history,
+        intensityLevel: currentIntensity,
       });
       setGeneratedWorkout(result);
       if (userProfileRef) {
@@ -652,8 +661,25 @@ export default function GuidePage() {
               <div className="flex items-center gap-3">
                 <Sparkles className="w-6 h-6 text-primary" />
                 <CardTitle>Coach's Daily Suggestion</CardTitle>
+                {workoutSuggestion.intensityLevel && (
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${workoutSuggestion.intensityLevel === 'brutal'
+                    ? 'bg-red-500/20 text-red-500'
+                    : workoutSuggestion.intensityLevel === 'high'
+                      ? 'bg-orange-500/20 text-orange-500'
+                      : 'bg-green-500/20 text-green-500'
+                    }`}>
+                    {workoutSuggestion.intensityLevel === 'brutal' ? '🔥 BRUTAL'
+                      : workoutSuggestion.intensityLevel === 'high' ? '💪 HIGH'
+                        : '✓ STANDARD'}
+                  </span>
+                )}
               </div>
               <CardDescription>{workoutSuggestion.summary}</CardDescription>
+              {workoutSuggestion.coachingTip && (
+                <p className="text-sm italic text-primary/80 mt-2 border-l-2 border-primary/30 pl-3">
+                  💡 {workoutSuggestion.coachingTip}
+                </p>
+              )}
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-lg bg-background p-4">
               <div className="flex flex-wrap gap-x-6 gap-y-2">

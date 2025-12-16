@@ -2,14 +2,11 @@
 
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Timer, MapPin, Heart, TrendingUp } from 'lucide-react';
+import { Timer, MapPin, Heart } from 'lucide-react';
 import type { WorkoutLog } from '@/lib/types';
-
-interface CardioStatsCardProps {
-    filteredLogs: WorkoutLog[];
-    dateRangeLabel: string;
-    isLoading?: boolean;
-}
+import { startOfWeek, isWithinInterval } from 'date-fns';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
 
 const activityIcons: Record<string, string> = {
     run: '🏃',
@@ -18,10 +15,31 @@ const activityIcons: Record<string, string> = {
     hiit: '💪',
 };
 
-export function CardioStatsCard({ filteredLogs, dateRangeLabel, isLoading }: CardioStatsCardProps) {
+export function CardioStatsCard() {
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    // Fetch all workout logs
+    const allLogsQuery = useMemoFirebase(() =>
+        user ? query(collection(firestore, `users/${user.uid}/workoutLogs`), orderBy("date", "desc")) : null
+        , [firestore, user]);
+    const { data: allLogs, isLoading } = useCollection<WorkoutLog>(allLogsQuery);
+
     const cardioStats = useMemo(() => {
+        if (!allLogs) return null;
+
+        const now = new Date();
+        // Get the start of the current week (Monday)
+        const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // 1 = Monday
+
+        // Filter logs to only include workouts from the current calendar week
+        const thisWeeksLogs = allLogs.filter(log => {
+            const logDate = new Date(log.date);
+            return isWithinInterval(logDate, { start: weekStart, end: now });
+        });
+
         // Filter only cardio workouts (those with activityType)
-        const cardioLogs = filteredLogs.filter(log => log.activityType);
+        const cardioLogs = thisWeeksLogs.filter(log => log.activityType);
 
         if (cardioLogs.length === 0) return null;
 
@@ -74,7 +92,7 @@ export function CardioStatsCard({ filteredLogs, dateRangeLabel, isLoading }: Car
             topActivity: topActivity ? topActivity[0] : null,
             activityCounts,
         };
-    }, [filteredLogs]);
+    }, [allLogs]);
 
     if (isLoading) {
         return (
@@ -95,7 +113,7 @@ export function CardioStatsCard({ filteredLogs, dateRangeLabel, isLoading }: Car
                     <CardTitle className="flex items-center gap-2">
                         <span>🏃</span> Cardio Summary
                     </CardTitle>
-                    <CardDescription>{dateRangeLabel}</CardDescription>
+                    <CardDescription>This week</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <p className="text-sm text-muted-foreground">
@@ -113,7 +131,7 @@ export function CardioStatsCard({ filteredLogs, dateRangeLabel, isLoading }: Car
                     <span>{cardioStats.topActivity ? activityIcons[cardioStats.topActivity] : '🏃'}</span>
                     Cardio Summary
                 </CardTitle>
-                <CardDescription>{dateRangeLabel}</CardDescription>
+                <CardDescription>This week</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">

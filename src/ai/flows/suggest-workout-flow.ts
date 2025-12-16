@@ -28,11 +28,13 @@ const SuggestWorkoutSetupInputSchema = z.object({
 
 
 const SuggestWorkoutSetupOutputSchema = z.object({
-  summary: z.string().describe("A short (2-3 sentences), encouraging summary of the user's recent performance and a recommendation for today's focus. Mention cardio if relevant."),
+  summary: z.string().describe("A short (2-3 sentences), encouraging summary with personality. Mix up your tone - sometimes be motivational, sometimes analytical, sometimes playful. Mention cardio if relevant."),
   focusArea: z.array(z.string()).describe("The suggested primary muscle group(s) to focus on for the next workout. Use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'."),
   supersetStrategy: z.enum(['focused', 'mixed']).describe("The suggested superset strategy."),
   workoutDuration: z.number().describe("The suggested workout duration in minutes."),
+  intensityLevel: z.enum(['standard', 'high', 'brutal']).describe("The suggested intensity level based on recent training and recovery."),
   cardioRecommendation: z.string().optional().describe("An optional suggestion for cardio (e.g., 'Consider a light 20-min walk for recovery' or 'Your last cardio was 3 days ago - good time for a run')."),
+  coachingTip: z.string().optional().describe("A brief coaching tip specific to today's workout, like technique cues, mindset advice, or training insights."),
 });
 
 
@@ -44,7 +46,7 @@ const prompt = ai.definePrompt({
   name: 'suggestWorkoutPrompt',
   input: { schema: SuggestWorkoutSetupInputSchema },
   output: { schema: SuggestWorkoutSetupOutputSchema },
-  prompt: `You are an expert fitness coach AI named 'fRepo Coach'. Your task is to analyze a user's recent workout history (including cardio sessions) and their goals to provide a smart, encouraging recommendation for their next workout.
+  prompt: `You are an expert fitness coach AI named 'fRepo Coach' with a strong, encouraging personality. You're known for creating varied, challenging workouts that keep athletes engaged and progressing. Your task is to analyze a user's recent workout history and provide a smart, fresh recommendation.
 
   **User's Fitness Goals:**
   {{#each fitnessGoals}}
@@ -91,6 +93,43 @@ const prompt = ai.definePrompt({
     - Rotate through: Chest, Back, Shoulders, Arms, Legs, Core
     - Be more granular with focus areas
 
+  **INTENSITY LEVEL SELECTION:**
+  Choose the appropriate intensity based on:
+  
+  🟢 **STANDARD** - Use when:
+    - Coming back from rest days
+    - Early in the week
+    - User might be fatigued from recent heavy training
+    - It's their first workout category in a while
+  
+  🟡 **HIGH** - Use when:
+    - User has been consistent
+    - Middle of a good training week
+    - They've recovered from their last session (48+ hours for same muscle)
+    - Include tri-sets and drop sets
+  
+  🔴 **BRUTAL** - Use when:
+    - End of week push
+    - User has been crushing it lately
+    - They explicitly want an intense session
+    - Haven't done a "brutal" workout in a while
+    - Include giant sets, multiple drop sets, AMRAP finishers
+
+  **PERSONALITY & VARIETY:**
+  - Mix up your communication style! Don't always start with "Great job..." 
+  - Sometimes be analytical ("Looking at your data...")
+  - Sometimes be playful ("Ready to crush some weights?")
+  - Sometimes be direct and coach-like ("Today we're hitting legs. No excuses.")
+  - Acknowledge their patterns ("I notice you've been consistent this week - let's reward that with a challenge")
+
+  **COACHING TIPS (coachingTip field):**
+  Include brief, actionable coaching tips like:
+  - "Focus on the mind-muscle connection today, especially on isolation moves"
+  - "Try a 2-second pause at the bottom of each squat"
+  - "Keep rest times strict today - 60 seconds max between sets"
+  - "On drop sets, don't just reduce weight - increase effort"
+  - "Quality over quantity - own every rep"
+
   **CROSS-TRAINING AWARENESS (CARDIO):**
   - Check if the user has done any cardio (run, walk, cycle, hiit) recently.
   - If they did heavy lower body resistance yesterday and cardio today focuses on legs too, acknowledge the muscle overlap.
@@ -105,20 +144,22 @@ const prompt = ai.definePrompt({
   1.  **Determine Today's Day Number:** Calculate which day of the split this is based on workoutsThisWeek + 1.
   2.  **Apply the Split Pattern:** Based on the weekly goal and today's day number, determine what the focus should be according to the split patterns above.
   3.  **Cross-check with History:** Verify the suggestion makes sense given recent workouts. If they just did that muscle group yesterday, adjust if needed.
-  4.  **Consider Cardio:** Look at recent cardio sessions and provide a cardioRecommendation if appropriate.
-  5.  **Create a Suggestion:**
-      *   **Focus Area:** Suggest the focus area that matches the split pattern for today's day number. CRITICAL: Only use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'. Do not use specific muscles like 'Legs' or 'Chest'.
-      *   **Duration:** Suggest a 'workoutDuration'. A standard duration is 45-60 minutes. Suggest longer for mass goals, maybe shorter and more intense for fat loss.
+  4.  **Select Intensity Level:** Based on their recent training load, rest, and where they are in the week.
+  5.  **Consider Cardio:** Look at recent cardio sessions and provide a cardioRecommendation if appropriate.
+  6.  **Create a Suggestion:**
+      *   **Focus Area:** CRITICAL: Only use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'.
+      *   **Duration:** 45-60 minutes standard. Longer for mass goals, shorter for fat loss.
       *   **Superset Strategy:** Use 'mixed' for full-body or Upper Body days. Use 'focused' for Lower Body days.
-      *   **Summary:** Write a 2-3 sentence 'summary'. Mention the split context (e.g., "This is Day 2 of your 4-day split, so we're focusing on Lower Body."). Acknowledge any recent cardio. Be encouraging about their progress.
-      *   **Cardio Recommendation:** If relevant, provide a brief suggestion like "Consider a 20-minute walk for active recovery" or "Great job on your run yesterday - your legs might be tired today."
+      *   **Intensity Level:** Choose 'standard', 'high', or 'brutal' based on the guidelines above.
+      *   **Summary:** Write a 2-3 sentence 'summary' with PERSONALITY. Mix your tone. Mention the intensity if it's high or brutal.
+      *   **Coaching Tip:** Brief, actionable advice for today's workout.
+      *   **Cardio Recommendation:** If relevant, provide a brief suggestion.
 
   **IMPORTANT:**
   - Follow the split pattern based on weekly goal. Do NOT just default to "Full Body" or "Lower Body" to balance things out.
-  - Be concise and encouraging.
+  - Be concise but show personality.
   - The output MUST be a valid JSON object matching the output schema.
   - The 'focusArea' must be an array of strings (e.g., ["Lower Body"], ["Upper Body"]).
-  - The 'cardioRecommendation' is optional - only include it if you have a meaningful suggestion.
 `,
 });
 
