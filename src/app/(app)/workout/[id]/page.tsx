@@ -19,6 +19,7 @@ import {
   Share2,
   Music2,
   Mic,
+  Plus,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog, LoggedExercise, WorkoutLog, UserProfile, PRResult } from '@/lib/types';
+import type { CustomWorkout, LoggedSet, WorkoutExercise, UserExercisePreference, ProgressLog, LoggedExercise, WorkoutLog, UserProfile, PRResult, Exercise } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -56,6 +57,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -80,7 +82,7 @@ import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
 import { checkPersonalRecord } from '@/lib/analytics';
 import { PlateCalculator } from '@/components/plate-calculator';
 import { VoiceLogModal } from '@/components/voice-log-modal';
-
+import { Combobox } from '@/components/ui/combobox';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -213,6 +215,24 @@ export default function WorkoutSessionPage() {
 
   // Voice Logging State
   const [voiceLoggingExercise, setVoiceLoggingExercise] = useState<WorkoutExercise | null>(null);
+
+  // Quick Add Exercise State
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [quickAddExerciseId, setQuickAddExerciseId] = useState<string | null>(null);
+  const [quickAddPlacement, setQuickAddPlacement] = useState<'current' | 'standalone'>('current');
+  const [quickAddSets, setQuickAddSets] = useState('3');
+
+  // Master exercises for quick add
+  const masterExercisesQuery = useMemoFirebase(() =>
+    firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null
+    , [firestore]);
+  const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(masterExercisesQuery);
+
+  // Exercise options for combobox
+  const exerciseOptions = useMemo(() => {
+    if (!masterExercises) return [];
+    return masterExercises.map(ex => ({ value: ex.id, label: ex.name }));
+  }, [masterExercises]);
 
   // Prevent accidental back navigation
   useEffect(() => {
@@ -530,6 +550,86 @@ export default function WorkoutSessionPage() {
     const state = exerciseStates[ex.id];
     return state && state.currentSet >= ex.sets && state.logs.length >= ex.sets;
   });
+
+  // Handle adding an exercise mid-workout
+  const handleQuickAddExercise = () => {
+    if (!quickAddExerciseId || !masterExercises) return;
+
+    const selectedExercise = masterExercises.find(ex => ex.id === quickAddExerciseId);
+    if (!selectedExercise) return;
+
+    const uniqueId = `quick_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Determine the supersetId based on placement choice
+    let supersetId: string;
+    if (quickAddPlacement === 'current' && currentGroup.length > 0) {
+      // Add to the current group's superset
+      supersetId = currentGroup[0].supersetId;
+    } else {
+      // Create a new standalone group
+      supersetId = `quick_group_${Date.now()}`;
+    }
+
+    // Determine default unit based on exercise
+    let unit: WorkoutExercise['unit'] = 'reps';
+    const nameLower = selectedExercise.name.toLowerCase();
+    if (nameLower.includes('plank') || nameLower.includes('hold') || nameLower.includes('wall sit')) {
+      unit = 'seconds';
+    } else if (nameLower.includes('push-up') || nameLower.includes('pull-up') || nameLower.includes('dip') ||
+      nameLower.includes('chin-up') || nameLower.includes('burpee') || nameLower.includes('lunge')) {
+      unit = 'bodyweight';
+    }
+
+    const newExercise: WorkoutExercise = {
+      id: uniqueId,
+      exerciseId: selectedExercise.id,
+      exerciseName: selectedExercise.name,
+      sets: parseInt(quickAddSets) || 3,
+      reps: unit === 'seconds' ? '30' : '8-12',
+      unit,
+      supersetId,
+    };
+
+    // Add to session exercises
+    if (quickAddPlacement === 'current') {
+      // Insert into the current group position
+      const currentGroupFirstIndex = sessionExercises.findIndex(ex => ex.supersetId === supersetId);
+      const newExercises = [...sessionExercises];
+      // Insert after the last exercise in the current group
+      const lastIndexInGroup = sessionExercises.reduce((lastIdx, ex, idx) =>
+        ex.supersetId === supersetId ? idx : lastIdx, currentGroupFirstIndex);
+      newExercises.splice(lastIndexInGroup + 1, 0, newExercise);
+      setSessionExercises(newExercises);
+
+      // Initialize state for this exercise immediately
+      setExerciseStates(prev => ({
+        ...prev,
+        [uniqueId]: {
+          currentSet: 1,
+          logs: [],
+          weight: '',
+          reps: '',
+          duration: '',
+          includeBodyweight: false,
+          setType: 'normal',
+        }
+      }));
+    } else {
+      // Add as a new group at the end
+      setSessionExercises([...sessionExercises, newExercise]);
+    }
+
+    toast({
+      title: '💪 Exercise Added!',
+      description: `${selectedExercise.name} added ${quickAddPlacement === 'current' ? 'to current group' : 'as new group'}.`,
+    });
+
+    // Reset and close
+    setQuickAddExerciseId(null);
+    setQuickAddPlacement('current');
+    setQuickAddSets('3');
+    setIsQuickAddOpen(false);
+  };
 
   const finishWorkout = async () => {
     if (!user || !workout || isFinishing) return;
@@ -1088,6 +1188,98 @@ export default function WorkoutSessionPage() {
           </div>
         </div>
       )}
+
+      {/* Floating Quick Add Button */}
+      {!isFinished && (
+        <Button
+          className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg z-40 bg-primary hover:bg-primary/90"
+          size="icon"
+          onClick={() => setIsQuickAddOpen(true)}
+          title="Add Exercise"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
+
+      {/* Quick Add Exercise Dialog */}
+      <Dialog open={isQuickAddOpen} onOpenChange={setIsQuickAddOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Quick Add Exercise
+            </DialogTitle>
+            <DialogDescription>
+              Add an exercise on the fly. It will appear in your current workout.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Exercise Selection */}
+            <div className="space-y-2">
+              <Label>Exercise</Label>
+              <Combobox
+                options={exerciseOptions}
+                value={quickAddExerciseId || ''}
+                onSelect={(value) => setQuickAddExerciseId(value || null)}
+                placeholder="Search exercises..."
+                searchPlaceholder="Type to search..."
+              />
+            </div>
+
+            {/* Placement Option */}
+            <div className="space-y-2">
+              <Label>Add to</Label>
+              <Select value={quickAddPlacement} onValueChange={(value: 'current' | 'standalone') => setQuickAddPlacement(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="current">
+                    <div className="flex flex-col items-start">
+                      <span>Current Group</span>
+                      <span className="text-xs text-muted-foreground">Superset with {currentGroup[0]?.exerciseName || 'current exercise'}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="standalone">
+                    <div className="flex flex-col items-start">
+                      <span>New Group (After Current)</span>
+                      <span className="text-xs text-muted-foreground">Do it after finishing this group</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Number of Sets */}
+            <div className="space-y-2">
+              <Label>Number of Sets</Label>
+              <Select value={quickAddSets} onValueChange={setQuickAddSets}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 set</SelectItem>
+                  <SelectItem value="2">2 sets</SelectItem>
+                  <SelectItem value="3">3 sets</SelectItem>
+                  <SelectItem value="4">4 sets</SelectItem>
+                  <SelectItem value="5">5 sets</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsQuickAddOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleQuickAddExercise} disabled={!quickAddExerciseId}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Exercise
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
