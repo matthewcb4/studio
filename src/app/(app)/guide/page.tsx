@@ -545,14 +545,11 @@ export default function GuidePage() {
 
       toast({
         title: "Workout Saved!",
-        description: `"${generatedWorkout.workoutName}" has been added. Now navigating to edit.`,
+        description: `"${generatedWorkout.workoutName}" has been added to your workouts.`,
       });
 
-      if (newDocRef) {
-        router.push(`/workouts?edit=${newDocRef.id}`);
-      } else {
-        router.push('/workouts');
-      }
+      // Navigate to workouts list (not edit mode to avoid double-save confusion)
+      router.push('/workouts');
 
     } catch (error) {
       console.error("Failed to save workout:", error);
