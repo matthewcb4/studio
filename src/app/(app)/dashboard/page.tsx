@@ -469,15 +469,48 @@ export default function DashboardPage() {
         setHeatmapModalOpen(true);
     };
 
-    const handleOnboardingComplete = async () => {
+    const handleOnboardingComplete = async (data: {
+        primaryGoal: string;
+        weeklyWorkoutGoal: number;
+        equipment: string[];
+    }) => {
         if (!user || !userProfileRef) return;
 
-        const updates: Partial<UserProfile> = { hasCompletedOnboarding: true };
-        // Set default equipment if none exists
-        if (!userProfile?.availableEquipment || userProfile.availableEquipment.length === 0) {
-            updates.availableEquipment = ['Bodyweight'];
-        }
+        // Map primary goal to profile fields
+        const goalMappings: Record<string, Partial<UserProfile>> = {
+            'build_muscle': { muscleGoal: 'gain_overall_mass' },
+            'lose_fat': { fatLossGoal: 'reduce_body_fat' },
+            'get_stronger': { strengthGoal: 'increase_max_lift' },
+            'general_fitness': { muscleGoal: 'define_muscle_tone' },
+        };
+
+        const updates: Partial<UserProfile> = {
+            hasCompletedOnboarding: true,
+            weeklyWorkoutGoal: data.weeklyWorkoutGoal,
+            availableEquipment: data.equipment,
+            ...goalMappings[data.primaryGoal],
+        };
+
         await setDocumentNonBlocking(userProfileRef, updates, { merge: true });
+
+        // Create a Home location with the selected equipment
+        if (locationsCollection) {
+            const homeLocation: Omit<WorkoutLocation, 'id'> = {
+                userId: user.uid,
+                name: "Home",
+                equipment: data.equipment,
+                icon: "🏠",
+                type: 'home',
+                isDefault: true,
+                createdAt: new Date().toISOString(),
+            };
+            const newLocationDoc = await addDocumentNonBlocking(locationsCollection, homeLocation);
+
+            // Set as active location
+            if (newLocationDoc) {
+                await setDocumentNonBlocking(userProfileRef, { activeLocationId: newLocationDoc.id }, { merge: true });
+            }
+        }
 
         // Create starter workouts for new users
         try {
@@ -487,17 +520,12 @@ export default function DashboardPage() {
             for (const workout of starterWorkouts) {
                 await addDocumentNonBlocking(workoutsCollection, workout);
             }
-
-            toast({
-                title: "Welcome to fRepo!",
-                description: "We've added some starter workouts to help you get going.",
-            });
         } catch (error) {
             console.error("Error creating starter workouts:", error);
         }
 
         setShowOnboarding(false);
-        router.push('/settings?open=fitness-goals');
+        // Navigation is handled by the wizard component
     };
 
     const handleQuickLog = async (exercise: Exercise, sets: LoggedSet[]) => {

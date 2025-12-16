@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Bot, Wand2, Loader2, Dumbbell, PlusCircle, Sparkles, MapPin } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { isToday, parseISO } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -90,6 +90,8 @@ export default function GuidePage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFirstWorkout = searchParams.get('firstWorkout') === 'true';
   const { toast } = useToast();
   const [generatedWorkout, setGeneratedWorkout] = useState<GenerateWorkoutOutput | null>(null);
   const [workoutSuggestion, setWorkoutSuggestion] = useState<SuggestWorkoutSetupOutput | null>(null);
@@ -637,6 +639,21 @@ export default function GuidePage() {
       </Dialog>
 
       <div className="space-y-4">
+        {/* First Workout Welcome Banner */}
+        {isFirstWorkout && (
+          <Card className="border-2 border-green-500/50 bg-gradient-to-r from-green-500/10 to-primary/10">
+            <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+              <div className="text-5xl">🎉</div>
+              <div>
+                <h2 className="text-xl font-bold mb-1">Welcome to fRepo!</h2>
+                <p className="text-muted-foreground">
+                  Let's create your first personalized workout. Our AI coach will generate a routine based on your goals and equipment.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {isLoadingProfile && (
           <Card className="lg:col-span-3">
             <CardContent className="p-6 flex items-center justify-center gap-4">
