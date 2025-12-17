@@ -125,6 +125,18 @@ export type UserProfile = {
 
   // Media preferences
   preferredMusicApp?: 'spotify' | 'apple-music' | 'youtube-music' | 'amazon-music' | 'pandora' | 'none';
+
+  // Feature Discovery (for new user onboarding)
+  discoveryChecklist?: {
+    firstWorkout?: boolean;
+    firstAiWorkout?: boolean;
+    firstWeightLog?: boolean;
+    setGoals?: boolean;
+    addedEquipment?: boolean;
+    firstCardioSession?: boolean;
+    viewedProgress?: boolean;
+  };
+  dismissedDiscoveryChecklist?: boolean;
 }
 
 export type ProgressLog = {

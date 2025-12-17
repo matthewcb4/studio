@@ -45,6 +45,7 @@ import { Dumbbell, Target, TrendingDown, TrendingUp, Star, Play, Plus, Zap, Trop
 import { MuscleHeatmap, type MuscleGroupIntensities } from "@/components/muscle-heatmap";
 import { HeatmapDetailModal } from "@/components/heatmap-detail-modal";
 import { OnboardingModal } from "@/components/onboarding-modal";
+import { FeatureDiscoveryCard } from "@/components/feature-discovery-card";
 import { MuscleGroupVolumeChart } from "@/components/muscle-group-chart";
 import { QuickLogForm } from "@/components/quick-log-form";
 import { CardioLogForm } from "@/components/cardio-log-form";
@@ -369,6 +370,12 @@ export default function DashboardPage() {
 
     const { data: allLogs, isLoading: isLoadingLogs } = useCollection<WorkoutLog>(allWorkoutLogsQuery);
 
+    // Progress logs for feature discovery checklist
+    const progressLogsQuery = useMemoFirebase(() =>
+        user ? query(collection(firestore, `users/${user.uid}/progressLogs`), orderBy("date", "desc"), limit(5)) : null
+        , [firestore, user]);
+    const { data: progressLogs } = useCollection<ProgressLog>(progressLogsQuery);
+
     const filteredLogs = useMemo(() => {
         if (!allLogs) return [];
         const now = new Date();
@@ -636,6 +643,18 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                    {/* Feature Discovery Checklist for new users */}
+                    {userProfile?.hasCompletedOnboarding && (
+                        <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                            <FeatureDiscoveryCard
+                                userProfile={userProfile}
+                                workoutLogs={allLogs}
+                                progressLogs={progressLogs}
+                                locations={locations}
+                            />
+                        </div>
+                    )}
+
                     <UserStatsCard userProfile={userProfile} />
 
                     <Card className="lg:col-span-1 flex flex-col">
