@@ -309,7 +309,7 @@ export default function WorkoutSessionPage() {
 
         // Get the last completed set (not warmup, with actual values)
         const completedSets = exercise.sets.filter(
-          set => set.reps && set.reps > 0 && !set.isWarmup
+          set => set.reps && set.reps > 0 && set.type !== 'warmup'
         );
         const lastSet = completedSets[completedSets.length - 1];
 
@@ -329,8 +329,8 @@ export default function WorkoutSessionPage() {
     if (exerciseGroups[currentGroupIndex]) {
       const newStates: Record<string, ExerciseState> = {};
       exerciseGroups[currentGroupIndex].forEach(ex => {
-        // Get last logged values for this exercise (by masterExerciseId)
-        const lastValues = lastExerciseValues[ex.masterExerciseId || ''] || { weight: '', reps: '' };
+        // Get last logged values for this exercise (by exerciseId)
+        const lastValues = lastExerciseValues[ex.exerciseId || ''] || { weight: '', reps: '' };
 
         newStates[ex.id] = {
           currentSet: 1,
