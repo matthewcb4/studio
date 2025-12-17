@@ -26,7 +26,8 @@ import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { MuscleHeatmap } from '@/components/muscle-heatmap';
+import { MuscleHeatmap, type MuscleGroupIntensities } from '@/components/muscle-heatmap';
+import { categoryToMuscleGroup } from '@/lib/muscle-mapping';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise, WorkoutLocation } from '@/lib/types';
 import { format, subDays, startOfWeek, parseISO as parseISODateFns } from 'date-fns';
 import {
@@ -1083,38 +1084,58 @@ export default function GuidePage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Muscle Group Summary */}
-                {generatedWorkout && (
-                  <div className="p-4 border rounded-lg bg-gradient-to-r from-primary/5 to-secondary/50">
-                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                      🎯 Muscles Targeted
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {(() => {
-                        const muscleCount: Record<string, number> = {};
-                        generatedWorkout.exercises.forEach(ex => {
-                          const muscle = ex.category;
-                          muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
-                        });
-                        return Object.entries(muscleCount)
+                {/* Muscle Heatmap Preview */}
+                {generatedWorkout && (() => {
+                  // Calculate muscle intensities from AI-generated exercises
+                  const muscleEffort: Record<string, number> = {};
+                  generatedWorkout.exercises.forEach(ex => {
+                    const muscles = categoryToMuscleGroup[ex.category] || [];
+                    muscles.forEach(muscle => {
+                      muscleEffort[muscle] = (muscleEffort[muscle] || 0) + 1;
+                    });
+                  });
+
+                  // Normalize to 0-1 range
+                  const maxEffort = Math.max(...Object.values(muscleEffort), 1);
+                  const intensities: MuscleGroupIntensities = {};
+                  for (const [muscle, effort] of Object.entries(muscleEffort)) {
+                    intensities[muscle] = effort / maxEffort;
+                  }
+
+                  return (
+                    <div className="p-4 border rounded-lg bg-gradient-to-r from-primary/5 to-secondary/50">
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        🎯 Muscles Targeted
+                      </h4>
+                      <div className="flex justify-center">
+                        <div className="w-full max-w-[280px]">
+                          <MuscleHeatmap
+                            userProfile={userProfile}
+                            thisWeeksLogs={[]}
+                            isLoading={false}
+                            dateRangeLabel=""
+                            isCard={false}
+                            isSingleWorkout={true}
+                            preCalculatedIntensities={intensities}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-3 justify-center">
+                        {Object.entries(muscleEffort)
                           .sort((a, b) => b[1] - a[1])
+                          .slice(0, 6)
                           .map(([muscle, count]) => (
                             <span
                               key={muscle}
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${count >= 3
-                                ? 'bg-primary text-primary-foreground'
-                                : count >= 2
-                                  ? 'bg-primary/50 text-primary-foreground'
-                                  : 'bg-secondary text-secondary-foreground'
-                                }`}
+                              className="px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground"
                             >
-                              {muscle} ({count})
+                              {muscle.replace('_', ' ')}
                             </span>
-                          ));
-                      })()}
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
                 {groupedAiExercises.map((group, index) => (
                   <div key={index} className="p-4 border rounded-lg bg-secondary/50 space-y-3">
                     <p className="text-sm font-medium text-muted-foreground">

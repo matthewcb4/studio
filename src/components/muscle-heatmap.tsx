@@ -232,6 +232,7 @@ interface MuscleHeatmapProps {
   isSingleWorkout?: boolean;
   onIntensitiesChange?: (intensities: MuscleGroupIntensities) => void;
   onViewClick?: (view: 'front' | 'back') => void;
+  preCalculatedIntensities?: MuscleGroupIntensities;
 }
 
 export function MuscleHeatmap({
@@ -243,6 +244,7 @@ export function MuscleHeatmap({
   isSingleWorkout = false,
   onIntensitiesChange,
   onViewClick,
+  preCalculatedIntensities,
 }: MuscleHeatmapProps) {
   const firestore = useFirestore();
 
@@ -253,6 +255,11 @@ export function MuscleHeatmap({
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
 
   const muscleGroupIntensities = useMemo(() => {
+    // If pre-calculated intensities are provided, use them directly
+    if (preCalculatedIntensities) {
+      return preCalculatedIntensities;
+    }
+
     const muscleGroupEffort: Record<string, number> = {
       chest: 0, back: 0, shoulders: 0, legs: 0, arms: 0, core: 0,
       quads: 0, hamstrings: 0, glutes: 0, calves: 0,
@@ -354,7 +361,7 @@ export function MuscleHeatmap({
     }
 
     return intensities;
-  }, [thisWeeksLogs, masterExercises, userProfile, isSingleWorkout]);
+  }, [thisWeeksLogs, masterExercises, userProfile, isSingleWorkout, preCalculatedIntensities]);
 
   useEffect(() => {
     if (onIntensitiesChange) {
