@@ -291,16 +291,52 @@ export default function WorkoutSessionPage() {
     return groupExercises(sessionExercises);
   }, [sessionExercises]);
 
+  // Build a lookup map of last logged weight/reps for each exercise from workout history
+  const lastExerciseValues = useMemo(() => {
+    const values: Record<string, { weight: string; reps: string }> = {};
+    if (!workoutHistory) return values;
+
+    // Sort logs by date descending to get most recent first
+    const sortedLogs = [...workoutHistory].sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    // For each logged workout, extract the last set of each exercise
+    for (const log of sortedLogs) {
+      for (const exercise of (log.exercises || [])) {
+        // Skip if we already have a more recent value for this exercise
+        if (values[exercise.exerciseId]) continue;
+
+        // Get the last completed set (not warmup, with actual values)
+        const completedSets = exercise.sets.filter(
+          set => set.reps && set.reps > 0 && !set.isWarmup
+        );
+        const lastSet = completedSets[completedSets.length - 1];
+
+        if (lastSet) {
+          values[exercise.exerciseId] = {
+            weight: lastSet.weight?.toString() || '',
+            reps: lastSet.reps?.toString() || '',
+          };
+        }
+      }
+    }
+    return values;
+  }, [workoutHistory]);
+
   // Initialize/reset exercise states when workout or group changes
   useEffect(() => {
     if (exerciseGroups[currentGroupIndex]) {
       const newStates: Record<string, ExerciseState> = {};
       exerciseGroups[currentGroupIndex].forEach(ex => {
+        // Get last logged values for this exercise (by masterExerciseId)
+        const lastValues = lastExerciseValues[ex.masterExerciseId || ''] || { weight: '', reps: '' };
+
         newStates[ex.id] = {
           currentSet: 1,
           logs: [],
-          weight: '',
-          reps: '',
+          weight: lastValues.weight,
+          reps: lastValues.reps,
           duration: '',
           includeBodyweight: false, // Default to NOT including bodyweight
           setType: 'normal',
@@ -308,7 +344,7 @@ export default function WorkoutSessionPage() {
       });
       setExerciseStates(newStates);
     }
-  }, [exerciseGroups, currentGroupIndex]);
+  }, [exerciseGroups, currentGroupIndex, lastExerciseValues]);
 
 
   useEffect(() => {
