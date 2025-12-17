@@ -397,8 +397,18 @@ export function MuscleHeatmap({
         {/* Layer 1: Background Color */}
         <div className="absolute inset-0 bg-white z-0"></div>
 
-        {/* Layer 2: Heatmap Glows */}
-        <div className="absolute inset-0 z-10">
+        {/* Layer 2: Body outline PNG (underneath heat) */}
+        <Image
+          src={bodyImageUrl}
+          alt={`${bodyType} body ${view} view`}
+          width={200}
+          height={355}
+          className="relative object-contain z-10 w-full h-auto"
+          unoptimized
+        />
+
+        {/* Layer 3: Heatmap Glows (on top of body) */}
+        <div className="absolute inset-0 z-20 pointer-events-none">
           {muscleGroupsToShow.map((group) => {
             const coords = heatmapCoordinates[bodyType]?.[group];
             if (!coords) return null;
@@ -420,15 +430,6 @@ export function MuscleHeatmap({
             return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} bodyType={bodyType} view={view} colorScheme={userProfile?.heatmapColorScheme || 'classic'} />;
           })}
         </div>
-        {/* Layer 3: Main body outline PNG */}
-        <Image
-          src={bodyImageUrl}
-          alt={`${bodyType} body ${view} view`}
-          width={200}
-          height={355}
-          className="relative object-contain z-20 w-full h-auto"
-          unoptimized
-        />
       </div>
     );
     if (isClickable) {

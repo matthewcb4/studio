@@ -26,7 +26,7 @@ import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { MuscleHeatmap, type MuscleGroupIntensities } from '@/components/muscle-heatmap';
+import { MuscleHeatmap } from '@/components/muscle-heatmap';
 import { categoryToMuscleGroup } from '@/lib/muscle-mapping';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise, WorkoutLocation } from '@/lib/types';
 import { format, subDays, startOfWeek, parseISO as parseISODateFns } from 'date-fns';
@@ -1095,12 +1095,23 @@ export default function GuidePage() {
                     });
                   });
 
-                  // Normalize to 0-1 range
+                  // Normalize to 0-1 scale for musclesWorked
                   const maxEffort = Math.max(...Object.values(muscleEffort), 1);
-                  const intensities: MuscleGroupIntensities = {};
+                  const musclesWorked: Record<string, number> = {};
                   for (const [muscle, effort] of Object.entries(muscleEffort)) {
-                    intensities[muscle] = effort / maxEffort;
+                    musclesWorked[muscle] = effort / maxEffort;
                   }
+
+                  // Create mock workout log with musclesWorked (same as cardio uses)
+                  const mockWorkoutLog: WorkoutLog = {
+                    id: 'preview',
+                    userId: '',
+                    workoutName: generatedWorkout.workoutName,
+                    date: new Date().toISOString(),
+                    duration: '30 min', // Used to scale effort in heatmap
+                    exercises: [],
+                    musclesWorked: musclesWorked,
+                  };
 
                   return (
                     <div className="p-4 border rounded-lg bg-gradient-to-r from-primary/5 to-secondary/50">
@@ -1111,12 +1122,11 @@ export default function GuidePage() {
                         <div className="w-full max-w-[280px]">
                           <MuscleHeatmap
                             userProfile={userProfile}
-                            thisWeeksLogs={[]}
+                            thisWeeksLogs={[mockWorkoutLog]}
                             isLoading={false}
                             dateRangeLabel=""
                             isCard={false}
                             isSingleWorkout={true}
-                            preCalculatedIntensities={intensities}
                           />
                         </div>
                       </div>
