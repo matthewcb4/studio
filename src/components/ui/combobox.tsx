@@ -21,14 +21,14 @@ import {
 } from "@/components/ui/popover"
 
 interface ComboboxProps {
-    options: { value: string; label: string; }[];
-    value?: string;
-    onSelect: (value: string) => void;
-    placeholder?: string;
-    searchPlaceholder?: string;
+  options: { value: string; label: string; }[];
+  value?: string;
+  onSelect: (value: string) => void;
+  placeholder?: string;
+  searchPlaceholder?: string;
 }
 
-export function Combobox({ options, value, onSelect, placeholder = "Select an option...", searchPlaceholder = "Search..."}: ComboboxProps) {
+export function Combobox({ options, value, onSelect, placeholder = "Select an option...", searchPlaceholder = "Search..." }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const selectedOption = options.find((option) => option.value === value)
 
@@ -49,27 +49,27 @@ export function Combobox({ options, value, onSelect, placeholder = "Select an op
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandEmpty>No option found.</CommandEmpty>
-          <CommandList>
+          <CommandList className="max-h-[300px] overflow-y-auto">
             <CommandGroup>
-                {options.map((option) => (
+              {options.map((option) => (
                 <CommandItem
-                    key={option.value}
-                    value={option.label}
-                    onSelect={(currentLabel) => {
-                      const selectedValue = options.find(o => o.label.toLowerCase() === currentLabel.toLowerCase())?.value || "";
-                      onSelect(selectedValue === value ? "" : selectedValue)
-                      setOpen(false)
-                    }}
+                  key={option.value}
+                  value={option.label}
+                  onSelect={(currentLabel) => {
+                    const selectedValue = options.find(o => o.label.toLowerCase() === currentLabel.toLowerCase())?.value || "";
+                    onSelect(selectedValue === value ? "" : selectedValue)
+                    setOpen(false)
+                  }}
                 >
-                    <Check
+                  <Check
                     className={cn(
-                        "mr-2 h-4 w-4",
-                        value === option.value ? "opacity-100" : "opacity-0"
+                      "mr-2 h-4 w-4",
+                      value === option.value ? "opacity-100" : "opacity-0"
                     )}
-                    />
-                    {option.label}
+                  />
+                  {option.label}
                 </CommandItem>
-                ))}
+              ))}
             </CommandGroup>
           </CommandList>
         </Command>

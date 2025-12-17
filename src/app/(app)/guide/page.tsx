@@ -19,11 +19,14 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { generateWorkout, type GenerateWorkoutOutput } from '@/ai/flows/workout-guide-flow';
 import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc, addDoc, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { MuscleHeatmap } from '@/components/muscle-heatmap';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise, WorkoutLocation } from '@/lib/types';
 import { format, subDays, startOfWeek, parseISO as parseISODateFns } from 'date-fns';
 import {
@@ -70,6 +73,8 @@ const formSchema = z.object({
     message: "You have to select at least one muscle group.",
   }),
   supersetStrategy: z.string().min(1, { message: "Please select a superset strategy." }),
+  workoutType: z.enum(['resistance', 'calisthenics']).optional(),
+  allowSupersets: z.boolean().optional(),
 });
 
 const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
@@ -163,6 +168,8 @@ export default function GuidePage() {
       workoutDuration: 40,
       focusArea: [],
       supersetStrategy: "focused",
+      workoutType: 'resistance',
+      allowSupersets: true,
     },
   });
 
@@ -627,6 +634,13 @@ export default function GuidePage() {
                 ))}
               </ul>
             </div>
+            <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <span className="text-lg">⚠️</span>
+              <div>
+                <p className="text-sm font-medium text-amber-600 dark:text-amber-400">One workout per day</p>
+                <p className="text-xs text-muted-foreground">This will be your AI-generated workout for today. You can still create manual workouts anytime.</p>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmation(false)}>Cancel</Button>
@@ -881,30 +895,88 @@ export default function GuidePage() {
                     )}
                   />
 
+                  {/* Workout Type Selector */}
                   <FormField
                     control={form.control}
-                    name="supersetStrategy"
+                    name="workoutType"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Superset Strategy</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a strategy" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="focused">Focused (Same Muscle Group)</SelectItem>
-                            <SelectItem value="mixed">Mixed (Across Muscle Groups)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Choose how to pair exercises in supersets.
-                        </FormDescription>
+                      <FormItem className="space-y-3">
+                        <FormLabel className="text-base">Workout Type</FormLabel>
+                        <FormControl>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => field.onChange('resistance')}
+                              className={`p-4 rounded-lg border-2 text-left transition-all ${field.value === 'resistance' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}`}
+                            >
+                              <div className="text-2xl mb-1">🏋️</div>
+                              <div className="font-medium">Resistance</div>
+                              <div className="text-xs text-muted-foreground">Weights + machines</div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => field.onChange('calisthenics')}
+                              className={`p-4 rounded-lg border-2 text-left transition-all ${field.value === 'calisthenics' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}`}
+                            >
+                              <div className="text-2xl mb-1">🤸</div>
+                              <div className="font-medium">Calisthenics</div>
+                              <div className="text-xs text-muted-foreground">Bodyweight only</div>
+                            </button>
+                          </div>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Allow Supersets Toggle */}
+                  <FormField
+                    control={form.control}
+                    name="allowSupersets"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Allow Supersets</FormLabel>
+                          <FormDescription>
+                            Group exercises into supersets and tri-sets
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch('allowSupersets') && (
+                    <FormField
+                      control={form.control}
+                      name="supersetStrategy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Superset Strategy</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a strategy" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="focused">Focused (Same Muscle Group)</SelectItem>
+                              <SelectItem value="mixed">Mixed (Across Muscle Groups)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Choose how to pair exercises in supersets.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
@@ -1011,6 +1083,38 @@ export default function GuidePage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Muscle Group Summary */}
+                {generatedWorkout && (
+                  <div className="p-4 border rounded-lg bg-gradient-to-r from-primary/5 to-secondary/50">
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      🎯 Muscles Targeted
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const muscleCount: Record<string, number> = {};
+                        generatedWorkout.exercises.forEach(ex => {
+                          const muscle = ex.category;
+                          muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
+                        });
+                        return Object.entries(muscleCount)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([muscle, count]) => (
+                            <span
+                              key={muscle}
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${count >= 3
+                                ? 'bg-primary text-primary-foreground'
+                                : count >= 2
+                                  ? 'bg-primary/50 text-primary-foreground'
+                                  : 'bg-secondary text-secondary-foreground'
+                                }`}
+                            >
+                              {muscle} ({count})
+                            </span>
+                          ));
+                      })()}
+                    </div>
+                  </div>
+                )}
                 {groupedAiExercises.map((group, index) => (
                   <div key={index} className="p-4 border rounded-lg bg-secondary/50 space-y-3">
                     <p className="text-sm font-medium text-muted-foreground">

@@ -26,6 +26,8 @@ const GenerateWorkoutInputSchema = z.object({
   supersetStrategy: z.string().describe("The user's preferred superset strategy. 'focused' means supersets should contain exercises for the SAME muscle group. 'mixed' means supersets can combine exercises for DIFFERENT muscle groups (e.g., antagonist or non-competing groups)."),
   workoutHistory: z.array(WorkoutHistoryItemSchema).optional().describe("A list of the user's recent workouts to avoid repetition."),
   intensityLevel: z.enum(['standard', 'high', 'brutal']).optional().describe("The intensity level for the workout. 'standard' is normal training. 'high' includes some advanced techniques. 'brutal' uses drop sets, giant sets, and other intense methods."),
+  workoutType: z.enum(['resistance', 'calisthenics']).optional().describe("The type of workout to generate. 'resistance' uses weighted exercises (default). 'calisthenics' generates a pure bodyweight workout."),
+  allowSupersets: z.boolean().optional().describe("Whether to allow grouping exercises into supersets, tri-sets, or giant sets. If false, each exercise is standalone."),
 });
 export type GenerateWorkoutInput = z.infer<typeof GenerateWorkoutInputSchema>;
 
@@ -65,6 +67,8 @@ const prompt = ai.definePrompt({
   Focus area(s): {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
   Superset Strategy: {{{supersetStrategy}}}
   {{#if intensityLevel}}Intensity Level: {{{intensityLevel}}}{{/if}}
+  Workout Type: {{#if workoutType}}{{{workoutType}}}{{else}}resistance{{/if}}
+  Allow Supersets: {{#if allowSupersets}}true{{else}}{{#unless allowSupersets}}false{{else}}true{{/unless}}{{/if}}
 
   {{#if workoutHistory}}
   Here is the user's recent workout history. CRITICALLY analyze this to avoid repeating the same exercises or workout styles. Create something FRESH and DIFFERENT:
@@ -161,8 +165,12 @@ const prompt = ai.definePrompt({
   - If Superset Strategy is 'focused': Create supersets/trisets where exercises target the SAME muscle group. This is great for pump and hypertrophy.
   - If Superset Strategy is 'mixed': Pair exercises from DIFFERENT muscle groups (antagonist pairing). This is great for efficiency and active recovery.
   
-  EQUIPMENT-BASED EXERCISE SELECTION:
-  - If "Bodyweight" or "Calisthenics" is listed as available equipment, STRONGLY PREFER calisthenics exercises:
+  **SUPERSET TOGGLE RULES:**
+  - If "Allow Supersets" is FALSE: You MUST generate each exercise as a STANDALONE group. Do NOT combine exercises into supersets, tri-sets, or giant sets. Each exercise should have its own unique supersetId like "group_1", "group_2", "group_3", etc.
+  - If "Allow Supersets" is TRUE (default): You may group exercises as normal using supersets, tri-sets, and giant sets.
+  
+  **WORKOUT TYPE RULES (CRITICAL):**
+  - If "Workout Type" is 'calisthenics': Generate a 100% BODYWEIGHT workout. Use only calisthenics exercises:
     * Push-ups (standard, diamond, archer, decline, wide)
     * Pull-ups, Chin-ups, Inverted Rows
     * Dips (parallel bars or bench)
@@ -172,8 +180,8 @@ const prompt = ai.definePrompt({
     * Burpees, Mountain Climbers
     * Handstand Push-ups, Pike Push-ups
     * Muscle-ups (for advanced)
-  - If only "Bodyweight" is available with no other equipment, generate a 100% calisthenics workout.
-  - You can mix weighted exercises with calisthenics when both equipment types are available.
+  - If "Workout Type" is 'resistance' (default): Use WEIGHTED exercises as the primary focus. You MAY include a few bodyweight exercises as warmups, finishers, or accessory work, but the majority of the workout should use weights/machines.
+  - IMPORTANT: "Bodyweight" as equipment does NOT mean generate an all-calisthenics workout. It means bodyweight exercises are AVAILABLE as an option alongside weighted exercises.
 
   **CRITICAL - EXERCISE NAMING RULES:**
   You MUST use EXACTLY these exercise names (case-sensitive, exact spelling). Do NOT create variations or add extra words:
