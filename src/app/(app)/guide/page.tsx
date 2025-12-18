@@ -1142,19 +1142,17 @@ export default function GuidePage() {
                       <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
                         🎯 Muscles Targeted
                       </h4>
-                      <div className="flex justify-center">
-                        <div className="w-full max-w-[280px]">
-                          <MuscleHeatmap
-                            userProfile={userProfile}
-                            thisWeeksLogs={[mockWorkoutLog]}
-                            isLoading={false}
-                            dateRangeLabel=""
-                            isCard={false}
-                            isSingleWorkout={true}
-                          />
-                        </div>
+                      <div className="mb-4">
+                        <MuscleHeatmap
+                          userProfile={userProfile}
+                          thisWeeksLogs={[mockWorkoutLog]}
+                          isLoading={false}
+                          dateRangeLabel=""
+                          isCard={false}
+                          isSingleWorkout={true}
+                        />
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-3 justify-center">
+                      <div className="flex flex-wrap gap-2 justify-center">
                         {Object.entries(muscleEffort)
                           .sort((a, b) => b[1] - a[1])
                           .slice(0, 6)
