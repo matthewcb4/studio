@@ -27,7 +27,6 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBl
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { MuscleHeatmap } from '@/components/muscle-heatmap';
-import { categoryToMuscleGroup } from '@/lib/muscle-mapping';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise, WorkoutLocation } from '@/lib/types';
 import { format, subDays, startOfWeek, parseISO as parseISODateFns } from 'date-fns';
 import {
@@ -1086,12 +1085,25 @@ export default function GuidePage() {
               <CardContent className="space-y-4">
                 {/* Muscle Heatmap Preview */}
                 {generatedWorkout && (() => {
+                  // Define mapping locally to bypass import caching issue
+                  const localCategoryToMuscle: Record<string, string[]> = {
+                    'Chest': ['chest', 'shoulders_front', 'triceps'],
+                    'Back': ['lats', 'traps', 'biceps', 'back_lower'],
+                    'Shoulders': ['shoulders_front', 'shoulders_back', 'triceps'],
+                    'Legs': ['quads', 'glutes', 'hamstrings', 'calves'],
+                    'Arms': ['biceps', 'triceps'],
+                    'Biceps': ['biceps'],
+                    'Triceps': ['triceps'],
+                    'Core': ['abs'],
+                    'Full Body': ['chest', 'lats', 'traps', 'shoulders_front', 'shoulders_back', 'quads', 'glutes', 'hamstrings', 'biceps', 'triceps', 'abs'],
+                    'Upper Body': ['chest', 'lats', 'traps', 'shoulders_front', 'shoulders_back', 'biceps', 'triceps'],
+                    'Lower Body': ['quads', 'glutes', 'hamstrings', 'calves', 'abs'],
+                  };
+
                   // Calculate muscle intensities from AI-generated exercises
                   const muscleEffort: Record<string, number> = {};
                   generatedWorkout.exercises.forEach(ex => {
-                    console.log('[HEATMAP DEBUG] Exercise:', ex.name, 'Category:', ex.category, 'Type:', typeof ex.category);
-                    const muscles = categoryToMuscleGroup[ex.category] || [];
-                    console.log('[HEATMAP DEBUG] Mapped muscles:', muscles);
+                    const muscles = localCategoryToMuscle[ex.category] || [];
 
                     if (muscles.length > 0) {
                       muscles.forEach(muscle => {
