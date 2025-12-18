@@ -20,6 +20,7 @@ import {
   Music2,
   Mic,
   Plus,
+  Undo2,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,13 @@ import { checkPersonalRecord } from '@/lib/analytics';
 import { PlateCalculator } from '@/components/plate-calculator';
 import { VoiceLogModal } from '@/components/voice-log-modal';
 import { Combobox } from '@/components/ui/combobox';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Badge } from '@/components/ui/badge';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -517,6 +525,28 @@ export default function WorkoutSessionPage() {
     }
   }
 
+  // Handler to undo the last logged set
+  const handleUndoLastSet = (exercise: WorkoutExercise) => {
+    const currentLogs = sessionLog[exercise.id] || [];
+    if (currentLogs.length === 0) return;
+
+    // Remove last set from session log
+    const updatedLogs = currentLogs.slice(0, -1);
+    setSessionLog({ ...sessionLog, [exercise.id]: updatedLogs });
+
+    // Decrement current set counter and remove from exercise state logs
+    setExerciseStates(prev => ({
+      ...prev,
+      [exercise.id]: {
+        ...prev[exercise.id],
+        currentSet: Math.max(1, prev[exercise.id].currentSet - 1),
+        logs: prev[exercise.id].logs.slice(0, -1)
+      }
+    }));
+
+    toast({ title: 'Set Removed', description: 'Last set has been undone.' });
+  };
+
   // Handler for voice logging completion
   const handleVoiceLogComplete = (exercise: WorkoutExercise, data: { weight: number; reps: number }) => {
     const state = exerciseStates[exercise.id];
@@ -586,6 +616,32 @@ export default function WorkoutSessionPage() {
     const state = exerciseStates[ex.id];
     return state && state.currentSet >= ex.sets && state.logs.length >= ex.sets;
   });
+
+  // Helper to get status of any group
+  const getGroupStatus = (groupIndex: number): 'pending' | 'in-progress' | 'completed' => {
+    const group = exerciseGroups[groupIndex];
+    if (!group) return 'pending';
+
+    const hasAnyLogs = group.some(ex => {
+      const logs = sessionLog[ex.id];
+      return logs && logs.length > 0;
+    });
+
+    const allComplete = group.every(ex => {
+      const logs = sessionLog[ex.id];
+      return logs && logs.length >= ex.sets;
+    });
+
+    if (allComplete) return 'completed';
+    if (hasAnyLogs || groupIndex === currentGroupIndex) return 'in-progress';
+    return 'pending';
+  };
+
+  // Handler to jump to a specific group
+  const handleJumpToGroup = (groupIndex: number) => {
+    setCurrentGroupIndex(groupIndex);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Handle adding an exercise mid-workout
   const handleQuickAddExercise = () => {
@@ -1018,24 +1074,96 @@ export default function WorkoutSessionPage() {
           <Progress value={progressValue} className="h-2" />
         </div>
 
+        {/* Exercise Group Navigator */}
+        <Accordion type="single" collapsible className="border rounded-lg">
+          <AccordionItem value="groups" className="border-0">
+            <AccordionTrigger className="px-4 py-2 hover:no-underline">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium">Jump to Exercise Group</span>
+                <div className="flex gap-1">
+                  {exerciseGroups.map((_, idx) => {
+                    const status = getGroupStatus(idx);
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-2 h-2 rounded-full ${status === 'completed' ? 'bg-green-500' :
+                            status === 'in-progress' ? 'bg-yellow-500' :
+                              'bg-muted-foreground/30'
+                          }`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-2">
+                {exerciseGroups.map((group, idx) => {
+                  const status = getGroupStatus(idx);
+                  const isCurrentGroup = idx === currentGroupIndex;
+                  const exerciseNames = group.map(ex => ex.exerciseName).join(' + ');
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleJumpToGroup(idx)}
+                      className={`w-full text-left p-3 rounded-lg transition-colors flex items-center justify-between ${isCurrentGroup
+                          ? 'bg-primary/10 border-2 border-primary'
+                          : 'bg-secondary/50 hover:bg-secondary'
+                        }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">
+                            Group {idx + 1}
+                          </span>
+                          {group.length > 1 && (
+                            <Badge variant="outline" className="text-xs">
+                              Superset
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {exerciseNames}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={status === 'completed' ? 'default' : 'secondary'}
+                        className={`ml-2 text-xs ${status === 'completed' ? 'bg-green-500' :
+                            status === 'in-progress' ? 'bg-yellow-500 text-yellow-900' :
+                              ''
+                          }`}
+                      >
+                        {status === 'completed' ? '✓ Done' :
+                          status === 'in-progress' ? 'Active' :
+                            'Pending'}
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
         {currentGroup.map((exercise) => {
           const state = exerciseStates[exercise.id];
           if (!state) return <div key={exercise.id}>Loading exercise...</div>;
 
           const isEditing = editingExerciseId === exercise.id;
-          const isExerciseComplete = state.currentSet > exercise.sets;
+          const hasReachedTarget = state.currentSet > exercise.sets;
           const unit = exercise.unit || 'reps';
 
           const videoId = exercisePreferences?.find(p => p.id === exercise.exerciseId)?.videoId;
 
           return (
-            <Card key={exercise.id} className={isExerciseComplete ? 'opacity-50' : ''}>
+            <Card key={exercise.id} className={hasReachedTarget ? 'border-green-500/50 border-2' : ''}>
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-2xl">{exercise.exerciseName}</CardTitle>
                     <CardDescription>
-                      Set {Math.min(state.currentSet, exercise.sets)} of {exercise.sets} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
+                      Set {state.currentSet} {hasReachedTarget ? `(Target: ${exercise.sets})` : `of ${exercise.sets}`} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
                     </CardDescription>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setEditingExerciseId(isEditing ? null : exercise.id)}>
@@ -1059,7 +1187,7 @@ export default function WorkoutSessionPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                ) : !isExerciseComplete && (
+                ) : (
                   <>
                     {unit === 'reps' && (
                       <div className="grid grid-cols-2 gap-4">
@@ -1114,7 +1242,7 @@ export default function WorkoutSessionPage() {
                 )
                 }
 
-                {!isExerciseComplete && !isEditing && (
+                {!isEditing && (
                   <div className="flex justify-end mb-2">
                     <Select value={state.setType} onValueChange={(val: any) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, setType: val } })}>
                       <SelectTrigger className="w-[140px] h-8 text-xs">
@@ -1130,7 +1258,7 @@ export default function WorkoutSessionPage() {
                   </div>
                 )}
 
-                {!isExerciseComplete && (
+                {(
                   <div className="flex gap-2">
                     <Button className="flex-1 h-12 text-lg" onClick={() => handleLogSet(exercise)}>
                       Log Set <ChevronRight className="ml-2 h-5 w-5" />
@@ -1154,7 +1282,17 @@ export default function WorkoutSessionPage() {
 
                 {state.logs.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-base font-medium mb-2">Logged Sets</p>
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-base font-medium">Logged Sets</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleUndoLastSet(exercise)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Undo2 className="h-4 w-4 mr-1" /> Undo Last
+                      </Button>
+                    </div>
                     <ul className="space-y-2">
                       {state.logs.map((set, index) => (
                         <li key={index} className="flex justify-between items-center text-base p-3 bg-secondary rounded-md">

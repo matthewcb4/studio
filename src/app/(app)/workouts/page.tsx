@@ -71,6 +71,8 @@ import {
 } from "@/components/ui/accordion";
 import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import Image from 'next/image';
+import { WorkoutMusclePills } from '@/components/workout-muscle-pills';
+import { MuscleHeatmap } from '@/components/muscle-heatmap';
 
 const generateUniqueId = (): string => {
   return `_${Math.random().toString(36).substr(2, 9)}`;
@@ -819,10 +821,37 @@ function WorkoutsPageContent() {
                     )}
                     {workout.description || `${(workout.exercises?.length || 0)} exercises in ${(workout.groupedExercises || []).length} groups`}
                   </CardDescription>
+                  {/* Muscle Group Pills - Collapsed View */}
+                  <WorkoutMusclePills
+                    exercises={workout.exercises || []}
+                    masterExercises={masterExercises || []}
+                  />
                 </CardHeader>
               </AccordionTrigger>
               <AccordionContent>
                 <CardContent className="pt-0">
+                  {/* Muscle Heatmap - Expanded View */}
+                  <div className="mb-6">
+                    <MuscleHeatmap
+                      thisWeeksLogs={[{
+                        id: `preview-${workout.id}`,
+                        userId: '',
+                        workoutName: workout.name,
+                        date: new Date().toISOString(),
+                        duration: '0',
+                        exercises: (workout.exercises || []).map(ex => ({
+                          exerciseId: ex.exerciseId,
+                          exerciseName: ex.exerciseName,
+                          sets: Array(ex.sets).fill({ weight: 100, reps: 10 }),
+                        })),
+                        volume: 0,
+                      }]}
+                      isLoading={false}
+                      dateRangeLabel="This Workout"
+                      isCard={false}
+                      isSingleWorkout={true}
+                    />
+                  </div>
                   <div className="space-y-4">
                     {workout.groupedExercises?.map((group, groupIndex) => (
                       <div key={group[0]?.supersetId || groupIndex} className="space-y-2">
