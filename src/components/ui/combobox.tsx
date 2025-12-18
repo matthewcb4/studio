@@ -33,7 +33,7 @@ export function Combobox({ options, value, onSelect, placeholder = "Select an op
   const selectedOption = options.find((option) => option.value === value)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -45,11 +45,11 @@ export function Combobox({ options, value, onSelect, placeholder = "Select an op
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[100]" align="start" sideOffset={4}>
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandEmpty>No option found.</CommandEmpty>
-          <CommandList className="max-h-[300px] overflow-y-auto">
+          <CommandList className="max-h-[200px] overflow-y-auto">
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem
