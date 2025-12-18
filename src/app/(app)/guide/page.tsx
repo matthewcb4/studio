@@ -1089,10 +1089,19 @@ export default function GuidePage() {
                   // Calculate muscle intensities from AI-generated exercises
                   const muscleEffort: Record<string, number> = {};
                   generatedWorkout.exercises.forEach(ex => {
+                    console.log('[HEATMAP DEBUG] Exercise:', ex.name, 'Category:', ex.category, 'Type:', typeof ex.category);
                     const muscles = categoryToMuscleGroup[ex.category] || [];
-                    muscles.forEach(muscle => {
-                      muscleEffort[muscle] = (muscleEffort[muscle] || 0) + 1;
-                    });
+                    console.log('[HEATMAP DEBUG] Mapped muscles:', muscles);
+
+                    if (muscles.length > 0) {
+                      muscles.forEach(muscle => {
+                        muscleEffort[muscle] = (muscleEffort[muscle] || 0) + 1;
+                      });
+                    } else {
+                      // Fallback: use lowercase category name as muscle group
+                      const fallbackMuscle = ex.category?.toLowerCase() || 'unknown';
+                      muscleEffort[fallbackMuscle] = (muscleEffort[fallbackMuscle] || 0) + 1;
+                    }
                   });
 
                   // Normalize to 0-1 scale for musclesWorked
@@ -1103,6 +1112,9 @@ export default function GuidePage() {
                   }
 
                   // Create mock workout log with musclesWorked (same as cardio uses)
+                  console.log('[HEATMAP DEBUG] Final muscleEffort:', muscleEffort);
+                  console.log('[HEATMAP DEBUG] Final musclesWorked:', musclesWorked);
+
                   const mockWorkoutLog: WorkoutLog = {
                     id: 'preview',
                     userId: '',
