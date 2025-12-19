@@ -19,11 +19,23 @@ const PastWorkoutSchema = z.object({
   duration: z.string().optional().describe("The duration of the workout (e.g., '30 min')."),
 });
 
+const ActiveProgramSchema = z.object({
+  name: z.string().describe("The name of the active program."),
+  currentWeek: z.number().describe("The current week number (1-indexed)."),
+  totalWeeks: z.number().describe("Total weeks in the program."),
+  phase: z.string().describe("The current phase name (e.g., 'Foundation', 'Volume', 'Intensity')."),
+  primaryMuscles: z.array(z.string()).describe("Primary muscles targeted by this program."),
+  muscleEmphasis: z.record(z.number()).describe("Muscle group emphasis percentages."),
+  intensityModifier: z.enum(['standard', 'high', 'brutal']).describe("The intensity level for this week."),
+  focusNotes: z.string().describe("Coaching notes for the current week."),
+}).optional();
+
 const SuggestWorkoutSetupInputSchema = z.object({
   fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals."),
   workoutHistory: z.array(PastWorkoutSchema).describe("The user's workout history for the last 7 days, including cardio sessions."),
   weeklyWorkoutGoal: z.number().describe("The user's target number of workouts per week (1-7)."),
   workoutsThisWeek: z.number().describe("The number of workouts the user has already completed this week (Monday to today)."),
+  activeProgram: ActiveProgramSchema.describe("Optional: The user's currently active workout program context."),
 });
 
 
@@ -66,8 +78,33 @@ const prompt = ai.definePrompt({
     The user has no workouts logged in the last 7 days.
   {{/if}}
 
+  {{#if activeProgram}}
+  **🎯 ACTIVE PROGRAM (PRIORITY):**
+  The user is enrolled in a structured program. Your suggestions MUST align with this program's focus!
+  
+  - **Program:** {{activeProgram.name}}
+  - **Current Week:** {{activeProgram.currentWeek}} of {{activeProgram.totalWeeks}}
+  - **Phase:** {{activeProgram.phase}}
+  - **Week's Intensity:** {{activeProgram.intensityModifier}}
+  - **Primary Muscles:** {{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  - **Coach Notes for This Week:** {{activeProgram.focusNotes}}
+  
+  **PROGRAM OVERRIDE RULES:**
+  When a user has an active program, you MUST:
+  1. **Focus on the program's primary muscles** - The focus area should emphasize these muscle groups
+  2. **Use the program's intensity modifier** - If the program says 'brutal', make it brutal!
+  3. **Mention the program in your summary** - Reference their progress (e.g., "Week 3 of Superman Chest...")
+  4. **Apply the phase-specific coaching notes** - These are tailored for their current week
+  5. **Still consider recovery** - Don't hit the same muscle group two days in a row, even for focused programs
+  {{/if}}
+
   **SPLIT PROGRAMMING GUIDELINES (CRITICAL):**
+  {{#if activeProgram}}
+  Since the user has an active program, prioritize the program's muscle emphasis over standard splits.
+  However, still follow smart programming - allow recovery between sessions targeting the same muscles.
+  {{else}}
   Based on the user's weekly workout goal, you MUST follow these standard split patterns to suggest the appropriate focus for today:
+  {{/if}}
 
   - **2 days/week:** Full Body both days. Always suggest "Full Body".
   
@@ -94,6 +131,9 @@ const prompt = ai.definePrompt({
     - Be more granular with focus areas
 
   **INTENSITY LEVEL SELECTION:**
+  {{#if activeProgram}}
+  **IMPORTANT:** Use the program's intensity modifier ({{activeProgram.intensityModifier}}) as your baseline!
+  {{/if}}
   Choose the appropriate intensity based on:
   
   🟢 **STANDARD** - Use when:
@@ -121,8 +161,14 @@ const prompt = ai.definePrompt({
   - Sometimes be playful ("Ready to crush some weights?")
   - Sometimes be direct and coach-like ("Today we're hitting legs. No excuses.")
   - Acknowledge their patterns ("I notice you've been consistent this week - let's reward that with a challenge")
+  {{#if activeProgram}}
+  - Reference their program progress! ("Week {{activeProgram.currentWeek}} of {{activeProgram.name}} - let's make it count!")
+  {{/if}}
 
   **COACHING TIPS (coachingTip field):**
+  {{#if activeProgram}}
+  Incorporate the program's week-specific notes: "{{activeProgram.focusNotes}}"
+  {{/if}}
   Include brief, actionable coaching tips like:
   - "Focus on the mind-muscle connection today, especially on isolation moves"
   - "Try a 2-second pause at the bottom of each squat"
@@ -141,21 +187,31 @@ const prompt = ai.definePrompt({
 
   **Your Task:**
 
-  1.  **Determine Today's Day Number:** Calculate which day of the split this is based on workoutsThisWeek + 1.
-  2.  **Apply the Split Pattern:** Based on the weekly goal and today's day number, determine what the focus should be according to the split patterns above.
-  3.  **Cross-check with History:** Verify the suggestion makes sense given recent workouts. If they just did that muscle group yesterday, adjust if needed.
-  4.  **Select Intensity Level:** Based on their recent training load, rest, and where they are in the week.
-  5.  **Consider Cardio:** Look at recent cardio sessions and provide a cardioRecommendation if appropriate.
-  6.  **Create a Suggestion:**
-      *   **Focus Area:** CRITICAL: Only use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'.
+  1.  **Check for Active Program:** If the user has an active program, prioritize its focus areas and intensity.
+  2.  **Determine Today's Day Number:** Calculate which day of the split this is based on workoutsThisWeek + 1.
+  3.  **Apply the Focus Pattern:** 
+      {{#if activeProgram}}
+      - Use the program's primary muscles as focus
+      - Adapt based on recovery needs
+      {{else}}
+      - Based on the weekly goal and today's day number, determine what the focus should be
+      {{/if}}
+  4.  **Cross-check with History:** Verify the suggestion makes sense given recent workouts. If they just did that muscle group yesterday, adjust if needed.
+  5.  **Select Intensity Level:** {{#if activeProgram}}Start with {{activeProgram.intensityModifier}} and adjust based on recovery.{{else}}Based on their recent training load, rest, and where they are in the week.{{/if}}
+  6.  **Consider Cardio:** Look at recent cardio sessions and provide a cardioRecommendation if appropriate.
+  7.  **Create a Suggestion:**
+      *   **Focus Area:** {{#if activeProgram}}Emphasize program's primary muscles ({{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}).{{else}}CRITICAL: Only use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'.{{/if}}
       *   **Duration:** 45-60 minutes standard. Longer for mass goals, shorter for fat loss.
       *   **Superset Strategy:** Use 'mixed' for full-body or Upper Body days. Use 'focused' for Lower Body days.
       *   **Intensity Level:** Choose 'standard', 'high', or 'brutal' based on the guidelines above.
-      *   **Summary:** Write a 2-3 sentence 'summary' with PERSONALITY. Mix your tone. Mention the intensity if it's high or brutal.
+      *   **Summary:** Write a 2-3 sentence 'summary' with PERSONALITY. {{#if activeProgram}}Mention the program and week!{{/if}} Mix your tone. Mention the intensity if it's high or brutal.
       *   **Coaching Tip:** Brief, actionable advice for today's workout.
       *   **Cardio Recommendation:** If relevant, provide a brief suggestion.
 
   **IMPORTANT:**
+  {{#if activeProgram}}
+  - The user is on a STRUCTURED PROGRAM - respect it! Focus on their program's target muscles.
+  {{/if}}
   - Follow the split pattern based on weekly goal. Do NOT just default to "Full Body" or "Lower Body" to balance things out.
   - Be concise but show personality.
   - The output MUST be a valid JSON object matching the output schema.

@@ -14,6 +14,7 @@ import {
   Loader2,
   Settings,
   List,
+  Bookmark,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -44,6 +45,7 @@ import { useEffect, useState, useMemo } from "react";
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/guide", icon: Bot, label: "AI Guide" },
+  { href: "/programs", icon: Bookmark, label: "Programs" },
   { href: "/workouts", icon: Dumbbell, label: "Workouts" },
   { href: "/exercises", icon: List, label: "Exercises" },
   { href: "/history", icon: History, label: "History" },

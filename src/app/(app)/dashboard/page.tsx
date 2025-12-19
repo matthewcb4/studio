@@ -40,8 +40,9 @@ import {
 import { format, isWithinInterval, subDays, startOfWeek } from "date-fns";
 import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, addDoc, addDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, limit, doc } from "firebase/firestore";
-import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise, LoggedSet, UserEquipment, WorkoutLocation } from "@/lib/types";
-import { Dumbbell, Target, TrendingDown, TrendingUp, Star, Play, Plus, Zap, Trophy, Flame } from "lucide-react";
+import type { CustomWorkout, WorkoutLog, UserProfile, ProgressLog, Exercise, LoggedSet, UserEquipment, WorkoutLocation, UserProgramEnrollment } from "@/lib/types";
+import { getProgramById } from "@/lib/program-data";
+import { Dumbbell, Target, TrendingDown, TrendingUp, Star, Play, Plus, Zap, Trophy, Flame, ChevronRight, Bookmark } from "lucide-react";
 import { MuscleHeatmap, type MuscleGroupIntensities } from "@/components/muscle-heatmap";
 import { HeatmapDetailModal } from "@/components/heatmap-detail-modal";
 import { OnboardingModal } from "@/components/onboarding-modal";
@@ -400,6 +401,21 @@ export default function DashboardPage() {
         , [firestore, user]);
     const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
+    // Active program enrollment for dashboard display
+    const activeEnrollmentRef = useMemoFirebase(() => {
+        if (!user || !userProfile?.activeProgramId) return null;
+        return doc(firestore, `users/${user.uid}/programEnrollments/${userProfile.activeProgramId}`);
+    }, [firestore, user, userProfile?.activeProgramId]);
+    const { data: activeEnrollment } = useDoc<UserProgramEnrollment>(activeEnrollmentRef);
+
+    // Get full program data for the active enrollment
+    const activeProgram = useMemo(() => {
+        if (!activeEnrollment) return null;
+        const program = getProgramById(activeEnrollment.programId);
+        if (!program) return null;
+        return { program, enrollment: activeEnrollment };
+    }, [activeEnrollment]);
+
     // Equipment collection (for migration)
     const equipmentCollection = useMemoFirebase(() =>
         user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -656,6 +672,46 @@ export default function DashboardPage() {
                     )}
 
                     <UserStatsCard userProfile={userProfile} />
+
+                    {/* Active Program Card */}
+                    {activeProgram && (
+                        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="flex items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                        <span className="text-2xl">{activeProgram.program.icon}</span>
+                                        <span className="text-base">Active Program</span>
+                                    </span>
+                                    <Bookmark className="w-5 h-5 text-primary" />
+                                </CardTitle>
+                                <CardDescription>{activeProgram.program.name}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-sm">
+                                        <span>Week {activeProgram.enrollment.currentWeek} of {activeProgram.program.durationWeeks}</span>
+                                        <span className="text-muted-foreground">
+                                            {Math.round((activeProgram.enrollment.currentWeek / activeProgram.program.durationWeeks) * 100)}%
+                                        </span>
+                                    </div>
+                                    <Progress
+                                        value={(activeProgram.enrollment.currentWeek / activeProgram.program.durationWeeks) * 100}
+                                        className="h-2"
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">
+                                        {activeProgram.enrollment.workoutsCompletedThisWeek}/{activeProgram.program.daysPerWeek} this week
+                                    </span>
+                                    <Button size="sm" variant="ghost" asChild className="h-8">
+                                        <Link href="/guide">
+                                            Continue <ChevronRight className="h-4 w-4 ml-1" />
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <Card className="lg:col-span-1 flex flex-col">
                         <CardHeader className="pb-3">

@@ -27,7 +27,8 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBl
 import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { MuscleHeatmap } from '@/components/muscle-heatmap';
-import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise, WorkoutLocation } from '@/lib/types';
+import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise, WorkoutLocation, UserProgramEnrollment } from '@/lib/types';
+import { getProgramById, getWeekProgression } from '@/lib/program-data';
 import { format, subDays, startOfWeek, parseISO as parseISODateFns } from 'date-fns';
 import {
   Dialog,
@@ -50,6 +51,16 @@ export type SuggestWorkoutSetupInput = {
   }[];
   weeklyWorkoutGoal: number;
   workoutsThisWeek: number;
+  activeProgram?: {
+    name: string;
+    currentWeek: number;
+    totalWeeks: number;
+    phase: string;
+    primaryMuscles: string[];
+    muscleEmphasis: Record<string, number>;
+    intensityModifier: 'standard' | 'high' | 'brutal';
+    focusNotes: string;
+  };
 };
 
 export type SuggestWorkoutSetupOutput = {
@@ -140,6 +151,23 @@ export default function GuidePage() {
     user ? doc(firestore, `users/${user.uid}/profile/main`) : null
     , [firestore, user]);
   const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+
+  // Active program enrollment
+  const activeEnrollmentRef = useMemoFirebase(() => {
+    if (!user || !userProfile?.activeProgramId) return null;
+    return doc(firestore, `users/${user.uid}/programEnrollments/${userProfile.activeProgramId}`);
+  }, [firestore, user, userProfile?.activeProgramId]);
+  const { data: activeEnrollment } = useDoc<UserProgramEnrollment>(activeEnrollmentRef);
+
+  // Get full program data for the active enrollment
+  const activeProgram = useMemo(() => {
+    if (!activeEnrollment) return null;
+    const program = getProgramById(activeEnrollment.programId);
+    if (!program) return null;
+    const weekProgression = getWeekProgression(activeEnrollment.programId, activeEnrollment.currentWeek);
+    if (!weekProgression) return null;
+    return { program, enrollment: activeEnrollment, weekProgression };
+  }, [activeEnrollment]);
 
   const allWorkoutLogsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -278,11 +306,24 @@ export default function GuidePage() {
         const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
 
         try {
+          // Build active program context if user is enrolled
+          const activeProgramContext = activeProgram ? {
+            name: activeProgram.program.name,
+            currentWeek: activeProgram.enrollment.currentWeek,
+            totalWeeks: activeProgram.program.durationWeeks,
+            phase: activeProgram.weekProgression.phase,
+            primaryMuscles: activeProgram.program.primaryMuscles,
+            muscleEmphasis: activeProgram.program.muscleEmphasis,
+            intensityModifier: activeProgram.weekProgression.intensityModifier,
+            focusNotes: activeProgram.weekProgression.focusNotes,
+          } : undefined;
+
           const suggestion = await suggestWorkoutSetup({
             fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
             workoutHistory: history,
             weeklyWorkoutGoal: userProfile?.weeklyWorkoutGoal || 3,
             workoutsThisWeek: getWorkoutsThisWeek(recentLogs),
+            activeProgram: activeProgramContext,
           });
 
           if (userProfileRef) {
@@ -660,6 +701,33 @@ export default function GuidePage() {
                 <p className="text-muted-foreground">
                   Let's create your first personalized workout. Our AI coach will generate a routine based on your goals and equipment.
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Active Program Banner */}
+        {activeProgram && (
+          <Card className="border-primary/50 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+            <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{activeProgram.program.icon}</span>
+                <div>
+                  <p className="font-semibold">{activeProgram.program.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Week {activeProgram.enrollment.currentWeek} of {activeProgram.program.durationWeeks} • {activeProgram.weekProgression.phase} Phase
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium px-2 py-1 rounded-full ${activeProgram.weekProgression.intensityModifier === 'brutal'
+                    ? 'bg-red-500/20 text-red-500'
+                    : activeProgram.weekProgression.intensityModifier === 'high'
+                      ? 'bg-orange-500/20 text-orange-500'
+                      : 'bg-green-500/20 text-green-500'
+                  }`}>
+                  {activeProgram.weekProgression.intensityModifier.toUpperCase()} WEEK
+                </span>
               </div>
             </CardContent>
           </Card>

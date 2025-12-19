@@ -126,6 +126,9 @@ export type UserProfile = {
   // Media preferences
   preferredMusicApp?: 'spotify' | 'apple-music' | 'youtube-music' | 'amazon-music' | 'pandora' | 'none';
 
+  // Active Workout Program
+  activeProgramId?: string;              // ID of the currently active program enrollment
+
   // Feature Discovery (for new user onboarding)
   discoveryChecklist?: {
     firstWorkout?: boolean;
@@ -154,4 +157,58 @@ export type PRResult = {
   type: PRType;
   oldValue: number;
   newValue: number;
+};
+
+// Workout Program (stored in global 'programs' collection)
+export type WorkoutProgram = {
+  id: string;
+  name: string;                          // "6-Week Superman Chest"
+  description: string;                   // Marketing description
+  shortDescription: string;              // One-liner for cards
+  durationWeeks: number;                 // 4, 6, 8
+  daysPerWeek: number;                   // 3-6 recommended
+  price: number;                         // 0 = free, 99 = $0.99 (in cents)
+  productId: string;                     // Google Play product ID
+  icon: string;                          // Emoji: 🦸, 🔥, 💪
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+
+  // Program structure for AI
+  primaryMuscles: string[];              // ['chest', 'shoulders_front', 'triceps']
+  secondaryMuscles: string[];            // ['lats', 'biceps']
+  muscleEmphasis: Record<string, number>; // { chest: 0.6, shoulders: 0.2, triceps: 0.2 }
+
+  // Weekly progression
+  weeklyProgression: {
+    week: number;
+    phase: string;                       // 'Foundation', 'Volume', 'Intensity', 'Peak'
+    intensityModifier: 'standard' | 'high' | 'brutal';
+    volumeMultiplier: number;            // 1.0, 1.1, 1.2
+    focusNotes: string;                  // Coaching notes for this week
+  }[];
+
+  // Display
+  coverImageUrl?: string;
+  tags: string[];                        // ['chest', 'muscle-gain', 'intermediate']
+  isActive: boolean;                     // Admin can disable programs
+  createdAt: string;
+};
+
+// User's enrollment in a program (stored in user subcollection)
+export type UserProgramEnrollment = {
+  id: string;
+  programId: string;
+  programName: string;                   // Denormalized for display
+  programIcon: string;                   // Denormalized for display
+  durationWeeks: number;                 // Denormalized for progress display
+  daysPerWeek: number;                   // Denormalized for progress tracking
+  purchasedAt: string;                   // ISO date
+  startedAt?: string;                    // ISO date when user started
+  currentWeek: number;                   // 1-indexed
+  workoutsCompletedThisWeek: number;
+  totalWorkoutsCompleted: number;        // Total across all weeks
+  isCompleted: boolean;
+  isActive: boolean;                     // Is this the currently active program?
+  completedAt?: string;                  // ISO date when completed
+  isPurchased: boolean;                  // true if purchased or free
+  purchaseToken?: string;                // Google Play purchase token for verification
 };
