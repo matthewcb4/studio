@@ -145,9 +145,13 @@ export async function purchaseProduct(productId: ProductId): Promise<{ success: 
 
     try {
         // Get product details first
+        console.log('Attempting to get product details for:', productId);
         const details = await getProductDetails([productId]);
+        console.log('Product details returned:', details);
+
         if (details.length === 0) {
-            return { success: false, error: 'Product not found' };
+            console.error('No product details returned for:', productId);
+            return { success: false, error: `Product not found in Play Store: ${productId}` };
         }
 
         const product = details[0];
