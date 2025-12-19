@@ -145,5 +145,19 @@ service cloud.firestore {
       allow update: if isSignedIn();
       allow delete: if isSignedIn();
     }
+    /**
+     * @description Stores feedback and suggestions from users.
+     * @path /feedback/{feedbackId}
+     */
+    match /feedback/{feedbackId} {
+      // Anyone authenticated can create feedback
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Only allow reading your own feedback or if you're an admin
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Admin email can read all feedback (for review)
+      allow list: if isSignedIn() && request.auth.token.email == 'matthewcb4@gmail.com';
+      // Users can delete their own feedback
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
   }
 }

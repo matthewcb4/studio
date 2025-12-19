@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { calculateUserStats } from '@/lib/analytics'; // Imported analytics
-import { PlusCircle, Trash2, Loader2, Settings, Target, User as UserIcon, Dumbbell, FileText, Palette, Link as LinkIcon, Database } from 'lucide-react'; // Added Database icon
+import { PlusCircle, Trash2, Loader2, Settings, Target, User as UserIcon, Dumbbell, FileText, Palette, Link as LinkIcon, Database, MessageSquare } from 'lucide-react'; // Added MessageSquare icon
 import { Card, CardContent, CardDescription, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { colorSchemes, type HeatmapColorScheme } from '@/components/muscle-heatmap';
+import { FeedbackDialog } from '@/components/feedback-dialog';
 
 
 const equipmentFormSchema = z.object({
@@ -990,6 +991,47 @@ export default function SettingsPage() {
                                         Privacy Policy
                                     </Button>
                                 </Link>
+                            </CardContent>
+                        </AccordionContent>
+                    </Card>
+                </AccordionItem>
+                <AccordionItem value="feedback" className="border-none">
+                    <Card>
+                        <AccordionTrigger className="p-6 text-left">
+                            <div className="flex items-center gap-3">
+                                <MessageSquare className="w-6 h-6 text-primary" />
+                                <div>
+                                    <CardTitle>Feedback & Support</CardTitle>
+                                    <CardDescription className="mt-1.5 text-left">
+                                        Help us improve fRepo with your feedback.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <CardContent className="space-y-4">
+                                <div className="p-4 bg-secondary rounded-lg space-y-3">
+                                    <h4 className="font-medium">Share Your Thoughts</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        Have a feature request, found a bug, or just want to share feedback? We'd love to hear from you!
+                                    </p>
+                                    <FeedbackDialog
+                                        type="feedback"
+                                        category="general"
+                                        trigger={
+                                            <Button className="w-full">
+                                                <MessageSquare className="h-4 w-4 mr-2" />
+                                                Send Feedback
+                                            </Button>
+                                        }
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground text-center">
+                                    Or email us directly at{' '}
+                                    <a href="mailto:support@frepo.app" className="text-primary hover:underline">
+                                        support@frepo.app
+                                    </a>
+                                </p>
                             </CardContent>
                         </AccordionContent>
                     </Card>

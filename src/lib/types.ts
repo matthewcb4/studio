@@ -213,3 +213,18 @@ export type UserProgramEnrollment = {
   isPurchased: boolean;                  // true if purchased or free
   purchaseToken?: string;                // Google Play purchase token for verification
 };
+
+/**
+ * User feedback and suggestions
+ */
+export type Feedback = {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  displayName?: string;
+  type: 'suggestion' | 'feedback' | 'bug';
+  category: 'program' | 'general' | 'feature';
+  message: string;
+  createdAt: string;                     // ISO date
+  status?: 'new' | 'reviewed' | 'resolved';
+};

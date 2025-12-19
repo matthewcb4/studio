@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, doc, addDoc, updateDoc, query, where } from 'firebase/firestore';
-import { Sparkles, Trophy, ShoppingBag, Play, ChevronRight, Info, Calendar, Dumbbell, TrendingUp, Pause, ShoppingCart, Loader2 } from 'lucide-react';
+import { Sparkles, Trophy, ShoppingBag, Play, ChevronRight, Info, Calendar, Dumbbell, TrendingUp, Pause, ShoppingCart, Loader2, Lightbulb } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import { useBilling, getDisplayPrice } from '@/hooks/use-billing';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { ProgramCard } from '@/components/program-card';
+import { FeedbackDialog } from '@/components/feedback-dialog';
 import { getPrograms, getProgramById } from '@/lib/program-data';
 import type { WorkoutProgram, UserProgramEnrollment, UserProfile } from '@/lib/types';
 
@@ -522,15 +523,23 @@ export default function ProgramsPage() {
 
                         {/* Coming Soon Notice */}
                         <Card className="bg-muted/50">
-                            <CardContent className="flex items-center gap-3 p-4">
-                                <Info className="h-5 w-5 text-muted-foreground shrink-0" />
-                                <p className="text-sm text-muted-foreground">
-                                    More programs coming soon! Have a suggestion?{' '}
-                                    <a href="mailto:support@frepo.app" className="text-primary hover:underline">
-                                        Let us know
-                                    </a>
-                                    .
-                                </p>
+                            <CardContent className="flex items-center justify-between gap-3 p-4">
+                                <div className="flex items-center gap-3">
+                                    <Info className="h-5 w-5 text-muted-foreground shrink-0" />
+                                    <p className="text-sm text-muted-foreground">
+                                        More programs coming soon!
+                                    </p>
+                                </div>
+                                <FeedbackDialog
+                                    type="suggestion"
+                                    category="program"
+                                    trigger={
+                                        <Button variant="outline" size="sm" className="shrink-0">
+                                            <Lightbulb className="h-4 w-4 mr-2" />
+                                            Suggest a Program
+                                        </Button>
+                                    }
+                                />
                             </CardContent>
                         </Card>
                     </TabsContent>
