@@ -33,9 +33,9 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 
-import type { ActivityType, CardioMetrics, WorkoutLog } from '@/lib/types';
-import { useUser, useFirestore, addDoc } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import type { ActivityType, CardioMetrics, WorkoutLog, UserProfile } from '@/lib/types';
+import { useUser, useFirestore, addDoc, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -86,6 +86,12 @@ export function CardioLogForm({ isOpen, onOpenChange, defaultActivity = 'run' }:
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedHiitMuscles, setSelectedHiitMuscles] = useState<string[]>(['quads', 'glutes', 'abs', 'chest', 'shoulders_front']);
+
+    // User profile for streak updates
+    const userProfileRef = useMemoFirebase(() =>
+        user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+        , [firestore, user]);
+    const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
     const form = useForm<CardioLogFormValues>({
         resolver: zodResolver(cardioLogSchema),
@@ -181,6 +187,75 @@ export function CardioLogForm({ isOpen, onOpenChange, defaultActivity = 'run' }:
 
             const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
             await addDoc(logsCollection, workoutLog);
+
+            // Update user profile for streak and XP (cardio counts towards daily exercise streak)
+            if (userProfileRef) {
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('en-CA');
+                const lastDateStr = userProfile?.lastWorkoutDate
+                    ? new Date(userProfile.lastWorkoutDate).toLocaleDateString('en-CA')
+                    : null;
+
+                let newStreak = userProfile?.currentStreak || 0;
+                let streakUpdated = false;
+
+                // If not same day, check if consecutive
+                if (lastDateStr !== todayStr) {
+                    if (lastDateStr) {
+                        const yesterday = new Date(now);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+                        if (lastDateStr === yesterdayStr) {
+                            newStreak += 1;
+                            streakUpdated = true;
+                        } else {
+                            newStreak = 1; // Reset
+                        }
+                    } else {
+                        newStreak = 1; // First workout ever
+                        streakUpdated = true;
+                    }
+                }
+
+                const newLongestStreak = Math.max(newStreak, userProfile?.longestStreak || 0);
+
+                // XP for cardio: 50 base + 1 per 5 minutes
+                const xpEarned = 50 + Math.floor(values.durationMinutes / 5);
+                const currentXP = userProfile?.xp || 0;
+                const newXP = currentXP + xpEarned;
+                const currentLevel = userProfile?.level || 1;
+                const newLevel = Math.floor(newXP / 1000) + 1;
+                const levelUp = newLevel > currentLevel;
+
+                updateDocumentNonBlocking(userProfileRef, {
+                    lastWorkoutDate: now.toISOString(),
+                    currentStreak: newStreak,
+                    longestStreak: newLongestStreak,
+                    xp: newXP,
+                    level: newLevel,
+                });
+
+                if (streakUpdated) {
+                    setTimeout(() => {
+                        toast({
+                            title: "🔥 Streak Increased!",
+                            description: `You are on a ${newStreak} day streak!`,
+                            className: "bg-orange-500/10 border-orange-500/50 text-orange-600 dark:text-orange-400"
+                        });
+                    }, 500);
+                }
+
+                if (levelUp) {
+                    setTimeout(() => {
+                        toast({
+                            title: "🎉 Level Up!",
+                            description: `Congratulations! You reached Level ${newLevel}!`,
+                            className: "bg-purple-500/10 border-purple-500/50 text-purple-600 dark:text-purple-400"
+                        });
+                    }, 1000);
+                }
+            }
 
             toast({
                 title: 'Cardio Logged!',
