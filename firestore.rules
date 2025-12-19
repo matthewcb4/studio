@@ -121,6 +121,17 @@ service cloud.firestore {
         allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; //Immutable user ID
         allow delete: if isOwner(userId);
       }
+
+      /**
+       * @description Manages program enrollments for users (structured workout programs).
+       * @path /users/{userId}/programEnrollments/{enrollmentId}
+       */
+      match /programEnrollments/{enrollmentId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
     }
     
     /**
