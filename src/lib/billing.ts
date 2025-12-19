@@ -20,9 +20,9 @@ export type ProductId = typeof PRODUCT_IDS[keyof typeof PRODUCT_IDS];
 
 // Map program IDs to Play Store product IDs
 export const PROGRAM_TO_PRODUCT: Record<string, ProductId> = {
-    'superman-chest': PRODUCT_IDS.SUPERMAN_CHEST,
-    'sixpack-shredder': PRODUCT_IDS.SIXPACK_SHREDDER,
-    'arm-blaster': PRODUCT_IDS.ARM_BLASTER,
+    'superman-chest-6week': PRODUCT_IDS.SUPERMAN_CHEST,
+    'sixpack-shredder-6week': PRODUCT_IDS.SIXPACK_SHREDDER,
+    'arm-blaster-6week': PRODUCT_IDS.ARM_BLASTER,
 };
 
 export interface ProductDetails {
