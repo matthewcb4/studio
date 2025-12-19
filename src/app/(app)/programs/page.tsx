@@ -441,7 +441,10 @@ export default function ProgramsPage() {
                                         onSelect={handleSelectProgram}
                                         onStart={handleStartProgram}
                                         onContinue={handleContinueProgram}
+                                        onPurchase={handlePurchaseProgram}
                                         variant="enrolled"
+                                        isBillingAvailable={isBillingAvailable}
+                                        isProgramOwned={isProgramOwned(program.id, program.price === 0)}
                                     />
                                 ))}
                             </div>
@@ -478,6 +481,9 @@ export default function ProgramsPage() {
                                             onSelect={handleSelectProgram}
                                             onStart={handleStartProgram}
                                             onContinue={handleContinueProgram}
+                                            onPurchase={handlePurchaseProgram}
+                                            isBillingAvailable={isBillingAvailable}
+                                            isProgramOwned={isProgramOwned(program.id, program.price === 0)}
                                         />
                                     ))}
                             </div>
@@ -498,6 +504,9 @@ export default function ProgramsPage() {
                                             onSelect={handleSelectProgram}
                                             onStart={handleStartProgram}
                                             onContinue={handleContinueProgram}
+                                            onPurchase={handlePurchaseProgram}
+                                            isBillingAvailable={isBillingAvailable}
+                                            isProgramOwned={isProgramOwned(program.id, program.price === 0)}
                                         />
                                     ))}
                                 </div>

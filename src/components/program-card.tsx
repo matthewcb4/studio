@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import type { WorkoutProgram, UserProgramEnrollment } from '@/lib/types';
-import { Check, Clock, Dumbbell, Lock, Play, Star } from 'lucide-react';
+import { Check, Clock, Dumbbell, Lock, Play, Star, ShoppingCart } from 'lucide-react';
 
 interface ProgramCardProps {
     program: WorkoutProgram;
@@ -13,7 +13,12 @@ interface ProgramCardProps {
     onSelect: (program: WorkoutProgram) => void;
     onStart?: (program: WorkoutProgram) => void;
     onContinue?: (enrollment: UserProgramEnrollment) => void;
+    onPurchase?: (program: WorkoutProgram) => void;
     variant?: 'store' | 'enrolled';
+    /** Whether billing API is available (only true in Play Store TWA) */
+    isBillingAvailable?: boolean;
+    /** Whether this program is owned (purchased or free) */
+    isProgramOwned?: boolean;
 }
 
 export function ProgramCard({
@@ -22,12 +27,16 @@ export function ProgramCard({
     onSelect,
     onStart,
     onContinue,
+    onPurchase,
     variant = 'store',
+    isBillingAvailable = false,
+    isProgramOwned: isProgramOwnedProp,
 }: ProgramCardProps) {
-    const isOwned = enrollment?.isPurchased || program.price === 0;
+    const isFree = program.price === 0;
+    // Use the prop if provided, otherwise fall back to enrollment-based check
+    const isOwned = isProgramOwnedProp ?? (enrollment?.isPurchased || isFree);
     const isActive = enrollment?.isActive;
     const isCompleted = enrollment?.isCompleted;
-    const isFree = program.price === 0;
 
     // Calculate progress if enrolled
     const progressPercent = enrollment
@@ -121,17 +130,42 @@ export function ProgramCard({
             </CardContent>
 
             <CardFooter className="pt-0">
+                {/* Not owned - show appropriate button based on free/paid and billing availability */}
                 {!isOwned && (
-                    <Button
-                        className="w-full"
-                        variant={isFree ? 'default' : 'secondary'}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onStart?.(program);
-                        }}
-                    >
-                        {isFree ? 'Get Free' : 'Purchase'}
-                    </Button>
+                    isFree ? (
+                        // Free program - always allow starting
+                        <Button
+                            className="w-full"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onStart?.(program);
+                            }}
+                        >
+                            Get Free
+                        </Button>
+                    ) : isBillingAvailable ? (
+                        // Paid program with billing available - show purchase button
+                        <Button
+                            className="w-full"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onPurchase?.(program);
+                            }}
+                        >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Buy ${(program.price / 100).toFixed(2)}
+                        </Button>
+                    ) : (
+                        // Paid program without billing - show disabled button
+                        <Button
+                            className="w-full"
+                            variant="secondary"
+                            disabled
+                        >
+                            <Lock className="h-4 w-4 mr-2" />
+                            ${(program.price / 100).toFixed(2)}
+                        </Button>
+                    )
                 )}
 
                 {isOwned && !enrollment && (
