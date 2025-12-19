@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, doc, addDoc, updateDoc, query, where } from 'firebase/firestore';
-import { Sparkles, Trophy, ShoppingBag, Play, ChevronRight, Info, Calendar, Dumbbell, TrendingUp, Pause } from 'lucide-react';
+import { Sparkles, Trophy, ShoppingBag, Play, ChevronRight, Info, Calendar, Dumbbell, TrendingUp, Pause, ShoppingCart, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useBilling, getDisplayPrice } from '@/hooks/use-billing';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { ProgramCard } from '@/components/program-card';
@@ -31,9 +32,13 @@ export default function ProgramsPage() {
     const router = useRouter();
     const { toast } = useToast();
 
+    // Billing hook for in-app purchases
+    const { isAvailable: isBillingAvailable, isProgramOwned, purchaseProgram, productDetails } = useBilling();
+
     const [selectedProgram, setSelectedProgram] = useState<WorkoutProgram | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isEnrolling, setIsEnrolling] = useState(false);
+    const [isPurchasing, setIsPurchasing] = useState(false);
 
     // Get all available programs
     const allPrograms = useMemo(() => getPrograms(), []);
@@ -194,8 +199,46 @@ export default function ProgramsPage() {
         }
     };
 
+    const handlePurchaseProgram = async (program: WorkoutProgram) => {
+        if (!user || !program) return;
+
+        setIsPurchasing(true);
+        try {
+            const result = await purchaseProgram(program.id);
+
+            if (result.success) {
+                toast({
+                    title: 'Purchase Successful! 🎉',
+                    description: `You now own ${program.name}. Let's get started!`,
+                });
+                // After purchase, start the program
+                await handleStartProgram(program);
+            } else if (result.error !== 'Purchase cancelled') {
+                toast({
+                    title: 'Purchase Failed',
+                    description: result.error || 'Something went wrong. Please try again.',
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            console.error('Error purchasing program:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to complete purchase. Please try again.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsPurchasing(false);
+        }
+    };
+
     const isLoading = isLoadingProfile || isLoadingEnrollments;
     const selectedProgramEnrollment = selectedProgram ? getEnrollment(selectedProgram.id) : null;
+
+    // Check if selected program is owned (free or purchased)
+    const isSelectedProgramOwned = selectedProgram
+        ? isProgramOwned(selectedProgram.id, selectedProgram.price === 0)
+        : false;
 
     return (
         <>
@@ -289,14 +332,16 @@ export default function ProgramsPage() {
                             </div>
 
                             <DialogFooter>
-                                {selectedProgram.price === 0 || selectedProgramEnrollment?.isPurchased ? (
+                                {isSelectedProgramOwned || selectedProgramEnrollment?.isPurchased ? (
                                     <Button
                                         className="w-full"
                                         onClick={() => handleStartProgram(selectedProgram)}
                                         disabled={isEnrolling}
                                     >
                                         {isEnrolling ? (
-                                            'Starting...'
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Starting...
+                                            </>
                                         ) : selectedProgramEnrollment ? (
                                             <>
                                                 <Play className="h-4 w-4 mr-2" /> Continue Program
@@ -307,9 +352,26 @@ export default function ProgramsPage() {
                                             </>
                                         )}
                                     </Button>
+                                ) : isBillingAvailable ? (
+                                    <Button
+                                        className="w-full"
+                                        onClick={() => handlePurchaseProgram(selectedProgram)}
+                                        disabled={isPurchasing}
+                                    >
+                                        {isPurchasing ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                                Buy for ${(selectedProgram.price / 100).toFixed(2)}
+                                            </>
+                                        )}
+                                    </Button>
                                 ) : (
                                     <Button className="w-full" variant="secondary" disabled>
-                                        Purchase Coming Soon - ${(selectedProgram.price / 100).toFixed(2)}
+                                        Purchase in Play Store App - ${(selectedProgram.price / 100).toFixed(2)}
                                     </Button>
                                 )}
                             </DialogFooter>
