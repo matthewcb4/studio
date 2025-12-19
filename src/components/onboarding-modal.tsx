@@ -238,7 +238,7 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
               <h3 className="text-xl font-bold mb-2">Let's Create Your First Workout!</h3>
               <p className="text-muted-foreground">
                 Our AI will generate a personalized workout based on your goals and equipment.
-                Ready to see the magic? ✨
+                You can also explore our <strong>structured programs</strong> for guided progression! ✨
               </p>
             </div>
           </div>

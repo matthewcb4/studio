@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Check, ChevronRight, X, Sparkles, Target, Dumbbell, Scale, MapPin, Flame, TrendingUp } from 'lucide-react';
+import { Check, ChevronRight, X, Sparkles, Target, Dumbbell, Scale, MapPin, Flame, TrendingUp, Bookmark } from 'lucide-react';
 import type { UserProfile, WorkoutLog, ProgressLog, WorkoutLocation } from '@/lib/types';
 import { setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -50,6 +50,7 @@ export function FeatureDiscoveryCard({
         const hasGoals = !!(userProfile?.weeklyWorkoutGoal || userProfile?.weeklyCardioGoal || userProfile?.targetWeight);
         const hasLocation = (locations?.length || 0) > 0;
         const hasViewedProgress = checklist.viewedProgress || false;
+        const hasStartedProgram = !!userProfile?.activeProgramId;
 
         return [
             {
@@ -67,6 +68,14 @@ export function FeatureDiscoveryCard({
                 icon: <Sparkles className="w-4 h-4" />,
                 href: '/guide',
                 isCompleted: hasAiWorkout || checklist.firstAiWorkout || false,
+            },
+            {
+                id: 'startedProgram',
+                label: 'Start a Program',
+                description: 'Follow a structured workout plan',
+                icon: <Bookmark className="w-4 h-4" />,
+                href: '/programs',
+                isCompleted: hasStartedProgram || checklist.startedProgram || false,
             },
             {
                 id: 'setGoals',
@@ -171,14 +180,14 @@ export function FeatureDiscoveryCard({
                             key={feature.id}
                             href={feature.isCompleted ? '#' : feature.href}
                             className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${feature.isCompleted
-                                    ? 'bg-green-500/10 cursor-default'
-                                    : 'bg-background/50 hover:bg-background'
+                                ? 'bg-green-500/10 cursor-default'
+                                : 'bg-background/50 hover:bg-background'
                                 }`}
                             onClick={(e) => feature.isCompleted && e.preventDefault()}
                         >
                             <div className={`p-1.5 rounded-full ${feature.isCompleted
-                                    ? 'bg-green-500/20 text-green-600'
-                                    : 'bg-muted text-muted-foreground'
+                                ? 'bg-green-500/20 text-green-600'
+                                : 'bg-muted text-muted-foreground'
                                 }`}>
                                 {feature.isCompleted ? <Check className="w-4 h-4" /> : feature.icon}
                             </div>

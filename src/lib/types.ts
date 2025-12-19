@@ -138,6 +138,7 @@ export type UserProfile = {
     addedEquipment?: boolean;
     firstCardioSession?: boolean;
     viewedProgress?: boolean;
+    startedProgram?: boolean;
   };
   dismissedDiscoveryChecklist?: boolean;
 }
