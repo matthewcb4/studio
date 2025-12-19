@@ -88,7 +88,8 @@ export function useBilling(): UseBillingReturn {
     const purchaseProgram = useCallback(async (programId: string): Promise<{ success: boolean; error?: string }> => {
         const productId = PROGRAM_TO_PRODUCT[programId];
         if (!productId) {
-            return { success: false, error: 'Invalid program ID' };
+            console.error('Invalid program ID:', programId, 'Available:', Object.keys(PROGRAM_TO_PRODUCT));
+            return { success: false, error: `Invalid program ID: ${programId}` };
         }
 
         const result = await purchaseProduct(productId);
