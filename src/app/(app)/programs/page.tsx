@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, doc, addDoc, updateDoc, query, where } from 'firebase/firestore';
-import { Sparkles, Trophy, ShoppingBag, Play, ChevronRight, Info, Calendar, Dumbbell, TrendingUp } from 'lucide-react';
+import { Sparkles, Trophy, ShoppingBag, Play, ChevronRight, Info, Calendar, Dumbbell, TrendingUp, Pause } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -170,6 +170,30 @@ export default function ProgramsPage() {
         router.push('/guide');
     };
 
+    const handlePauseProgram = async () => {
+        if (!userProfileRef || !activeEnrollment || !enrollmentsRef) return;
+
+        try {
+            // Clear active program from profile
+            await setDocumentNonBlocking(userProfileRef, { activeProgramId: null }, { merge: true });
+
+            // Mark the enrollment as inactive (but keep progress)
+            await updateDoc(doc(enrollmentsRef, activeEnrollment.id), { isActive: false });
+
+            toast({
+                title: 'Program Paused',
+                description: 'You can resume anytime from the Programs page. AI will now suggest ad-hoc workouts.',
+            });
+        } catch (error) {
+            console.error('Error pausing program:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to pause program. Please try again.',
+                variant: 'destructive',
+            });
+        }
+    };
+
     const isLoading = isLoadingProfile || isLoadingEnrollments;
     const selectedProgramEnrollment = selectedProgram ? getEnrollment(selectedProgram.id) : null;
 
@@ -305,7 +329,7 @@ export default function ProgramsPage() {
                 {/* Active Program Banner */}
                 {activeEnrollment && (
                     <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/30">
-                        <CardContent className="flex items-center justify-between p-4">
+                        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4">
                             <div className="flex items-center gap-3">
                                 <span className="text-3xl">{activeEnrollment.programIcon}</span>
                                 <div>
@@ -316,9 +340,14 @@ export default function ProgramsPage() {
                                     </p>
                                 </div>
                             </div>
-                            <Button onClick={() => router.push('/guide')}>
-                                Continue <ChevronRight className="h-4 w-4 ml-1" />
-                            </Button>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Button variant="outline" size="sm" onClick={handlePauseProgram} className="flex-1 sm:flex-none">
+                                    <Pause className="h-4 w-4 mr-1" /> Pause
+                                </Button>
+                                <Button size="sm" onClick={() => router.push('/guide')} className="flex-1 sm:flex-none">
+                                    Continue <ChevronRight className="h-4 w-4 ml-1" />
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 )}
