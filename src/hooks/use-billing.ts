@@ -20,8 +20,8 @@ interface UseBillingReturn {
     purchasedProgramIds: Set<string>;
     /** Product details from Play Store (prices, titles, etc.) */
     productDetails: Map<string, ProductDetails>;
-    /** Check if a specific program is purchased (or free) */
-    isProgramOwned: (programId: string, isFree: boolean) => boolean;
+    /** Check if a specific program is purchased (or free). Pass userEmail for admin bypass. */
+    isProgramOwned: (programId: string, isFree: boolean, userEmail?: string | null) => boolean;
     /** Purchase a program */
     purchaseProgram: (programId: string) => Promise<{ success: boolean; error?: string }>;
     /** Refresh purchase status */
@@ -73,9 +73,13 @@ export function useBilling(): UseBillingReturn {
     }, [isAvailable]);
 
     // Check if a program is owned (purchased or free)
-    const isProgramOwned = useCallback((programId: string, isFree: boolean): boolean => {
+    // Also includes admin bypass for developer testing
+    const isProgramOwned = useCallback((programId: string, isFree: boolean, userEmail?: string | null): boolean => {
         // Free programs are always owned
         if (isFree) return true;
+
+        // Admin bypass - developer gets all programs free
+        if (userEmail === 'matthewcb4@gmail.com') return true;
 
         // If billing not available, treat as not owned (show "Coming Soon")
         if (!isAvailable) return false;

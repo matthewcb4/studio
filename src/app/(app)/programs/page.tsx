@@ -238,7 +238,7 @@ export default function ProgramsPage() {
 
     // Check if selected program is owned (free or purchased)
     const isSelectedProgramOwned = selectedProgram
-        ? isProgramOwned(selectedProgram.id, selectedProgram.price === 0)
+        ? isProgramOwned(selectedProgram.id, selectedProgram.price === 0, user?.email)
         : false;
 
     return (
@@ -445,7 +445,7 @@ export default function ProgramsPage() {
                                         onPurchase={handlePurchaseProgram}
                                         variant="enrolled"
                                         isBillingAvailable={isBillingAvailable}
-                                        isProgramOwned={isProgramOwned(program.id, program.price === 0)}
+                                        isProgramOwned={isProgramOwned(program.id, program.price === 0, user?.email)}
                                     />
                                 ))}
                             </div>
@@ -484,7 +484,7 @@ export default function ProgramsPage() {
                                             onContinue={handleContinueProgram}
                                             onPurchase={handlePurchaseProgram}
                                             isBillingAvailable={isBillingAvailable}
-                                            isProgramOwned={isProgramOwned(program.id, program.price === 0)}
+                                            isProgramOwned={isProgramOwned(program.id, program.price === 0, user?.email)}
                                         />
                                     ))}
                             </div>
@@ -507,7 +507,7 @@ export default function ProgramsPage() {
                                             onContinue={handleContinueProgram}
                                             onPurchase={handlePurchaseProgram}
                                             isBillingAvailable={isBillingAvailable}
-                                            isProgramOwned={isProgramOwned(program.id, program.price === 0)}
+                                            isProgramOwned={isProgramOwned(program.id, program.price === 0, user?.email)}
                                         />
                                     ))}
                                 </div>
