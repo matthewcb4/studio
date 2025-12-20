@@ -216,6 +216,7 @@ export default function ExercisesPage() {
     const [loggingExercise, setLoggingExercise] = useState<MasterExercise | null>(null);
     const [editingExercise, setEditingExercise] = useState<MasterExercise | null>(null);
     const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
     // Open merge dialog if coming from Settings with ?merge=true
     useEffect(() => {
@@ -261,6 +262,7 @@ export default function ExercisesPage() {
                 const exerciseCollectionRef = collection(firestore, 'exercises');
                 await addDoc(exerciseCollectionRef, values);
                 toast({ title: 'Success', description: `${values.name} added to exercises.` });
+                setIsAddDialogOpen(false);
             }
             setEditingExercise(null);
         } catch (error) {
@@ -372,13 +374,13 @@ export default function ExercisesPage() {
                         <p className="text-muted-foreground">Manage your exercise library and perform quick logs.</p>
                     </div>
                 </div>
-                <Dialog onOpenChange={(isOpen) => { if (!isOpen) setEditingExercise(null) }}>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button onClick={() => setEditingExercise(null)}>
+                        <Button onClick={() => setIsAddDialogOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Add New
                         </Button>
                     </DialogTrigger>
-                    <ExerciseForm exercise={null} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setEditingExercise(null)} />
+                    <ExerciseForm exercise={null} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setIsAddDialogOpen(false)} />
                 </Dialog>
             </div>
 

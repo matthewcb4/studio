@@ -245,7 +245,7 @@ export default function ProgramsPage() {
         <>
             {/* Program Detail Modal */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
                     {selectedProgram && (
                         <>
                             <DialogHeader>
