@@ -67,7 +67,7 @@ function ShareableSummaryCard({ log, userProfile, prs = [], className = "" }: { 
                        Heatmap container: 
                        Constrained max-width to prevent height from overflowing vertical space.
                     */}
-                    <div className="bg-white/5 rounded-3xl p-1 shadow-inner border border-white/5 w-full max-w-[220px] h-full max-h-full flex items-center justify-center relative z-10 overflow-hidden">
+                    <div className="w-full max-w-[280px] h-full max-h-full flex items-center justify-center relative z-10 overflow-hidden">
                         <div className="relative w-full h-full flex items-center justify-center">
                             <MuscleHeatmap
                                 userProfile={userProfile}
@@ -246,8 +246,8 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
                         position: 'fixed',
                         left: '-9999px',
                         top: 0,
-                        width: '320px',
-                        height: '569px', // 9:16 aspect ratio (approx) for Stories. Taller than visible card to prevent cramping.
+                        width: '480px',
+                        height: '853px', // 9:16 aspect ratio for Stories. Higher resolution for crisp output.
                         zIndex: -1
                     }}
                 >
