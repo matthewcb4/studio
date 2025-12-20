@@ -61,23 +61,17 @@ function ShareableSummaryCard({ log, userProfile, prs = [], className = "" }: { 
                     </h2>
                 </div>
 
-                {/* Main Content: Heatmap - Grow to fill REMAINING space */}
-                <div className="relative w-full flex-1 flex items-center justify-center min-h-0 z-10 mb-2">
-                    {/* 
-                       Heatmap container: 
-                       Constrained max-width to prevent height from overflowing vertical space.
-                    */}
-                    <div className="w-full max-w-[280px] h-full max-h-full flex items-center justify-center relative z-10 overflow-hidden">
-                        <div className="relative w-full h-full flex items-center justify-center">
-                            <MuscleHeatmap
-                                userProfile={userProfile}
-                                thisWeeksLogs={[log]}
-                                isLoading={false}
-                                dateRangeLabel=""
-                                isCard={false}
-                                isSingleWorkout={true}
-                            />
-                        </div>
+                {/* Main Content: Heatmap - Fixed height to ensure consistency */}
+                <div className="relative w-full flex items-center justify-center z-10 mb-2" style={{ height: '45%' }}>
+                    <div className="w-full max-w-[280px] h-full flex items-center justify-center relative z-10 overflow-hidden">
+                        <MuscleHeatmap
+                            userProfile={userProfile}
+                            thisWeeksLogs={[log]}
+                            isLoading={false}
+                            dateRangeLabel=""
+                            isCard={false}
+                            isSingleWorkout={true}
+                        />
                     </div>
                 </div>
 

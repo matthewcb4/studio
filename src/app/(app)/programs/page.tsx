@@ -245,25 +245,24 @@ export default function ProgramsPage() {
         <>
             {/* Program Detail Modal */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
                     {selectedProgram && (
                         <>
                             <DialogHeader>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-5xl">{selectedProgram.icon}</span>
-                                    <div>
-                                        <DialogTitle className="text-xl">{selectedProgram.name}</DialogTitle>
-                                        <DialogDescription className="flex items-center gap-2 mt-1">
-                                            <Badge variant="outline">{selectedProgram.durationWeeks} weeks</Badge>
-                                            <Badge variant="outline">{selectedProgram.daysPerWeek}x/week</Badge>
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <span className="text-4xl sm:text-5xl shrink-0">{selectedProgram.icon}</span>
+                                    <div className="min-w-0 flex-1">
+                                        <DialogTitle className="text-lg sm:text-xl truncate">{selectedProgram.name}</DialogTitle>
+                                        <DialogDescription className="flex flex-wrap items-center gap-1.5 mt-1">
+                                            <Badge variant="outline" className="text-xs">{selectedProgram.durationWeeks} weeks</Badge>
+                                            <Badge variant="outline" className="text-xs">{selectedProgram.daysPerWeek}x/week</Badge>
                                             <Badge
-                                                className={
-                                                    selectedProgram.difficulty === 'beginner'
+                                                className={`text-xs ${selectedProgram.difficulty === 'beginner'
                                                         ? 'bg-green-500/20 text-green-600'
                                                         : selectedProgram.difficulty === 'intermediate'
                                                             ? 'bg-yellow-500/20 text-yellow-600'
                                                             : 'bg-red-500/20 text-red-600'
-                                                }
+                                                    }`}
                                             >
                                                 {selectedProgram.difficulty}
                                             </Badge>
