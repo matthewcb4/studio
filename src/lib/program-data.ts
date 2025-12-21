@@ -295,6 +295,188 @@ const armBlaster: WorkoutProgram = {
 };
 
 /**
+ * 4-Week Pull-Up Domination
+ * Increase your pull-up count with progressive training
+ */
+const pullUpDomination: WorkoutProgram = {
+    id: 'pullup-domination-4week',
+    name: '4-Week Pull-Up Domination',
+    description: 'Master the pull-up and dramatically increase your rep count. This progressive program builds the strength, endurance, and technique needed for impressive pull-up performance. Includes assisted variations, negatives, and accessory work.',
+    shortDescription: 'Increase your pull-up count with progressive training',
+    durationWeeks: 4,
+    daysPerWeek: 4,
+    price: 99, // $0.99
+    productId: 'program_pullup_domination',
+    icon: '🏆',
+    difficulty: 'intermediate',
+    primaryMuscles: ['lats', 'biceps'],
+    secondaryMuscles: ['traps', 'forearms', 'shoulders_back', 'abs'],
+    muscleEmphasis: {
+        lats: 0.40,
+        biceps: 0.25,
+        traps: 0.10,
+        forearms: 0.10,
+        shoulders_back: 0.10,
+        abs: 0.05,
+    },
+    weeklyProgression: [
+        {
+            week: 1,
+            phase: 'Foundation',
+            intensityModifier: 'standard',
+            volumeMultiplier: 1.0,
+            focusNotes: 'Establish baseline pull-up count. Focus on proper form and controlled negatives.',
+        },
+        {
+            week: 2,
+            phase: 'Frequency',
+            intensityModifier: 'standard',
+            volumeMultiplier: 1.1,
+            focusNotes: 'Greasing the groove - multiple smaller sets throughout workout. Build volume.',
+        },
+        {
+            week: 3,
+            phase: 'Strength',
+            intensityModifier: 'high',
+            volumeMultiplier: 1.2,
+            focusNotes: 'Add weight or resistance. Focus on strength. Include pause reps at top.',
+        },
+        {
+            week: 4,
+            phase: 'Max Test',
+            intensityModifier: 'high',
+            volumeMultiplier: 1.0,
+            focusNotes: 'Test your new max! Reduced volume, fresh for testing. Go for your PR!',
+        },
+    ],
+    tags: ['pull-ups', 'back', 'bodyweight', 'strength', 'upper-body'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+};
+
+/**
+ * 4-Week Booty Builder
+ * Glute-focused program for a stronger, rounder posterior
+ */
+const bootyBuilder: WorkoutProgram = {
+    id: 'booty-builder-4week',
+    name: '4-Week Booty Builder',
+    description: 'Sculpt and strengthen your glutes with this targeted 4-week program. Combines hip thrusts, squats, and isolation work with progressive overload for maximum glute development. Perfect for building that peach!',
+    shortDescription: 'Sculpt and strengthen your glutes for maximum growth',
+    durationWeeks: 4,
+    daysPerWeek: 4,
+    price: 99, // $0.99
+    productId: 'program_booty_builder',
+    icon: '🍑',
+    difficulty: 'intermediate',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: ['hamstrings', 'quads', 'abs', 'lower_back'],
+    muscleEmphasis: {
+        glutes: 0.55,
+        hamstrings: 0.20,
+        quads: 0.10,
+        abs: 0.08,
+        lower_back: 0.07,
+    },
+    weeklyProgression: [
+        {
+            week: 1,
+            phase: 'Activation',
+            intensityModifier: 'standard',
+            volumeMultiplier: 1.0,
+            focusNotes: 'Wake up the glutes! Focus on mind-muscle connection. Activation drills before each session.',
+        },
+        {
+            week: 2,
+            phase: 'Volume',
+            intensityModifier: 'standard',
+            volumeMultiplier: 1.15,
+            focusNotes: 'Build volume with hip thrusts and Romanian deadlifts. Feel the burn!',
+        },
+        {
+            week: 3,
+            phase: 'Overload',
+            intensityModifier: 'high',
+            volumeMultiplier: 1.2,
+            focusNotes: 'Progressive overload phase. Increase weight on compound movements.',
+        },
+        {
+            week: 4,
+            phase: 'Peak Growth',
+            intensityModifier: 'high',
+            volumeMultiplier: 1.1,
+            focusNotes: 'Peak stimulation. Include pause reps and squeeze at the top. Build that booty!',
+        },
+    ],
+    tags: ['glutes', 'booty', 'lower-body', 'muscle-gain', 'women'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+};
+
+/**
+ * 4-Week Athletic Power
+ * Full-body functional training for explosive performance
+ */
+const athleticPower: WorkoutProgram = {
+    id: 'athletic-power-4week',
+    name: '4-Week Athletic Power',
+    description: 'Build explosive power and athletic performance with this full-body functional training program. Combines compound movements, plyometrics, and power exercises to make you stronger, faster, and more explosive.',
+    shortDescription: 'Build explosive power with functional training',
+    durationWeeks: 4,
+    daysPerWeek: 4,
+    price: 99, // $0.99
+    productId: 'program_athletic_power',
+    icon: '⚡',
+    difficulty: 'intermediate',
+    primaryMuscles: ['quads', 'glutes', 'chest', 'lats'],
+    secondaryMuscles: ['shoulders_front', 'hamstrings', 'abs', 'calves', 'triceps'],
+    muscleEmphasis: {
+        quads: 0.20,
+        glutes: 0.18,
+        chest: 0.15,
+        lats: 0.15,
+        shoulders_front: 0.10,
+        hamstrings: 0.08,
+        abs: 0.07,
+        calves: 0.04,
+        triceps: 0.03,
+    },
+    weeklyProgression: [
+        {
+            week: 1,
+            phase: 'Foundation',
+            intensityModifier: 'standard',
+            volumeMultiplier: 1.0,
+            focusNotes: 'Build movement foundation. Focus on form with compound lifts. Introduce light plyos.',
+        },
+        {
+            week: 2,
+            phase: 'Power',
+            intensityModifier: 'standard',
+            volumeMultiplier: 1.1,
+            focusNotes: 'Add explosive movements. Power cleans, jump squats. Focus on speed and power.',
+        },
+        {
+            week: 3,
+            phase: 'Intensity',
+            intensityModifier: 'high',
+            volumeMultiplier: 1.15,
+            focusNotes: 'Increase intensity. Heavier compound lifts. Explosive finishers each session.',
+        },
+        {
+            week: 4,
+            phase: 'Peak Performance',
+            intensityModifier: 'brutal',
+            volumeMultiplier: 1.0,
+            focusNotes: 'Test your athletic gains! Combine strength and power. Feel the difference!',
+        },
+    ],
+    tags: ['athletic', 'power', 'full-body', 'functional', 'plyometrics', 'explosive'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+};
+
+/**
  * All available programs
  */
 export const WORKOUT_PROGRAMS: WorkoutProgram[] = [
@@ -302,6 +484,9 @@ export const WORKOUT_PROGRAMS: WorkoutProgram[] = [
     supermanChest,
     sixPackShredder,
     armBlaster,
+    pullUpDomination,
+    bootyBuilder,
+    athleticPower,
 ];
 
 /**

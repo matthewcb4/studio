@@ -14,6 +14,9 @@ export const PRODUCT_IDS = {
     SUPERMAN_CHEST: 'program_superman_chest',
     SIXPACK_SHREDDER: 'program_sixpack_shredder',
     ARM_BLASTER: 'program_arm_blaster',
+    PULLUP_DOMINATION: 'program_pullup_domination',
+    BOOTY_BUILDER: 'program_booty_builder',
+    ATHLETIC_POWER: 'program_athletic_power',
 } as const;
 
 export type ProductId = typeof PRODUCT_IDS[keyof typeof PRODUCT_IDS];
@@ -23,6 +26,9 @@ export const PROGRAM_TO_PRODUCT: Record<string, ProductId> = {
     'superman-chest-6week': PRODUCT_IDS.SUPERMAN_CHEST,
     'sixpack-shredder-6week': PRODUCT_IDS.SIXPACK_SHREDDER,
     'arm-blaster-6week': PRODUCT_IDS.ARM_BLASTER,
+    'pullup-domination-4week': PRODUCT_IDS.PULLUP_DOMINATION,
+    'booty-builder-4week': PRODUCT_IDS.BOOTY_BUILDER,
+    'athletic-power-4week': PRODUCT_IDS.ATHLETIC_POWER,
 };
 
 export interface ProductDetails {
