@@ -233,19 +233,19 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
                     </div>
                 </div>
 
-                {/* Off-screen fixed-size container for generation */}
+                {/* Off-screen fixed-size container for generation - matches preview size exactly */}
                 <div
                     id="hidden-share-card"
                     style={{
                         position: 'fixed',
                         left: '-9999px',
                         top: 0,
-                        width: '480px',
-                        height: '853px', // 9:16 aspect ratio for Stories. Higher resolution for crisp output.
+                        width: '320px',
+                        height: '533px', // 9:15 aspect ratio same as preview. html2canvas scale:2 gives 640x1066 output.
                         zIndex: -1
                     }}
                 >
-                    {/* Hidden Instance: Fills the fixed 320x569 container completely */}
+                    {/* Hidden Instance: Same size as preview for consistent rendering */}
                     <ShareableSummaryCard log={log} userProfile={userProfile} prs={prs} className="rounded-none" />
                 </div>
 
