@@ -846,13 +846,14 @@ export default function WorkoutSessionPage() {
       // Check if we should show review prompt
       const totalWorkouts = (workoutHistory?.length || 0) + 1;
       const hasPRs = sessionPRs.length > 0;
-      const isStreak7 = newStreak === 7;
+      const isStreak3 = newStreak === 3;
+      const is1stWorkout = totalWorkouts === 1;
       const is5thWorkout = totalWorkouts === 5;
       const notDismissed = !userProfile?.dismissedReviewPrompt;
       const cooldownPassed = !userProfile?.lastReviewPromptDate ||
         (new Date().getTime() - new Date(userProfile.lastReviewPromptDate).getTime()) > 30 * 24 * 60 * 60 * 1000;
 
-      if (notDismissed && cooldownPassed && (is5thWorkout || isStreak7 || hasPRs)) {
+      if (notDismissed && cooldownPassed && (is1stWorkout || is5thWorkout || isStreak3 || hasPRs)) {
         setTimeout(() => setShowReviewPrompt(true), 3000); // Show after other toasts
       }
 

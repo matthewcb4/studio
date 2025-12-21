@@ -156,7 +156,7 @@ export const HeatPoint = ({ intensity, size, coords, bodyType, view, colorScheme
           background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
           transform: 'translate(-50%, -50%)',
           opacity: Math.max(0.8, intensity * 0.9),
-          filter: `blur(10px)`,
+          filter: `blur(6px)`,
         }}
       />
     );
@@ -172,7 +172,7 @@ export const HeatPoint = ({ intensity, size, coords, bodyType, view, colorScheme
           background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
           transform: 'translate(-50%, -50%)',
           opacity: Math.max(0.8, intensity * 0.9),
-          filter: `blur(10px)`,
+          filter: `blur(6px)`,
         }}
       />
     ) : null;
@@ -193,7 +193,7 @@ export const HeatPoint = ({ intensity, size, coords, bodyType, view, colorScheme
               background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
               transform: 'translate(-50%, -50%)',
               opacity: Math.max(0.6, intensity * 0.7),
-              filter: `blur(15px)`,
+              filter: `blur(10px)`,
             }}
           />
           {isMirrored && (
@@ -207,7 +207,7 @@ export const HeatPoint = ({ intensity, size, coords, bodyType, view, colorScheme
                 background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
                 transform: 'translate(-50%, -50%)',
                 opacity: Math.max(0.6, intensity * 0.7),
-                filter: `blur(15px)`,
+                filter: `blur(10px)`,
               }}
             />
           )}
