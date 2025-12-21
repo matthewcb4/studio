@@ -502,6 +502,38 @@ export default function SettingsPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
+
+                                <div className="pt-4 border-t">
+                                    <h4 className="font-medium mb-2">Share Card Style</h4>
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                        Choose the visual style for your shareable workout cards.
+                                    </p>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {(['cosmic', 'fire', 'ocean'] as const).map((template) => {
+                                            const styles = {
+                                                cosmic: { gradient: 'from-indigo-900 via-purple-900 to-black', label: '🌌 Cosmic' },
+                                                fire: { gradient: 'from-orange-600 via-red-700 to-red-950', label: '🔥 Fire' },
+                                                ocean: { gradient: 'from-cyan-600 via-blue-700 to-blue-950', label: '🌊 Ocean' },
+                                            };
+                                            const isSelected = (userProfile?.shareCardTemplate || 'cosmic') === template;
+                                            return (
+                                                <button
+                                                    key={template}
+                                                    onClick={() => {
+                                                        if (userProfileRef) {
+                                                            setDocumentNonBlocking(userProfileRef, { shareCardTemplate: template }, { merge: true });
+                                                            toast({ title: 'Share Card Style Updated' });
+                                                        }
+                                                    }}
+                                                    className={`p-3 rounded-xl border-2 transition-all ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-muted-foreground/30'}`}
+                                                >
+                                                    <div className={`h-16 rounded-lg bg-gradient-to-br ${styles[template].gradient} mb-2`} />
+                                                    <span className="text-xs font-medium">{styles[template].label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </CardContent>
                         </AccordionContent>
                     </Card>

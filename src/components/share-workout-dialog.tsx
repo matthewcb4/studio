@@ -20,19 +20,36 @@ import { Flame, Trophy, Calendar, Dumbbell, Timer, Download, Share2, Medal } fro
 import { format } from 'date-fns';
 
 function ShareableSummaryCard({ log, userProfile, prs = [], className = "" }: { log: WorkoutLog, userProfile: UserProfile, prs?: (PRResult & { exerciseId: string })[], className?: string }) {
-    // Determine gradient based on intensity or just a cool default
-    // Using a vibrant dark theme gradient
-    const gradientClass = "bg-gradient-to-br from-indigo-900 via-purple-900 to-black";
+    // Template definitions
+    const templates = {
+        cosmic: {
+            gradient: "bg-gradient-to-br from-indigo-900 via-purple-900 to-black",
+            orb1: "bg-pink-500",
+            orb2: "bg-blue-500",
+        },
+        fire: {
+            gradient: "bg-gradient-to-br from-orange-600 via-red-700 to-red-950",
+            orb1: "bg-yellow-500",
+            orb2: "bg-orange-500",
+        },
+        ocean: {
+            gradient: "bg-gradient-to-br from-cyan-600 via-blue-700 to-blue-950",
+            orb1: "bg-teal-400",
+            orb2: "bg-blue-400",
+        },
+    };
+
+    const template = templates[userProfile.shareCardTemplate || 'cosmic'];
 
     return (
         <div
-            className={`relative overflow-hidden flex flex-col w-full h-full text-white ${gradientClass} ${className}`}
+            className={`relative overflow-hidden flex flex-col w-full h-full text-white ${template.gradient} ${className}`}
             style={{ fontFamily: 'Inter, sans-serif' }}
         >
             {/* Background Texture/Effects */}
             <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-pink-500 rounded-full blur-3xl opacity-20" />
-            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20" />
+            <div className={`absolute -top-24 -right-24 w-64 h-64 ${template.orb1} rounded-full blur-3xl opacity-20`} />
+            <div className={`absolute -bottom-24 -left-24 w-64 h-64 ${template.orb2} rounded-full blur-3xl opacity-20`} />
 
             <div className="relative z-10 flex flex-col h-full p-4">
 

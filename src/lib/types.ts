@@ -106,6 +106,7 @@ export type UserProfile = {
   availableEquipment?: string[];
   biologicalSex?: 'Male' | 'Female';
   heatmapColorScheme?: 'classic' | 'sunset' | 'ocean' | 'monochrome' | 'neon';
+  shareCardTemplate?: 'cosmic' | 'fire' | 'ocean'; // Visual style for share cards
   lastAiWorkoutDate?: string; // YYYY-MM-DD string
   lastAiSuggestionDate?: string; // YYYY-MM-DD string
   hasCompletedOnboarding?: boolean;
