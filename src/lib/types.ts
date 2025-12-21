@@ -142,6 +142,10 @@ export type UserProfile = {
     startedProgram?: boolean;
   };
   dismissedDiscoveryChecklist?: boolean;
+
+  // Review Prompt
+  dismissedReviewPrompt?: boolean; // User chose "Don't ask again"
+  lastReviewPromptDate?: string;   // ISO date - for 30-day cooldown
 }
 
 export type ProgressLog = {

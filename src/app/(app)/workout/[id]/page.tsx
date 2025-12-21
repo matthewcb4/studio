@@ -91,6 +91,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
+import { ReviewPromptDialog } from '@/components/review-prompt-dialog';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -229,6 +230,9 @@ export default function WorkoutSessionPage() {
   const [quickAddExerciseId, setQuickAddExerciseId] = useState<string | null>(null);
   const [quickAddPlacement, setQuickAddPlacement] = useState<'current' | 'standalone'>('current');
   const [quickAddSets, setQuickAddSets] = useState('3');
+
+  // Review Prompt State
+  const [showReviewPrompt, setShowReviewPrompt] = useState(false);
 
   // Master exercises for quick add
   const masterExercisesQuery = useMemoFirebase(() =>
@@ -837,6 +841,19 @@ export default function WorkoutSessionPage() {
             className: "bg-purple-500/10 border-purple-500/50 text-purple-600 dark:text-purple-400"
           });
         }, 2000);
+      }
+
+      // Check if we should show review prompt
+      const totalWorkouts = (workoutHistory?.length || 0) + 1;
+      const hasPRs = sessionPRs.length > 0;
+      const isStreak7 = newStreak === 7;
+      const is5thWorkout = totalWorkouts === 5;
+      const notDismissed = !userProfile?.dismissedReviewPrompt;
+      const cooldownPassed = !userProfile?.lastReviewPromptDate ||
+        (new Date().getTime() - new Date(userProfile.lastReviewPromptDate).getTime()) > 30 * 24 * 60 * 60 * 1000;
+
+      if (notDismissed && cooldownPassed && (is5thWorkout || isStreak7 || hasPRs)) {
+        setTimeout(() => setShowReviewPrompt(true), 3000); // Show after other toasts
       }
 
     } catch (error) {
@@ -1462,6 +1479,36 @@ export default function WorkoutSessionPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Review Prompt Dialog */}
+      <ReviewPromptDialog
+        open={showReviewPrompt}
+        onOpenChange={setShowReviewPrompt}
+        onRateNow={() => {
+          setShowReviewPrompt(false);
+          if (userProfileRef) {
+            updateDocumentNonBlocking(userProfileRef, {
+              lastReviewPromptDate: new Date().toISOString()
+            });
+          }
+        }}
+        onMaybeLater={() => {
+          setShowReviewPrompt(false);
+          if (userProfileRef) {
+            updateDocumentNonBlocking(userProfileRef, {
+              lastReviewPromptDate: new Date().toISOString()
+            });
+          }
+        }}
+        onDontAskAgain={() => {
+          setShowReviewPrompt(false);
+          if (userProfileRef) {
+            updateDocumentNonBlocking(userProfileRef, {
+              dismissedReviewPrompt: true
+            });
+          }
+        }}
+      />
     </>
   );
 }
