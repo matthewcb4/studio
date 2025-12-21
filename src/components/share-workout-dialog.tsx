@@ -162,7 +162,7 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
             const canvas = await html2canvas(cardElement, {
                 useCORS: true,
                 scale: 2, // Higher quality
-                backgroundColor: null,
+                backgroundColor: '#000000', // Solid background for proper gradient/overlay rendering
             });
             const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
 
@@ -202,7 +202,7 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
             const canvas = await html2canvas(cardElement, {
                 useCORS: true,
                 scale: 2,
-                backgroundColor: null,
+                backgroundColor: '#000000', // Solid background for proper gradient/overlay rendering
             });
             const url = canvas.toDataURL('image/png');
             const link = document.createElement('a');
