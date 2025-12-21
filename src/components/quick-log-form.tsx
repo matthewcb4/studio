@@ -26,7 +26,7 @@ const quickLogSetSchema = z.object({
     weight: z.coerce.number().min(0, "Weight must be positive.").optional(),
     reps: z.coerce.number().min(1, "Reps must be at least 1.").optional(),
     duration: z.coerce.number().min(1, "Duration must be at least 1 second.").optional(),
-    includeBodyweight: z.boolean().optional(),
+    bodyweightPercentage: z.coerce.number().optional(), // 0, 0.65, or 1
 });
 
 const quickLogSchema = z.object({
@@ -46,7 +46,7 @@ const getDefaultSetValues = (unit: string) => {
         case 'reps-only':
             return { reps: undefined };
         case 'bodyweight':
-            return { weight: undefined, reps: undefined, includeBodyweight: false };
+            return { weight: undefined, reps: undefined, bodyweightPercentage: 0 };
         case 'reps':
         default:
             return { weight: undefined, reps: undefined };
@@ -144,18 +144,26 @@ export function QuickLogForm({ exercise, onLog, onCancel }: QuickLogFormProps) {
                         </div>
                         <FormField
                             control={form.control}
-                            name={`sets.${index}.includeBodyweight`}
+                            name={`sets.${index}.bodyweightPercentage`}
                             render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-center space-x-2 space-y-0">
-                                    <FormControl>
-                                        <Checkbox
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                    <FormLabel className="text-sm font-normal cursor-pointer">
-                                        Include Bodyweight
-                                    </FormLabel>
+                                <FormItem>
+                                    <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider text-center block">Bodyweight</FormLabel>
+                                    <Select
+                                        value={(field.value ?? 0).toString()}
+                                        onValueChange={(val) => field.onChange(parseFloat(val))}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="0">Don't Include</SelectItem>
+                                            <SelectItem value="0.65">Partial (65%)</SelectItem>
+                                            <SelectItem value="1">Full (100%)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />

@@ -114,7 +114,7 @@ type ExerciseState = {
   weight: string;
   reps: string;
   duration: string;
-  includeBodyweight: boolean;
+  bodyweightPercentage: number; // 0, 0.65, or 1 for none/partial/full
   setType: 'normal' | 'warmup' | 'drop' | 'failure';
 };
 
@@ -346,7 +346,7 @@ export default function WorkoutSessionPage() {
           weight: lastValues.weight,
           reps: lastValues.reps,
           duration: '',
-          includeBodyweight: false, // Default to NOT including bodyweight
+          bodyweightPercentage: 0, // Default to NOT including bodyweight
           setType: 'normal',
         };
       });
@@ -452,7 +452,7 @@ export default function WorkoutSessionPage() {
           return;
         }
         const additionalWeight = state.weight ? parseFloat(state.weight) : 0;
-        const bodyweightComponent = state.includeBodyweight ? latestWeight : 0;
+        const bodyweightComponent = latestWeight * state.bodyweightPercentage;
         newLog = { weight: bodyweightComponent + additionalWeight, reps: parseFloat(state.reps) };
       } else if (unit === 'reps') {
         if (!state.weight || !state.reps) {
@@ -702,7 +702,7 @@ export default function WorkoutSessionPage() {
           weight: '',
           reps: '',
           duration: '',
-          includeBodyweight: false,
+          bodyweightPercentage: 0,
           setType: 'normal',
         }
       }));
@@ -730,8 +730,8 @@ export default function WorkoutSessionPage() {
     const logsCollection = collection(firestore, `users/${user.uid}/workoutLogs`);
 
     const loggedExercises: LoggedExercise[] = Object.entries(sessionLog).map(([exerciseInstanceId, sets]) => ({
-      exerciseId: workout.exercises.find(e => e.id === exerciseInstanceId)?.exerciseId || 'Unknown',
-      exerciseName: workout.exercises.find(e => e.id === exerciseInstanceId)?.exerciseName || 'Unknown',
+      exerciseId: sessionExercises.find(e => e.id === exerciseInstanceId)?.exerciseId || 'Unknown',
+      exerciseName: sessionExercises.find(e => e.id === exerciseInstanceId)?.exerciseName || 'Unknown',
       sets,
     }));
 
@@ -1087,8 +1087,8 @@ export default function WorkoutSessionPage() {
                       <div
                         key={idx}
                         className={`w-2 h-2 rounded-full ${status === 'completed' ? 'bg-green-500' :
-                            status === 'in-progress' ? 'bg-yellow-500' :
-                              'bg-muted-foreground/30'
+                          status === 'in-progress' ? 'bg-yellow-500' :
+                            'bg-muted-foreground/30'
                           }`}
                       />
                     );
@@ -1108,8 +1108,8 @@ export default function WorkoutSessionPage() {
                       key={idx}
                       onClick={() => handleJumpToGroup(idx)}
                       className={`w-full text-left p-3 rounded-lg transition-colors flex items-center justify-between ${isCurrentGroup
-                          ? 'bg-primary/10 border-2 border-primary'
-                          : 'bg-secondary/50 hover:bg-secondary'
+                        ? 'bg-primary/10 border-2 border-primary'
+                        : 'bg-secondary/50 hover:bg-secondary'
                         }`}
                     >
                       <div className="flex-1 min-w-0">
@@ -1130,8 +1130,8 @@ export default function WorkoutSessionPage() {
                       <Badge
                         variant={status === 'completed' ? 'default' : 'secondary'}
                         className={`ml-2 text-xs ${status === 'completed' ? 'bg-green-500' :
-                            status === 'in-progress' ? 'bg-yellow-500 text-yellow-900' :
-                              ''
+                          status === 'in-progress' ? 'bg-yellow-500 text-yellow-900' :
+                            ''
                           }`}
                       >
                         {status === 'completed' ? '✓ Done' :
@@ -1222,13 +1222,21 @@ export default function WorkoutSessionPage() {
                             <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: e.target.value } })} className="h-14 text-2xl text-center" />
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`include-bodyweight-${exercise.id}`}
-                            checked={state.includeBodyweight}
-                            onCheckedChange={(checked) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, includeBodyweight: !!checked } })}
-                          />
-                          <Label htmlFor={`include-bodyweight-${exercise.id}`}>Include Bodyweight ({latestWeight} lbs)</Label>
+                        <div className="space-y-2">
+                          <Label>Include Bodyweight</Label>
+                          <Select
+                            value={state.bodyweightPercentage.toString()}
+                            onValueChange={(val) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, bodyweightPercentage: parseFloat(val) } })}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">Don't Include</SelectItem>
+                              <SelectItem value="0.65">Partial 65% ({Math.round(latestWeight * 0.65)} lbs)</SelectItem>
+                              <SelectItem value="1">Full 100% ({latestWeight} lbs)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     )}
