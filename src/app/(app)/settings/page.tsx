@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { calculateUserStats } from '@/lib/analytics'; // Imported analytics
-import { PlusCircle, Trash2, Loader2, Settings, Target, User as UserIcon, Dumbbell, FileText, Palette, Link as LinkIcon, Database, MessageSquare } from 'lucide-react'; // Added MessageSquare icon
+import { PlusCircle, Trash2, Loader2, Settings, Target, User as UserIcon, Dumbbell, FileText, Palette, Link as LinkIcon, Database, MessageSquare, Smartphone, Activity } from 'lucide-react'; // Added Smartphone, Activity icons
 import { Card, CardContent, CardDescription, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,6 +91,11 @@ export default function SettingsPage() {
     const [isSubmittingGoals, setIsSubmittingGoals] = useState(false);
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
     const [isRecalculating, setIsRecalculating] = useState(false);
+
+    // Health Connect state
+    const [healthConnectEnabled, setHealthConnectEnabled] = useState(false);
+    const [healthConnectAvailable, setHealthConnectAvailable] = useState(false);
+    const [isCheckingHealthConnect, setIsCheckingHealthConnect] = useState(true);
 
     const equipmentCollection = useMemoFirebase(() =>
         user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -1064,6 +1069,49 @@ export default function SettingsPage() {
                                         support@frepo.app
                                     </a>
                                 </p>
+                            </CardContent>
+                        </AccordionContent>
+                    </Card>
+                </AccordionItem>
+                <AccordionItem value="integrations" className="border-none">
+                    <Card>
+                        <AccordionTrigger className="p-6 text-left">
+                            <div className="flex items-center gap-3">
+                                <Smartphone className="w-6 h-6 text-primary" />
+                                <div>
+                                    <CardTitle>Integrations</CardTitle>
+                                    <CardDescription className="mt-1.5 text-left">
+                                        Sync your workouts with other fitness apps.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <CardContent className="space-y-4">
+                                {/* Health Connect Integration */}
+                                <div className="p-4 bg-secondary rounded-lg space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Activity className="h-5 w-5 text-green-500" />
+                                            <div>
+                                                <h4 className="font-medium">Health Connect</h4>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Sync to Google Fit, Fitbit, Samsung Health & more
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-muted-foreground">Coming Soon</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        When enabled, your completed workouts will automatically sync to Health Connect, making them available in Google Fit, Fitbit, Samsung Health, and other compatible apps.
+                                    </p>
+                                    <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
+                                        <p className="font-medium mb-1">📱 Android App Required</p>
+                                        <p>Health Connect integration requires the fRepo Android app (coming soon to Google Play).</p>
+                                    </div>
+                                </div>
                             </CardContent>
                         </AccordionContent>
                     </Card>

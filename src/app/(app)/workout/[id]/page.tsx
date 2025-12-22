@@ -24,6 +24,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
+import { syncWorkoutToHealthConnect } from '@/lib/health-connect';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -900,6 +901,18 @@ export default function WorkoutSessionPage() {
       if (notDismissed && cooldownPassed && (is1stWorkout || is5thWorkout || isStreak3 || hasPRs)) {
         setTimeout(() => setShowReviewPrompt(true), 3000); // Show after other toasts
       }
+
+      // Sync to Health Connect (async, non-blocking)
+      const workoutEndTime = new Date();
+      const workoutStartTime = new Date(workoutEndTime.getTime() - elapsedTime * 1000);
+      syncWorkoutToHealthConnect({
+        name: workout.name,
+        startTime: workoutStartTime,
+        endTime: workoutEndTime,
+        totalVolume,
+        exerciseCount: loggedExercises.length,
+        notes: `${loggedExercises.length} exercises, ${totalVolume.toLocaleString()} lbs volume`,
+      }).catch(err => console.log('Health Connect sync:', err));
 
     } catch (error) {
       console.error("Error finishing workout:", error);
