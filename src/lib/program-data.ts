@@ -477,9 +477,67 @@ const athleticPower: WorkoutProgram = {
 };
 
 /**
+ * 21-Day New Year Challenge (FREE)
+ * A beginner-friendly full-body program to kickstart 2025
+ */
+const newYearChallenge: WorkoutProgram = {
+    id: 'new-year-challenge-21day',
+    name: '21-Day New Year Challenge',
+    description: 'Start 2025 strong with this beginner-friendly 3-week challenge! Build lasting fitness habits with progressive full-body workouts designed to get you moving consistently. Perfect for New Year\'s resolutions - no gym required, just commitment!',
+    shortDescription: 'Kickstart 2025 with a 21-day fitness transformation',
+    durationWeeks: 3,
+    daysPerWeek: 4,
+    price: 0, // FREE
+    productId: 'program_new_year_challenge_free',
+    icon: '🎆',
+    difficulty: 'beginner',
+    primaryMuscles: ['chest', 'lats', 'quads', 'glutes'],
+    secondaryMuscles: ['shoulders_front', 'biceps', 'triceps', 'hamstrings', 'abs', 'calves'],
+    muscleEmphasis: {
+        chest: 0.15,
+        lats: 0.15,
+        quads: 0.18,
+        glutes: 0.15,
+        shoulders_front: 0.08,
+        biceps: 0.06,
+        triceps: 0.06,
+        hamstrings: 0.07,
+        abs: 0.08,
+        calves: 0.02,
+    },
+    weeklyProgression: [
+        {
+            week: 1,
+            phase: 'Ignition',
+            intensityModifier: 'standard',
+            volumeMultiplier: 0.9,
+            focusNotes: 'Week 1: Build the habit! Focus on showing up consistently. Light weights, learn the movements. You\'re laying the foundation for an amazing year.',
+        },
+        {
+            week: 2,
+            phase: 'Momentum',
+            intensityModifier: 'standard',
+            volumeMultiplier: 1.0,
+            focusNotes: 'Week 2: You\'re building momentum! Add a bit more weight where comfortable. Challenge yourself while maintaining good form. You\'re halfway there!',
+        },
+        {
+            week: 3,
+            phase: 'New You',
+            intensityModifier: 'high',
+            volumeMultiplier: 1.1,
+            focusNotes: 'Week 3: The final push! This is where transformation happens. Push a little harder each session. Finish strong and celebrate your achievement!',
+        },
+    ],
+    tags: ['beginner', 'full-body', 'new-year', 'challenge', 'free', 'habit-building', '2025'],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+};
+
+/**
  * All available programs
  */
 export const WORKOUT_PROGRAMS: WorkoutProgram[] = [
+    newYearChallenge, // Featured at top for New Year's campaign
     strengthStarter,
     supermanChest,
     sixPackShredder,
