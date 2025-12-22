@@ -10,8 +10,8 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 // Health Connect plugin interface
 interface HealthConnectPlugin {
     isAvailable(): Promise<{ available: boolean; status: number }>;
-    checkPermissions(): Promise<{ granted: boolean; grantedCount: number; requiredCount: number }>;
-    requestPermissions(): Promise<{ message: string; permissionsRequired: number }>;
+    getHealthPermissions(): Promise<{ granted: boolean; grantedCount: number; requiredCount: number }>;
+    requestHealthPermissions(): Promise<{ message: string; permissionsRequired: number }>;
     writeWorkout(options: {
         title: string;
         startTime: number;
@@ -51,7 +51,7 @@ export async function hasHealthConnectPermissions(): Promise<boolean> {
     }
 
     try {
-        const result = await HealthConnect.checkPermissions();
+        const result = await HealthConnect.getHealthPermissions();
         return result.granted;
     } catch (error) {
         console.error('Error checking Health Connect permissions:', error);
@@ -68,7 +68,7 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
     }
 
     try {
-        await HealthConnect.requestPermissions();
+        await HealthConnect.requestHealthPermissions();
         // Re-check permissions after request
         return await hasHealthConnectPermissions();
     } catch (error) {

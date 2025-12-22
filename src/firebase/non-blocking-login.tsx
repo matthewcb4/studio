@@ -12,8 +12,11 @@ import {
   signOut,
   getAdditionalUserInfo,
   deleteUser,
+  signInWithCredential,
   // Assume getAuth and app are initialized elsewhere
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 /** Initiate email/password sign-up (non-blocking). */
 export async function initiateEmailSignUp(authInstance: Auth, email: string, password: string): Promise<any> {
@@ -32,16 +35,39 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
   return result;
 }
 
-/** Initiate Google sign-in with a redirect (non-blocking). */
-export function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
+/** Initiate Google sign-in - uses native auth in Capacitor, popup on web */
+export async function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
+  // Check if running in Capacitor native app
+  if (Capacitor.isNativePlatform()) {
+    // Use native Google Sign-In
+    const result = await FirebaseAuthentication.signInWithGoogle();
+
+    // Get the credential and sign in with Firebase
+    const credential = GoogleAuthProvider.credential(result.credential?.idToken);
+    return signInWithCredential(authInstance, credential);
+  }
+
+  // Web fallback - use popup
   const provider = new GoogleAuthProvider();
   return signInWithPopup(authInstance, provider);
 }
 
 /** Initiate Google sign-in but BLOCK new user creation (non-blocking). */
 export async function initiateGoogleLogin(authInstance: Auth): Promise<any> {
-  const provider = new GoogleAuthProvider();
-  const result = await signInWithPopup(authInstance, provider);
+  let result;
+
+  // Check if running in Capacitor native app
+  if (Capacitor.isNativePlatform()) {
+    // Use native Google Sign-In
+    const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+    const credential = GoogleAuthProvider.credential(nativeResult.credential?.idToken);
+    result = await signInWithCredential(authInstance, credential);
+  } else {
+    // Web fallback - use popup
+    const provider = new GoogleAuthProvider();
+    result = await signInWithPopup(authInstance, provider);
+  }
+
   const additionalUserInfo = getAdditionalUserInfo(result);
 
   if (additionalUserInfo?.isNewUser) {

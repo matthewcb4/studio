@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "196694469805",
+    "project_id": "studio-8653444803-84660",
+    "storage_bucket": "studio-8653444803-84660.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:196694469805:android:eac57944abec608d9caa24",
+        "android_client_info": {
+          "package_name": "app.frepo.fitness"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "196694469805-hlprr6jv0oqs5p62kn46skqenr3t9ut4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpkVfoUnraVOnDZ_PUGhtK4bVFC2StGOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "196694469805-hlprr6jv0oqs5p62kn46skqenr3t9ut4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -52,7 +52,7 @@ class HealthConnectPlugin : Plugin() {
     }
     
     @PluginMethod
-    fun checkPermissions(call: PluginCall) {
+    fun getHealthPermissions(call: PluginCall) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val client = healthConnectClient ?: run {
@@ -75,7 +75,7 @@ class HealthConnectPlugin : Plugin() {
     }
     
     @PluginMethod
-    fun requestPermissions(call: PluginCall) {
+    fun requestHealthPermissions(call: PluginCall) {
         try {
             val client = healthConnectClient ?: run {
                 call.reject("Health Connect not available")
