@@ -21,6 +21,7 @@ import {
   Mic,
   Plus,
   Undo2,
+  Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -339,24 +340,31 @@ export default function WorkoutSessionPage() {
   // Initialize/reset exercise states when workout or group changes
   useEffect(() => {
     if (exerciseGroups[currentGroupIndex]) {
-      const newStates: Record<string, ExerciseState> = {};
-      exerciseGroups[currentGroupIndex].forEach(ex => {
-        // Get last logged values for this exercise (by exerciseId)
-        const lastValues = lastExerciseValues[ex.exerciseId || ''] || { weight: '', reps: '' };
-
-        newStates[ex.id] = {
-          currentSet: 1,
-          logs: [],
-          weight: lastValues.weight,
-          reps: lastValues.reps,
-          duration: '',
-          bodyweightPercentage: 0, // Default to NOT including bodyweight
-          setType: 'normal',
-        };
+      setExerciseStates(prev => {
+        const newStates: Record<string, ExerciseState> = {};
+        exerciseGroups[currentGroupIndex].forEach(ex => {
+          // Preserve existing state if it exists (prevents clearing logged sets on unit change)
+          if (prev[ex.id]) {
+            newStates[ex.id] = prev[ex.id];
+          } else {
+            // Only initialize new exercises that don't have state yet
+            const lastValues = lastExerciseValues[ex.exerciseId || ''] || { weight: '', reps: '' };
+            newStates[ex.id] = {
+              currentSet: 1,
+              logs: [],
+              weight: lastValues.weight,
+              reps: lastValues.reps,
+              duration: '',
+              bodyweightPercentage: 0,
+              setType: 'normal',
+            };
+          }
+        });
+        return newStates;
       });
-      setExerciseStates(newStates);
     }
   }, [exerciseGroups, currentGroupIndex, lastExerciseValues]);
+
 
 
   useEffect(() => {
@@ -725,6 +733,56 @@ export default function WorkoutSessionPage() {
     setQuickAddPlacement('current');
     setQuickAddSets('3');
     setIsQuickAddOpen(false);
+  };
+
+  // Handle removing an exercise mid-workout
+  const handleRemoveExercise = (exercise: WorkoutExercise) => {
+    const logs = sessionLog[exercise.id] || [];
+
+    // If exercise has logged sets, ask for confirmation via toast
+    if (logs.length > 0) {
+      toast({
+        title: "Remove Exercise?",
+        description: `${exercise.exerciseName} has ${logs.length} logged set(s). This cannot be undone.`,
+        action: (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              performRemoveExercise(exercise);
+            }}
+          >
+            Remove
+          </Button>
+        ),
+      });
+      return;
+    }
+
+    performRemoveExercise(exercise);
+  };
+
+  const performRemoveExercise = (exercise: WorkoutExercise) => {
+    // Remove from session exercises
+    const newExercises = sessionExercises.filter(ex => ex.id !== exercise.id);
+    setSessionExercises(newExercises);
+
+    // Clean up session log
+    const newSessionLog = { ...sessionLog };
+    delete newSessionLog[exercise.id];
+    setSessionLog(newSessionLog);
+
+    // Clean up exercise states
+    setExerciseStates(prev => {
+      const newStates = { ...prev };
+      delete newStates[exercise.id];
+      return newStates;
+    });
+
+    toast({
+      title: 'Exercise Removed',
+      description: `${exercise.exerciseName} has been removed from this session.`,
+    });
   };
 
   const finishWorkout = async () => {
@@ -1184,9 +1242,14 @@ export default function WorkoutSessionPage() {
                       Set {state.currentSet} {hasReachedTarget ? `(Target: ${exercise.sets})` : `of ${exercise.sets}`} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
                     </CardDescription>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setEditingExerciseId(isEditing ? null : exercise.id)}>
-                    {isEditing ? <Save className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => setEditingExerciseId(isEditing ? null : exercise.id)}>
+                      {isEditing ? <Save className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveExercise(exercise)} className="text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
