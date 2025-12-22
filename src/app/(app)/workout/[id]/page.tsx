@@ -235,6 +235,9 @@ export default function WorkoutSessionPage() {
   // Review Prompt State
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
 
+  // Remove Exercise Confirmation State
+  const [exerciseToRemove, setExerciseToRemove] = useState<WorkoutExercise | null>(null);
+
   // Master exercises for quick add
   const masterExercisesQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null
@@ -737,52 +740,35 @@ export default function WorkoutSessionPage() {
 
   // Handle removing an exercise mid-workout
   const handleRemoveExercise = (exercise: WorkoutExercise) => {
-    const logs = sessionLog[exercise.id] || [];
-
-    // If exercise has logged sets, ask for confirmation via toast
-    if (logs.length > 0) {
-      toast({
-        title: "Remove Exercise?",
-        description: `${exercise.exerciseName} has ${logs.length} logged set(s). This cannot be undone.`,
-        action: (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => {
-              performRemoveExercise(exercise);
-            }}
-          >
-            Remove
-          </Button>
-        ),
-      });
-      return;
-    }
-
-    performRemoveExercise(exercise);
+    // Always show confirmation dialog
+    setExerciseToRemove(exercise);
   };
 
-  const performRemoveExercise = (exercise: WorkoutExercise) => {
+  const confirmRemoveExercise = () => {
+    if (!exerciseToRemove) return;
+
     // Remove from session exercises
-    const newExercises = sessionExercises.filter(ex => ex.id !== exercise.id);
+    const newExercises = sessionExercises.filter(ex => ex.id !== exerciseToRemove.id);
     setSessionExercises(newExercises);
 
     // Clean up session log
     const newSessionLog = { ...sessionLog };
-    delete newSessionLog[exercise.id];
+    delete newSessionLog[exerciseToRemove.id];
     setSessionLog(newSessionLog);
 
     // Clean up exercise states
     setExerciseStates(prev => {
       const newStates = { ...prev };
-      delete newStates[exercise.id];
+      delete newStates[exerciseToRemove.id];
       return newStates;
     });
 
     toast({
       title: 'Exercise Removed',
-      description: `${exercise.exerciseName} has been removed from this session.`,
+      description: `${exerciseToRemove.exerciseName} has been removed from this session.`,
     });
+
+    setExerciseToRemove(null);
   };
 
   const finishWorkout = async () => {
@@ -1048,6 +1034,33 @@ export default function WorkoutSessionPage() {
           }}
         />
       )}
+
+      {/* Remove Exercise Confirmation Dialog */}
+      <AlertDialog open={!!exerciseToRemove} onOpenChange={(open) => !open && setExerciseToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Exercise?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {exerciseToRemove && (
+                <>
+                  Are you sure you want to remove <strong>{exerciseToRemove.exerciseName}</strong> from this workout?
+                  {sessionLog[exerciseToRemove.id]?.length > 0 && (
+                    <span className="block mt-2 text-destructive font-medium">
+                      ⚠️ This exercise has {sessionLog[exerciseToRemove.id].length} logged set(s) that will be lost.
+                    </span>
+                  )}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveExercise} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={videoResults.videos.length > 0} onOpenChange={() => { setVideoResults({ exerciseId: '', videos: [] }); setSelectedVideo(null); }}>
         <DialogContent className="sm:max-w-lg w-full max-w-[95vw]">
