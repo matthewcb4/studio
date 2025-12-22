@@ -12,6 +12,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@ducanh2912/next-pwa": "^10.2.8",
     "@genkit-ai/google-genai": "^1.25.0",
     "@genkit-ai/next": "^1.25.0",
