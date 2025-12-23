@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor-firebase/authentication": "^8.0.1",
     "@ducanh2912/next-pwa": "^10.2.8",
     "@genkit-ai/google-genai": "^1.25.0",
     "@genkit-ai/next": "^1.25.0",
@@ -43,7 +44,7 @@
     "date-fns": "^3.6.0",
     "dotenv": "^16.5.0",
     "embla-carousel-react": "^8.6.0",
-    "firebase": "^11.10.0",
+    "firebase": "^12.7.0",
     "framer-motion": "^12.23.25",
     "genkit": "^1.25.0",
     "html2canvas": "^1.4.1",

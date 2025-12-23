@@ -11,45 +11,38 @@ import {
   signOut,
   getAdditionalUserInfo,
   deleteUser,
+  signInWithCredential,
 } from 'firebase/auth';
 
-// Declare Capacitor global types
-declare global {
-  interface Window {
-    Capacitor?: {
-      isNativePlatform: () => boolean;
-      Plugins?: {
-        Browser?: {
-          open: (options: { url: string; presentationStyle?: string }) => Promise<void>;
-        };
-      };
-    };
-  }
+// Capacitor Firebase Authentication types
+interface CapacitorSignInResult {
+  user?: {
+    displayName?: string;
+    email?: string;
+    uid?: string;
+  };
+  credential?: {
+    idToken?: string;
+    accessToken?: string;
+    providerId?: string;
+  };
 }
 
-// Helper to check if we're in Capacitor native environment using global object
-function isCapacitorNative(): boolean {
+// Helper to check if we're in Capacitor native environment
+async function isCapacitorNative(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
-  return !!window.Capacitor?.isNativePlatform?.();
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
 }
 
-// Helper to open external browser using Capacitor global
-async function openExternalBrowser(url: string): Promise<void> {
-  if (typeof window === 'undefined') return;
-
-  try {
-    // First try using Capacitor's Browser plugin via the global
-    const Browser = window.Capacitor?.Plugins?.Browser;
-    if (Browser?.open) {
-      await Browser.open({ url, presentationStyle: 'popover' });
-      return;
-    }
-  } catch (error) {
-    console.warn('Capacitor Browser plugin not available:', error);
-  }
-
-  // Fallback: open in new window/tab
-  window.open(url, '_blank');
+// Helper to get native Google sign-in result using Capacitor Firebase Auth
+async function getNativeGoogleSignIn(): Promise<any> {
+  const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+  return FirebaseAuthentication.signInWithGoogle();
 }
 
 /** Initiate email/password sign-up (non-blocking). */
@@ -69,13 +62,20 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
   return result;
 }
 
-/** Initiate Google sign-in - opens external browser in Capacitor, popup on web */
+/** Initiate Google sign-in - uses native auth in Capacitor, popup on web */
 export async function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
-  // Check if running in Capacitor native app using global object
-  if (isCapacitorNative()) {
-    // Open the main app URL in external browser where OAuth will work
-    await openExternalBrowser('https://frepo.app/?native=true');
-    throw new Error('BROWSER_AUTH_OPENED');
+  // Check if running in Capacitor native app
+  if (await isCapacitorNative()) {
+    // Use native Google Sign-In via Capacitor Firebase Auth
+    const result = await getNativeGoogleSignIn();
+
+    // Get the credential and sign in with Firebase
+    if (result.credential?.idToken) {
+      const credential = GoogleAuthProvider.credential(result.credential.idToken ?? null);
+      return signInWithCredential(authInstance, credential);
+    }
+
+    throw new Error('Google Sign-In failed: No credential received');
   }
 
   // Web fallback - use popup
@@ -85,17 +85,29 @@ export async function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
 
 /** Initiate Google sign-in but BLOCK new user creation (non-blocking). */
 export async function initiateGoogleLogin(authInstance: Auth): Promise<any> {
-  // Check if running in Capacitor native app using global object
-  if (isCapacitorNative()) {
-    await openExternalBrowser('https://frepo.app/?native=true');
-    throw new Error('BROWSER_AUTH_OPENED');
+  let result;
+
+  // Check if running in Capacitor native app
+  if (await isCapacitorNative()) {
+    // Use native Google Sign-In via Capacitor Firebase Auth
+    const nativeResult = await getNativeGoogleSignIn();
+
+    if (nativeResult.credential?.idToken) {
+      const credential = GoogleAuthProvider.credential(nativeResult.credential.idToken ?? null);
+      result = await signInWithCredential(authInstance, credential);
+    } else {
+      throw new Error('Google Sign-In failed: No credential received');
+    }
+  } else {
+    // Web fallback - use popup
+    const provider = new GoogleAuthProvider();
+    result = await signInWithPopup(authInstance, provider);
   }
 
-  const provider = new GoogleAuthProvider();
-  const result = await signInWithPopup(authInstance, provider);
   const additionalUserInfo = getAdditionalUserInfo(result);
 
   if (additionalUserInfo?.isNewUser) {
+    // If it's a new user, delete the account and throw an error
     await deleteUser(result.user);
     throw new Error("Account creation is not allowed here. Please use the mobile app or Sign Up page.");
   }
