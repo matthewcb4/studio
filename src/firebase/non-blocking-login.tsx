@@ -11,30 +11,45 @@ import {
   signOut,
   getAdditionalUserInfo,
   deleteUser,
-  signInWithCredential,
-  getRedirectResult,
 } from 'firebase/auth';
 
-// Helper to check if we're in Capacitor native environment
-async function isCapacitorNative(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
-  try {
-    const { Capacitor } = await import('@capacitor/core');
-    return Capacitor.isNativePlatform();
-  } catch {
-    return false;
+// Declare Capacitor global types
+declare global {
+  interface Window {
+    Capacitor?: {
+      isNativePlatform: () => boolean;
+      Plugins?: {
+        Browser?: {
+          open: (options: { url: string; presentationStyle?: string }) => Promise<void>;
+        };
+      };
+    };
   }
 }
 
-// Helper to open external browser for auth
+// Helper to check if we're in Capacitor native environment using global object
+function isCapacitorNative(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!window.Capacitor?.isNativePlatform?.();
+}
+
+// Helper to open external browser using Capacitor global
 async function openExternalBrowser(url: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+
   try {
-    const { Browser } = await import('@capacitor/browser');
-    await Browser.open({ url, presentationStyle: 'popover' });
+    // First try using Capacitor's Browser plugin via the global
+    const Browser = window.Capacitor?.Plugins?.Browser;
+    if (Browser?.open) {
+      await Browser.open({ url, presentationStyle: 'popover' });
+      return;
+    }
   } catch (error) {
-    console.error('Failed to open browser:', error);
-    window.open(url, '_blank');
+    console.warn('Capacitor Browser plugin not available:', error);
   }
+
+  // Fallback: open in new window/tab
+  window.open(url, '_blank');
 }
 
 /** Initiate email/password sign-up (non-blocking). */
@@ -56,12 +71,10 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
 
 /** Initiate Google sign-in - opens external browser in Capacitor, popup on web */
 export async function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
-  // Check if running in Capacitor native app
-  if (await isCapacitorNative()) {
+  // Check if running in Capacitor native app using global object
+  if (isCapacitorNative()) {
     // Open the main app URL in external browser where OAuth will work
-    // User will sign in there, then return to the app
     await openExternalBrowser('https://frepo.app/?native=true');
-    // Return a message indicating the user should sign in via browser
     throw new Error('BROWSER_AUTH_OPENED');
   }
 
@@ -72,9 +85,8 @@ export async function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
 
 /** Initiate Google sign-in but BLOCK new user creation (non-blocking). */
 export async function initiateGoogleLogin(authInstance: Auth): Promise<any> {
-  // Check if running in Capacitor native app
-  if (await isCapacitorNative()) {
-    // Open the main app URL in external browser where OAuth will work
+  // Check if running in Capacitor native app using global object
+  if (isCapacitorNative()) {
     await openExternalBrowser('https://frepo.app/?native=true');
     throw new Error('BROWSER_AUTH_OPENED');
   }
@@ -84,7 +96,6 @@ export async function initiateGoogleLogin(authInstance: Auth): Promise<any> {
   const additionalUserInfo = getAdditionalUserInfo(result);
 
   if (additionalUserInfo?.isNewUser) {
-    // If it's a new user, delete the account and throw an error
     await deleteUser(result.user);
     throw new Error("Account creation is not allowed here. Please use the mobile app or Sign Up page.");
   }
