@@ -71,6 +71,15 @@ export default function LoginPage() {
     try {
       await initiateGoogleLogin(auth);
     } catch (error: any) {
+      // Handle Capacitor browser auth - not an error, just a different flow
+      if (error.message === 'BROWSER_AUTH_OPENED') {
+        toast({
+          title: "Browser Opened",
+          description: "Please sign in using Chrome, then return to this app.",
+        });
+        setIsLoading(false);
+        return;
+      }
       console.error(error);
       toast({
         variant: "destructive",

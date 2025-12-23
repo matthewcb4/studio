@@ -98,8 +98,25 @@ export default function SignupPage() {
     initiateEmailSignUp(auth, values.email, values.password);
   }
 
-  function onGoogleSignIn() {
-    initiateGoogleSignIn(auth);
+  async function onGoogleSignIn() {
+    try {
+      await initiateGoogleSignIn(auth);
+    } catch (error: any) {
+      // Handle Capacitor browser auth - not an error, just a different flow
+      if (error.message === 'BROWSER_AUTH_OPENED') {
+        toast({
+          title: "Browser Opened",
+          description: "Please sign up using Chrome, then return to this app.",
+        });
+        return;
+      }
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Google Sign Up Failed",
+        description: error.message || "An error occurred during Google sign up.",
+      });
+    }
   }
 
   function onFacebookSignIn() {
