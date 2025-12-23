@@ -60,7 +60,7 @@ export async function initiateGoogleSignIn(authInstance: Auth): Promise<any> {
   if (await isCapacitorNative()) {
     // Open the main app URL in external browser where OAuth will work
     // User will sign in there, then return to the app
-    await openExternalBrowser('https://frepo.app/login?native=true');
+    await openExternalBrowser('https://frepo.app/?native=true');
     // Return a message indicating the user should sign in via browser
     throw new Error('BROWSER_AUTH_OPENED');
   }
@@ -75,7 +75,7 @@ export async function initiateGoogleLogin(authInstance: Auth): Promise<any> {
   // Check if running in Capacitor native app
   if (await isCapacitorNative()) {
     // Open the main app URL in external browser where OAuth will work
-    await openExternalBrowser('https://frepo.app/login?native=true');
+    await openExternalBrowser('https://frepo.app/?native=true');
     throw new Error('BROWSER_AUTH_OPENED');
   }
 
