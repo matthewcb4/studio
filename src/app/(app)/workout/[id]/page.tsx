@@ -78,7 +78,7 @@ import {
   useCollection,
   setDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection, addDoc, query, orderBy, limit } from 'firebase/firestore';
+import { doc, collection, addDoc, query, orderBy, limit, increment } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
 import { findExerciseVideo, type FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
@@ -858,6 +858,15 @@ export default function WorkoutSessionPage() {
           lifetimeVolume: newLifetimeVolume,
           xp: newXP,
           level: newLevel
+        });
+      }
+
+      // 4. Update active program enrollment if user is in a program
+      if (userProfile?.activeProgramId) {
+        const enrollmentRef = doc(firestore, `users/${user.uid}/programEnrollments/${userProfile.activeProgramId}`);
+        updateDocumentNonBlocking(enrollmentRef, {
+          workoutsCompletedThisWeek: increment(1),
+          totalWorkoutsCompleted: increment(1),
         });
       }
 
