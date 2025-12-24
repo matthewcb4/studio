@@ -912,7 +912,7 @@ export default function WorkoutSessionPage() {
         totalVolume,
         exerciseCount: loggedExercises.length,
         notes: `${loggedExercises.length} exercises, ${totalVolume.toLocaleString()} lbs volume`,
-      }).catch(err => console.log('Health Connect sync:', err));
+      }, userProfile?.healthConnectEnabled ?? true).catch(err => console.log('Health Connect sync:', err));
 
     } catch (error) {
       console.error("Error finishing workout:", error);

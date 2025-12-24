@@ -43,6 +43,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { colorSchemes, type HeatmapColorScheme } from '@/components/muscle-heatmap';
 import { FeedbackDialog } from '@/components/feedback-dialog';
+import { Switch } from '@/components/ui/switch';
+import { isHealthConnectAvailable, hasHealthConnectPermissions, isNativeApp } from '@/lib/health-connect';
 
 
 const equipmentFormSchema = z.object({
@@ -93,9 +95,27 @@ export default function SettingsPage() {
     const [isRecalculating, setIsRecalculating] = useState(false);
 
     // Health Connect state
-    const [healthConnectEnabled, setHealthConnectEnabled] = useState(false);
     const [healthConnectAvailable, setHealthConnectAvailable] = useState(false);
+    const [healthConnectHasPermissions, setHealthConnectHasPermissions] = useState(false);
     const [isCheckingHealthConnect, setIsCheckingHealthConnect] = useState(true);
+    const [isNative, setIsNative] = useState(false);
+
+    // Check Health Connect availability on mount
+    useEffect(() => {
+        const checkHealthConnect = async () => {
+            setIsNative(isNativeApp());
+            if (isNativeApp()) {
+                const available = await isHealthConnectAvailable();
+                setHealthConnectAvailable(available);
+                if (available) {
+                    const hasPerms = await hasHealthConnectPermissions();
+                    setHealthConnectHasPermissions(hasPerms);
+                }
+            }
+            setIsCheckingHealthConnect(false);
+        };
+        checkHealthConnect();
+    }, []);
 
     const equipmentCollection = useMemoFirebase(() =>
         user ? collection(firestore, `users/${user.uid}/equipment`) : null
@@ -1092,7 +1112,7 @@ export default function SettingsPage() {
                                 <div className="p-4 bg-secondary rounded-lg space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <Activity className="h-5 w-5 text-green-500" />
+                                            <Activity className={`h-5 w-5 ${isNative && healthConnectAvailable ? 'text-green-500' : 'text-muted-foreground'}`} />
                                             <div>
                                                 <h4 className="font-medium">Health Connect</h4>
                                                 <p className="text-sm text-muted-foreground">
@@ -1100,17 +1120,51 @@ export default function SettingsPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-muted-foreground">Coming Soon</span>
-                                        </div>
+                                        {isCheckingHealthConnect ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : isNative && healthConnectAvailable ? (
+                                            <Switch
+                                                checked={userProfile?.healthConnectEnabled ?? false}
+                                                onCheckedChange={(checked) => {
+                                                    if (userProfileRef) {
+                                                        setDocumentNonBlocking(userProfileRef, { healthConnectEnabled: checked }, { merge: true });
+                                                        toast({
+                                                            title: checked ? 'Health Connect Enabled' : 'Health Connect Disabled',
+                                                            description: checked
+                                                                ? 'Workouts will sync automatically when completed.'
+                                                                : 'Workout sync has been turned off.'
+                                                        });
+                                                    }
+                                                }}
+                                            />
+                                        ) : (
+                                            <Badge variant="secondary" className="text-xs">
+                                                {isNative ? 'Not Available' : 'Android Only'}
+                                            </Badge>
+                                        )}
                                     </div>
+
+                                    {isNative && healthConnectAvailable && (
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <div className={`w-2 h-2 rounded-full ${healthConnectHasPermissions ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                                            <span className="text-muted-foreground">
+                                                {healthConnectHasPermissions
+                                                    ? 'Permissions granted'
+                                                    : 'Grant permissions in Health Connect app settings'}
+                                            </span>
+                                        </div>
+                                    )}
+
                                     <p className="text-sm text-muted-foreground">
                                         When enabled, your completed workouts will automatically sync to Health Connect, making them available in Google Fit, Fitbit, Samsung Health, and other compatible apps.
                                     </p>
-                                    <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
-                                        <p className="font-medium mb-1">📱 Android App Required</p>
-                                        <p>Health Connect integration requires the fRepo Android app (coming soon to Google Play).</p>
-                                    </div>
+
+                                    {!isNative && (
+                                        <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
+                                            <p className="font-medium mb-1">📱 Android App Required</p>
+                                            <p>Health Connect integration requires the fRepo Android app from Google Play.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </AccordionContent>

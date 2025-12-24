@@ -79,6 +79,8 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
 
 /**
  * Sync a completed workout to Health Connect
+ * @param workout - The workout data to sync
+ * @param isEnabled - Whether the user has enabled Health Connect sync (from profile)
  */
 export async function syncWorkoutToHealthConnect(workout: {
     name: string;
@@ -87,7 +89,13 @@ export async function syncWorkoutToHealthConnect(workout: {
     totalVolume?: number;
     exerciseCount?: number;
     notes?: string;
-}): Promise<boolean> {
+}, isEnabled: boolean = true): Promise<boolean> {
+    // Check if user has enabled Health Connect sync
+    if (!isEnabled) {
+        console.log('Health Connect sync skipped - disabled by user');
+        return false;
+    }
+
     if (!Capacitor.isNativePlatform()) {
         console.log('Health Connect sync skipped - not on native platform');
         return false;

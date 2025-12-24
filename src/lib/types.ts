@@ -127,6 +127,9 @@ export type UserProfile = {
   // Media preferences
   preferredMusicApp?: 'spotify' | 'apple-music' | 'youtube-music' | 'amazon-music' | 'pandora' | 'none';
 
+  // Health Connect integration
+  healthConnectEnabled?: boolean;
+
   // Active Workout Program
   activeProgramId?: string;              // ID of the currently active program enrollment
 
