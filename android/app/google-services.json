@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "196694469805-tv242ebg23ta3dcd3uvp4ggmtidu2v5m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.frepo.fitness",
+            "certificate_hash": "e0b6253c663eef3f025ec72a9d8ad8124d7a2551"
+          }
+        },
+        {
           "client_id": "196694469805-hlprr6jv0oqs5p62kn46skqenr3t9ut4.apps.googleusercontent.com",
           "client_type": 3
         }
