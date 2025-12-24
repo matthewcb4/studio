@@ -1,4 +1,4 @@
-package app.frepo.fitness;
+package app.frepo.twa;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

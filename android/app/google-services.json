@@ -49,6 +49,51 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:196694469805:android:65355ae7e6ea18cb9caa24",
+        "android_client_info": {
+          "package_name": "app.frepo.twa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "196694469805-2qp92ij46b5k5etjtmucvtt2gfe4lc4s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.frepo.twa",
+            "certificate_hash": "e0b6253c663eef3f025ec72a9d8ad8124d7a2551"
+          }
+        },
+        {
+          "client_id": "196694469805-p4fta1i7v7p7ef1pni2caqk8ga9cdft7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.frepo.twa",
+            "certificate_hash": "43bb91c360f68871675381f355c59ac098dde9b9"
+          }
+        },
+        {
+          "client_id": "196694469805-hlprr6jv0oqs5p62kn46skqenr3t9ut4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpkVfoUnraVOnDZ_PUGhtK4bVFC2StGOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "196694469805-hlprr6jv0oqs5p62kn46skqenr3t9ut4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

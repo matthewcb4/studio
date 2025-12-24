@@ -1,4 +1,4 @@
-package app.frepo.fitness
+package app.frepo.twa
 
 import android.util.Log
 import com.getcapacitor.JSObject
