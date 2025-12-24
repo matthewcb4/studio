@@ -14,6 +14,12 @@ const config: CapacitorConfig = {
     // Allow mixed content for any local development needs
     allowMixedContent: false,
   },
+  plugins: {
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ['google.com'],
+    },
+  },
 };
 
 export default config;
