@@ -174,6 +174,7 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
 
         const playStoreUrl = "https://play.google.com/store/apps/details?id=app.frepo.twa";
         const shareText = `I just crushed the '${log.workoutName}' workout on fRepo, lifting a total of ${(log.volume || 0).toLocaleString()} lbs! Come join me and track your own progress!`;
+        const fullShareText = `${shareText}\n\n${playStoreUrl}`;
 
         try {
             const canvas = await html2canvas(cardElement, {
@@ -183,32 +184,58 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
             });
             const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
 
-            if (blob && navigator.share && navigator.canShare) {
+            // Try Web Share API with image first (works on mobile including Capacitor)
+            if (blob && navigator.share) {
                 const file = new File([blob], 'workout.png', { type: 'image/png' });
-                if (navigator.canShare({ files: [file] })) {
+                try {
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            title: 'My fRepo Workout',
+                            text: fullShareText,
+                            files: [file],
+                        });
+                        return;
+                    }
+                } catch (fileShareError) {
+                    console.log("File share not supported, trying text share");
+                }
+
+                // Fallback: Try text-only share (still uses native share sheet)
+                try {
                     await navigator.share({
                         title: 'My fRepo Workout',
-                        text: `${shareText}\n\n${playStoreUrl}`,
-                        files: [file],
+                        text: fullShareText,
                     });
                     return;
+                } catch (textShareError) {
+                    console.log("Text share failed:", textShareError);
                 }
             }
 
-            // Fallback for desktop or if image share fails
-            const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
-            window.open(facebookShareUrl, '_blank', 'width=600,height=400');
+            // Final fallback: Copy to clipboard
+            await navigator.clipboard.writeText(fullShareText);
+            toast({
+                title: "Link Copied!",
+                description: "Share link has been copied to your clipboard.",
+            });
 
         } catch (error) {
             console.error("Sharing failed:", error);
-            toast({
-                title: "Sharing Failed",
-                description: "Could not share workout. Please try again.",
-                variant: "destructive"
-            });
-            // Ensure fallback still runs if there's an error
-            const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(playStoreUrl)}&quote=${encodeURIComponent(shareText)}`;
-            window.open(facebookShareUrl, '_blank', 'width=600,height=400');
+            // Last resort: Copy to clipboard
+            try {
+                const shareUrl = playStoreUrl;
+                await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
+                toast({
+                    title: "Link Copied!",
+                    description: "Share link copied to clipboard. Paste it anywhere to share!",
+                });
+            } catch (clipboardError) {
+                toast({
+                    title: "Sharing Failed",
+                    description: "Could not share workout. Please try again.",
+                    variant: "destructive"
+                });
+            }
         }
     };
 
