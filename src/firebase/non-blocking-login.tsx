@@ -55,7 +55,13 @@ export async function initiateEmailSignUp(authInstance: Auth, email: string, pas
 /** Initiate email/password sign-in (non-blocking). */
 export async function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<any> {
   const result = await signInWithEmailAndPassword(authInstance, email, password);
-  if (!result.user.emailVerified) {
+
+  // Allow test accounts to bypass email verification (for Play Store review)
+  const isTestAccount = email.toLowerCase().includes('reviewer') ||
+    email.toLowerCase().includes('test') ||
+    email.toLowerCase().endsWith('@frepo.app');
+
+  if (!result.user.emailVerified && !isTestAccount) {
     await signOut(authInstance);
     throw new Error("Please verify your email address before logging in.");
   }
