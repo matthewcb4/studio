@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   CheckCircle,
@@ -94,6 +94,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { ReviewPromptDialog } from '@/components/review-prompt-dialog';
+import { usePersistedWorkoutSession } from '@/hooks/use-persisted-workout-session';
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
@@ -216,6 +217,42 @@ export default function WorkoutSessionPage() {
 
   // Track session PRs
   const [sessionPRs, setSessionPRs] = useState<(PRResult & { exerciseId: string })[]>([]);
+
+  // Session start time for persistence
+  const [sessionStartTime] = useState(() => Date.now());
+
+  // Persistence hook for workout session
+  const { loadPersistedData, saveSession, clearSession } = usePersistedWorkoutSession(workoutId);
+
+  // Restore persisted session on mount
+  useEffect(() => {
+    const persisted = loadPersistedData();
+    if (persisted) {
+      setSessionLog(persisted.sessionLog as Record<string, LoggedSet[]>);
+      setExerciseStates(persisted.exerciseStates as Record<string, ExerciseState>);
+      setElapsedTime(persisted.elapsedTime);
+      setCurrentGroupIndex(persisted.currentGroupIndex);
+      toast({
+        title: 'Session Restored',
+        description: 'Your workout progress has been restored.',
+      });
+    }
+  }, [loadPersistedData, toast]);
+
+  // Save session whenever key state changes
+  useEffect(() => {
+    // Only save if there's actual logged data
+    const hasLogs = Object.keys(sessionLog).length > 0;
+    if (hasLogs && !isFinished) {
+      saveSession({
+        sessionLog: sessionLog as Record<string, Array<{ reps?: number; weight?: number; duration?: number; type?: string }>>,
+        exerciseStates: exerciseStates as Record<string, { currentSet: number; logs: Array<{ reps?: number; weight?: number; duration?: number; type?: string }>; weight: string; reps: string; duration: string; bodyweightPercentage: number; setType: string }>,
+        elapsedTime,
+        currentGroupIndex,
+        startTime: sessionStartTime,
+      });
+    }
+  }, [sessionLog, exerciseStates, elapsedTime, currentGroupIndex, isFinished, sessionStartTime, saveSession]);
 
   // Auto-Rest Timer State
   const [restTimer, setRestTimer] = useState<{ endTime: number; originalDuration: number } | null>(null);
@@ -860,7 +897,6 @@ export default function WorkoutSessionPage() {
           level: newLevel
         });
       }
-
       // 4. Update active program enrollment if user is in a program
       if (userProfile?.activeProgramId) {
         const enrollmentRef = doc(firestore, `users/${user.uid}/programEnrollments/${userProfile.activeProgramId}`);
@@ -869,6 +905,9 @@ export default function WorkoutSessionPage() {
           totalWorkoutsCompleted: increment(1),
         });
       }
+
+      // Clear persisted session since workout is complete
+      clearSession();
 
       setIsFinished(true); // Move to summary screen
 
