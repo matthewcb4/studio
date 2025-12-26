@@ -249,8 +249,8 @@ export default function SignupPage() {
           />
         )}
       </div>
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
+      <div className="flex items-center justify-center py-12 px-6 min-h-screen lg:min-h-0">
+        <div className="mx-auto grid w-full max-w-[350px] gap-6">
           <div className="flex justify-center items-center gap-2 mb-4">
             <Logo className="h-8 w-8" />
             <h1 className="text-3xl font-bold">fRepo</h1>
