@@ -29,7 +29,7 @@ import {
     useCollection,
     setDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, Timestamp, collectionGroup, limit } from 'firebase/firestore';
 import type { LeaderboardMetric, LeaderboardEntry, LeaderboardSettings, UserProfile, WorkoutLog, FriendConnection, Friend } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Trophy, Medal, Award, Users, Calendar, CalendarDays, Crown, Settings2, UserPlus, Loader2, Copy, Check, X, UserMinus } from 'lucide-react';
@@ -135,6 +135,26 @@ function EmptyLeaderboard({ message }: { message: string }) {
     );
 }
 
+// Helper functions for names and codes
+const ADJECTIVES = ['Swift', 'Strong', 'Bold', 'Fast', 'Fit', 'Iron', 'Steel', 'Power', 'Mighty', 'Grand'];
+const NOUNS = ['Lion', 'Tiger', 'Eagle', 'Hawk', 'Wolf', 'Bear', 'Shark', 'Falcon', 'Panther', 'Titan'];
+
+function generateRandomName(): string {
+    const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+    const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+    const num = Math.floor(Math.random() * 9000) + 1000;
+    return `${adj}${noun}#${num}`;
+}
+
+function generateFriendCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I, O, 0, 1
+    let code = '';
+    for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
 export default function LeaderboardPage() {
     const { user } = useUser();
     const firestore = useFirestore();
@@ -178,7 +198,9 @@ export default function LeaderboardPage() {
 
     // Friend management state
     const [addFriendOpen, setAddFriendOpen] = useState(false);
-    const [friendCodeInput, setFriendCodeInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<(UserProfile & { id: string })[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
     const [copiedCode, setCopiedCode] = useState(false);
     const [pendingRequests, setPendingRequests] = useState<(FriendConnection & { id: string })[]>([]);
@@ -238,61 +260,75 @@ export default function LeaderboardPage() {
         fetchFriendData();
     }, [user, firestore]);
 
-    // Copy friend code to clipboard
-    const handleCopyFriendCode = () => {
-        const code = profile?.leaderboardSettings?.friendCode;
-        if (code) {
-            navigator.clipboard.writeText(code);
-            setCopiedCode(true);
-            setTimeout(() => setCopiedCode(false), 2000);
+    // Search users by display name
+    const handleSearch = async () => {
+        if (!searchQuery.trim() || !user) return;
+        setIsSearching(true);
+        try {
+            // Search users by generatedName or customDisplayName
+            // Note: In a real app we'd use Algolia or Typesense for full-text search
+            // Here we'll rely on an exact match or prefix match if index exists
+            // We are querying the 'profile' collection group which contains 'main' docs
+
+            // Try exact match on custom name first
+            const customNameQuery = query(
+                collectionGroup(firestore, 'profile'),
+                where('leaderboardSettings.customDisplayName', '==', searchQuery.trim()),
+                limit(5)
+            );
+
+            // Try match on generated name
+            const generatedNameQuery = query(
+                collectionGroup(firestore, 'profile'),
+                where('leaderboardSettings.generatedName', '==', searchQuery.trim()),
+                limit(5)
+            );
+
+            const [customSnap, generatedSnap] = await Promise.all([
+                getDocs(customNameQuery),
+                getDocs(generatedNameQuery)
+            ]);
+
+            const results = new Map<string, UserProfile & { id: string }>();
+
+            const processSnap = (snap: any) => {
+                snap.docs.forEach((doc: any) => {
+                    // The doc ID is 'main', but the parent's parent is the user doc
+                    // doc.ref.parent.parent.id should be the userId
+                    const userId = doc.ref.parent.parent?.id;
+                    if (userId && userId !== user.uid) { // Don't show self
+                        results.set(userId, { id: userId, ...doc.data() });
+                    }
+                });
+            };
+
+            processSnap(customSnap);
+            processSnap(generatedSnap);
+
+            setSearchResults(Array.from(results.values()));
+        } catch (error) {
+            console.error('Error searching users:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to search users. Please try again.',
+                variant: 'destructive'
+            });
+        } finally {
+            setIsSearching(false);
         }
     };
 
-    // Send friend request
-    const handleSendFriendRequest = async () => {
-        if (!user || !firestore || !friendCodeInput.trim()) return;
+    const handleSendRequest = async (targetUserId: string, targetDisplayName: string) => {
+        if (!user || !profile || !profile.leaderboardSettings?.optedIn) {
+            toast({
+                title: 'Setup Required',
+                description: 'You must opt-in to leaderboards to add friends.',
+            });
+            return;
+        }
+
         setIsAddingFriend(true);
-
         try {
-            const normalizedCode = friendCodeInput.trim().toUpperCase();
-
-            // Find user with this friend code (search all profiles)
-            // This is a simple implementation - in production you'd want a separate collection for friend codes
-            const usersSnapshot = await getDocs(collection(firestore, 'users'));
-            let targetUserId: string | null = null;
-            let targetDisplayName: string | null = null;
-
-            for (const userDoc of usersSnapshot.docs) {
-                const profileDoc = await getDocs(collection(firestore, `users/${userDoc.id}/profile`));
-                for (const pDoc of profileDoc.docs) {
-                    const profileData = pDoc.data() as UserProfile;
-                    if (profileData.leaderboardSettings?.friendCode === normalizedCode) {
-                        targetUserId = userDoc.id;
-                        targetDisplayName = profileData.leaderboardSettings?.generatedName || 'User';
-                        break;
-                    }
-                }
-                if (targetUserId) break;
-            }
-
-            if (!targetUserId) {
-                toast({
-                    title: 'Friend code not found',
-                    description: 'No user found with that friend code. Please check and try again.',
-                    variant: 'destructive',
-                });
-                return;
-            }
-
-            if (targetUserId === user.uid) {
-                toast({
-                    title: 'Cannot add yourself',
-                    description: "That's your own friend code!",
-                    variant: 'destructive',
-                });
-                return;
-            }
-
             // Check friend limit (Max 20)
             if (friends.length >= 20) {
                 toast({
@@ -303,7 +339,7 @@ export default function LeaderboardPage() {
                 return;
             }
 
-            // Check if already friends or request pending
+            // Check if already friends
             const existingFriend = friends.find(f => f.friendUserId === targetUserId);
             if (existingFriend) {
                 toast({
@@ -313,23 +349,41 @@ export default function LeaderboardPage() {
                 return;
             }
 
-            // Create friend request
+            // Check if request already pending (sent by me)
+            const existingRequestQuery = query(
+                collection(firestore, 'friendRequests'),
+                where('senderId', '==', user.uid),
+                where('receiverId', '==', targetUserId),
+                where('status', '==', 'pending')
+            );
+            const existingRequestSnap = await getDocs(existingRequestQuery);
+            if (!existingRequestSnap.empty) {
+                toast({
+                    title: 'Request Pending',
+                    description: 'You have already sent a request to this user.',
+                });
+                return;
+            }
+
+
+            // Create request
             await addDoc(collection(firestore, 'friendRequests'), {
                 senderId: user.uid,
                 receiverId: targetUserId,
-                senderDisplayName: profile?.leaderboardSettings?.generatedName || 'User',
+                senderDisplayName: profile.leaderboardSettings?.generatedName || 'User',
                 status: 'pending',
-                createdAt: new Date().toISOString(),
+                createdAt: new Date().toISOString()
             } as FriendConnection);
 
             toast({
-                title: 'Friend request sent!',
-                description: `Request sent to ${targetDisplayName}`,
+                title: 'Request Sent!',
+                description: `Friend request sent to ${targetDisplayName}`,
             });
-            setFriendCodeInput('');
             setAddFriendOpen(false);
+            setSearchQuery('');
+            setSearchResults([]);
         } catch (error) {
-            console.error('Error sending friend request:', error);
+            console.error('Error adding friend:', error);
             toast({
                 title: 'Error',
                 description: 'Failed to send friend request.',
@@ -780,51 +834,15 @@ export default function LeaderboardPage() {
                         </Card>
                     )}
 
-                    {/* Friend Code Display */}
-                    {isOptedIn && profile?.leaderboardSettings?.friendCode && (
-                        <Card className="border-primary/20 bg-primary/5">
-                            <CardContent className="py-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground mb-1">Your Friend Code</p>
-                                        <p className="font-mono text-xl font-bold tracking-wider">
-                                            {profile.leaderboardSettings.friendCode}
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleCopyFriendCode}
-                                        className="gap-2"
-                                    >
-                                        {copiedCode ? (
-                                            <>
-                                                <Check className="h-4 w-4" />
-                                                Copied!
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Copy className="h-4 w-4" />
-                                                Copy
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-2">
-                                    Share this code with friends so they can add you
-                                </p>
-                            </CardContent>
-                        </Card>
-                    )}
+
 
                     {/* Add Friend Section */}
+                    {/* Search Friends Section */}
                     <Card>
                         <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center justify-between">
-                                <span className="flex items-center gap-2">
-                                    <UserPlus className="h-5 w-5" />
-                                    Add Friend
-                                </span>
+                            <CardTitle className="flex items-center gap-2">
+                                <UserPlus className="h-5 w-5" />
+                                Find Friends
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -833,24 +851,52 @@ export default function LeaderboardPage() {
                                     Opt in to leaderboards to add friends
                                 </p>
                             ) : (
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Enter friend code"
-                                        value={friendCodeInput}
-                                        onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
-                                        maxLength={8}
-                                        className="font-mono uppercase"
-                                    />
-                                    <Button
-                                        onClick={handleSendFriendRequest}
-                                        disabled={isAddingFriend || friendCodeInput.length < 8}
-                                    >
-                                        {isAddingFriend ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            'Add'
-                                        )}
-                                    </Button>
+                                <div className="space-y-4">
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Search by display name..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                        />
+                                        <Button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()}>
+                                            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+                                        </Button>
+                                    </div>
+
+                                    {/* Results List */}
+                                    {searchResults.length > 0 && (
+                                        <div className="space-y-2 mt-4 max-h-[200px] overflow-y-auto">
+                                            {searchResults.map(result => (
+                                                <div key={result.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">
+                                                            {result.leaderboardSettings?.customDisplayName || result.leaderboardSettings?.generatedName || 'User'}
+                                                        </span>
+                                                        {result.leaderboardSettings?.generatedName && result.leaderboardSettings.displayNameType === 'custom' && (
+                                                            <span className="text-xs text-muted-foreground">{result.leaderboardSettings.generatedName}</span>
+                                                        )}
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleSendRequest(
+                                                            result.id,
+                                                            result.leaderboardSettings?.customDisplayName || result.leaderboardSettings?.generatedName || 'User'
+                                                        )}
+                                                        disabled={isAddingFriend}
+                                                    >
+                                                        Add
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {searchResults.length === 0 && searchQuery && !isSearching && (
+                                        <p className="text-sm text-muted-foreground text-center">
+                                            No users found. Try the exact display name including the #Tag.
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </CardContent>
