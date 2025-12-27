@@ -152,6 +152,12 @@ export type UserProfile = {
 
   // Leaderboard
   leaderboardSettings?: LeaderboardSettings;
+  leaderboardStats?: {
+    weekly: Record<LeaderboardMetric, number>;
+    monthly: Record<LeaderboardMetric, number>;
+    allTime: Record<LeaderboardMetric, number>;
+    updatedAt: string;
+  };
 }
 
 export type ProgressLog = {
@@ -276,6 +282,7 @@ export type LeaderboardSettings = {
   displayNameType: 'generated' | 'custom';
   generatedName?: string;        // Auto-assigned unique name
   customDisplayName?: string;    // User-chosen name (moderated)
+  friendCode?: string;           // 8-char code for receiving friend requests
 };
 
 /**
@@ -284,17 +291,18 @@ export type LeaderboardSettings = {
 export type FriendConnection = {
   id: string;
   senderId: string;               // Who sent the request
-  receiverId: string;           // Who received it
+  receiverId: string;             // Who received it
+  senderDisplayName?: string;     // Display name of sender for UI
   status: 'pending' | 'accepted' | 'declined';
-  createdAt: string;            // ISO date
-  acceptedAt?: string;          // ISO date when accepted
+  createdAt: string;              // ISO date
+  acceptedAt?: string;            // ISO date when accepted
 };
 
 /**
  * A friend in the user's friend list (denormalized for quick access)
  */
 export type Friend = {
-  id: string;                    // Document ID
+  id?: string;                   // Document ID (optional, set after read)
   friendUserId: string;          // The friend's user ID
   displayName: string;           // Their leaderboard display name
   avatarEmoji?: string;          // Their emoji avatar

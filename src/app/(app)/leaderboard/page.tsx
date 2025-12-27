@@ -29,10 +29,10 @@ import {
     useCollection,
     setDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
-import type { LeaderboardMetric, LeaderboardEntry, LeaderboardSettings, UserProfile, WorkoutLog } from '@/lib/types';
+import { doc, collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import type { LeaderboardMetric, LeaderboardEntry, LeaderboardSettings, UserProfile, WorkoutLog, FriendConnection, Friend } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy, Medal, Award, Users, Calendar, CalendarDays, Crown, Settings2, UserPlus, Loader2 } from 'lucide-react';
+import { Trophy, Medal, Award, Users, Calendar, CalendarDays, Crown, Settings2, UserPlus, Loader2, Copy, Check, X, UserMinus } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -75,6 +75,16 @@ const AVATAR_EMOJIS = ['🦁', '🐺', '🦅', '🐯', '🦈', '🐻', '🦊', '
 
 function getRandomEmoji(): string {
     return AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)];
+}
+
+// Generate unique 8-character friend code
+function generateFriendCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No O, 0, I, 1 to avoid confusion
+    let code = '';
+    for (let i = 0; i < 8; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return code;
 }
 
 // Medal icons for top 3
@@ -166,103 +176,386 @@ export default function LeaderboardPage() {
         }
     }, [profile]);
 
-    // Calculate metrics from workout logs based on time period
-    const placeholderEntries: LeaderboardEntry[] = useMemo(() => {
-        if (!user || !profile?.leaderboardSettings?.optedIn) return [];
+    // Friend management state
+    const [addFriendOpen, setAddFriendOpen] = useState(false);
+    const [friendCodeInput, setFriendCodeInput] = useState('');
+    const [isAddingFriend, setIsAddingFriend] = useState(false);
+    const [copiedCode, setCopiedCode] = useState(false);
+    const [pendingRequests, setPendingRequests] = useState<(FriendConnection & { id: string })[]>([]);
+    const [friends, setFriends] = useState<(Friend & { id: string; profile?: UserProfile })[]>([]);
+    const [friendsLoading, setFriendsLoading] = useState(false);
 
-        // Get start date based on active tab
-        const getStartDate = (): Date | null => {
+    // Fetch pending friend requests and friends list
+    useEffect(() => {
+        if (!user || !firestore) return;
+
+        const fetchFriendData = async () => {
+            setFriendsLoading(true);
+            try {
+                // Fetch pending requests where current user is receiver
+                const requestsQuery = query(
+                    collection(firestore, 'friendRequests'),
+                    where('receiverId', '==', user.uid),
+                    where('status', '==', 'pending')
+                );
+                const requestsSnapshot = await getDocs(requestsQuery);
+                const requests = requestsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as (FriendConnection & { id: string })[];
+                setPendingRequests(requests);
+
+                // Fetch friends list
+                const friendsSnapshot = await getDocs(collection(firestore, `users/${user.uid}/friends`));
+                const friendsList = friendsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as (Friend & { id: string; profile?: UserProfile })[];
+
+                // Fetch profiles for all friends to get leaderboard stats
+                // We limit friends to 20, so doing parallel reads is acceptable
+                if (friendsList.length > 0) {
+                    await Promise.all(friendsList.map(async (friend) => {
+                        try {
+                            const profileDoc = await getDoc(doc(firestore, `users/${friend.friendUserId}/profile/main`));
+                            if (profileDoc.exists()) {
+                                friend.profile = profileDoc.data() as UserProfile;
+                            }
+                        } catch (e) {
+                            console.error(`Error fetching profile for friend ${friend.friendUserId}`, e);
+                        }
+                    }));
+                }
+
+                setFriends(friendsList);
+            } catch (error) {
+                console.error('Error fetching friend data:', error);
+            } finally {
+                setFriendsLoading(false);
+            }
+        };
+
+        fetchFriendData();
+    }, [user, firestore]);
+
+    // Copy friend code to clipboard
+    const handleCopyFriendCode = () => {
+        const code = profile?.leaderboardSettings?.friendCode;
+        if (code) {
+            navigator.clipboard.writeText(code);
+            setCopiedCode(true);
+            setTimeout(() => setCopiedCode(false), 2000);
+        }
+    };
+
+    // Send friend request
+    const handleSendFriendRequest = async () => {
+        if (!user || !firestore || !friendCodeInput.trim()) return;
+        setIsAddingFriend(true);
+
+        try {
+            const normalizedCode = friendCodeInput.trim().toUpperCase();
+
+            // Find user with this friend code (search all profiles)
+            // This is a simple implementation - in production you'd want a separate collection for friend codes
+            const usersSnapshot = await getDocs(collection(firestore, 'users'));
+            let targetUserId: string | null = null;
+            let targetDisplayName: string | null = null;
+
+            for (const userDoc of usersSnapshot.docs) {
+                const profileDoc = await getDocs(collection(firestore, `users/${userDoc.id}/profile`));
+                for (const pDoc of profileDoc.docs) {
+                    const profileData = pDoc.data() as UserProfile;
+                    if (profileData.leaderboardSettings?.friendCode === normalizedCode) {
+                        targetUserId = userDoc.id;
+                        targetDisplayName = profileData.leaderboardSettings?.generatedName || 'User';
+                        break;
+                    }
+                }
+                if (targetUserId) break;
+            }
+
+            if (!targetUserId) {
+                toast({
+                    title: 'Friend code not found',
+                    description: 'No user found with that friend code. Please check and try again.',
+                    variant: 'destructive',
+                });
+                return;
+            }
+
+            if (targetUserId === user.uid) {
+                toast({
+                    title: 'Cannot add yourself',
+                    description: "That's your own friend code!",
+                    variant: 'destructive',
+                });
+                return;
+            }
+
+            // Check friend limit (Max 20)
+            if (friends.length >= 20) {
+                toast({
+                    title: 'Friend limit reached',
+                    description: 'You can only have up to 20 friends. Remove a friend to add a new one.',
+                    variant: 'destructive',
+                });
+                return;
+            }
+
+            // Check if already friends or request pending
+            const existingFriend = friends.find(f => f.friendUserId === targetUserId);
+            if (existingFriend) {
+                toast({
+                    title: 'Already friends',
+                    description: 'You are already friends with this user.',
+                });
+                return;
+            }
+
+            // Create friend request
+            await addDoc(collection(firestore, 'friendRequests'), {
+                senderId: user.uid,
+                receiverId: targetUserId,
+                senderDisplayName: profile?.leaderboardSettings?.generatedName || 'User',
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+            } as FriendConnection);
+
+            toast({
+                title: 'Friend request sent!',
+                description: `Request sent to ${targetDisplayName}`,
+            });
+            setFriendCodeInput('');
+            setAddFriendOpen(false);
+        } catch (error) {
+            console.error('Error sending friend request:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to send friend request.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsAddingFriend(false);
+        }
+    };
+
+    // Accept friend request
+    const handleAcceptRequest = async (request: FriendConnection & { id: string }) => {
+        if (!user || !firestore) return;
+
+        try {
+            // Update request status
+            await updateDoc(doc(firestore, 'friendRequests', request.id), {
+                status: 'accepted',
+                acceptedAt: new Date().toISOString(),
+            });
+
+            // Add to both users' friends collections
+            const newFriend: Friend = {
+                friendUserId: request.senderId,
+                displayName: request.senderDisplayName || 'User',
+                addedAt: new Date().toISOString(),
+            };
+            await setDocumentNonBlocking(
+                doc(firestore, `users/${user.uid}/friends/${request.senderId}`),
+                newFriend,
+                { merge: true }
+            );
+            await setDocumentNonBlocking(
+                doc(firestore, `users/${request.senderId}/friends/${user.uid}`),
+                {
+                    friendUserId: user.uid,
+                    displayName: profile?.leaderboardSettings?.generatedName || 'User',
+                    addedAt: new Date().toISOString(),
+                } as Friend,
+                { merge: true }
+            );
+
+            // Update local state
+            setPendingRequests(prev => prev.filter(r => r.id !== request.id));
+            setFriends(prev => [...prev, { ...newFriend, id: request.senderId }]);
+
+            toast({
+                title: 'Friend added!',
+                description: `You are now friends with ${request.senderDisplayName}`,
+            });
+        } catch (error) {
+            console.error('Error accepting friend request:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to accept friend request.',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    // Decline friend request
+    const handleDeclineRequest = async (request: FriendConnection & { id: string }) => {
+        if (!firestore) return;
+
+        try {
+            await updateDoc(doc(firestore, 'friendRequests', request.id), {
+                status: 'declined',
+            });
+            setPendingRequests(prev => prev.filter(r => r.id !== request.id));
+            toast({
+                title: 'Request declined',
+            });
+        } catch (error) {
+            console.error('Error declining friend request:', error);
+        }
+    };
+
+    // Remove friend
+    const handleRemoveFriend = async (friend: Friend & { id: string }) => {
+        if (!user || !firestore) return;
+
+        try {
+            await deleteDoc(doc(firestore, `users/${user.uid}/friends/${friend.id}`));
+            await deleteDoc(doc(firestore, `users/${friend.friendUserId}/friends/${user.uid}`));
+            setFriends(prev => prev.filter(f => f.id !== friend.id));
+            toast({
+                title: 'Friend removed',
+            });
+        } catch (error) {
+            console.error('Error removing friend:', error);
+        }
+    };
+
+    // Friends Leaderboard State
+    const [friendsTimePeriod, setFriendsTimePeriod] = useState<'weekly' | 'monthly' | 'allTime'>('weekly');
+
+    // Calculate metrics from workout logs based on time period
+    const currentUserEntry: LeaderboardEntry | null = useMemo(() => {
+        if (!user || !profile?.leaderboardSettings?.optedIn) return null;
+
+        // For current user, we calculate real-time stats from logs to ensure instant feedback
+        // This mirrors the logic used for the global placeholder tabs
+
+        // Get start date based on active tab OR friends time period depending on context
+        // But since we want reusable logic, let's just make a helper or duplicate for now as they are distinct contexts
+
+        const getStartDate = (period: string): Date | null => {
             const now = new Date();
-            if (activeTab === 'weekly') {
-                // Start of current week (Monday)
+            if (period === 'weekly') {
                 const dayOfWeek = now.getDay();
                 const daysToMonday = (dayOfWeek + 6) % 7;
                 const monday = new Date(now);
                 monday.setDate(now.getDate() - daysToMonday);
                 monday.setHours(0, 0, 0, 0);
                 return monday;
-            } else if (activeTab === 'monthly') {
-                // Start of current month
+            } else if (period === 'monthly') {
                 return new Date(now.getFullYear(), now.getMonth(), 1);
             }
-            // All-time - no start date filter
             return null;
         };
 
-        const startDate = getStartDate();
+        const calculateStats = (period: string): number => {
+            const startDate = getStartDate(period);
+            const filteredLogs = workoutLogs?.filter(log => {
+                if (!startDate) return true;
+                const logDate = new Date(log.date);
+                return logDate >= startDate;
+            }) || [];
 
-        // Filter logs by time period
-        const filteredLogs = workoutLogs?.filter(log => {
-            if (!startDate) return true; // all-time
-            const logDate = new Date(log.date);
-            return logDate >= startDate;
-        }) || [];
-
-        // Calculate metrics from filtered logs
-        const getMetricValue = (): number => {
+            // Reuse the switch logic
             switch (selectedMetric) {
-                case 'totalVolume':
-                    return filteredLogs.reduce((sum, log) => sum + (log.volume || 0), 0);
-                case 'workoutCount':
-                    return filteredLogs.length;
-                case 'activeDays': {
-                    const uniqueDates = new Set(filteredLogs.map(log => log.date.split('T')[0]));
-                    return uniqueDates.size;
-                }
-                case 'xpEarned':
-                    // XP is calculated per workout (simplified: 50 base + volume bonus)
-                    return filteredLogs.reduce((sum, log) => {
-                        const baseXP = 50;
-                        const volumeBonus = Math.floor((log.volume || 0) / 1000) * 10;
-                        return sum + baseXP + volumeBonus;
-                    }, 0);
-                case 'cardioMinutes': {
+                case 'totalVolume': return filteredLogs.reduce((sum, log) => sum + (log.volume || 0), 0);
+                case 'workoutCount': return filteredLogs.length;
+                case 'activeDays': return new Set(filteredLogs.map(log => log.date.split('T')[0])).size;
+                case 'xpEarned': return filteredLogs.reduce((sum, log) => sum + 50 + Math.floor((log.volume || 0) / 1000) * 10, 0);
+                case 'cardioMinutes':
                     let minutes = 0;
                     filteredLogs.forEach(log => {
-                        if (log.activityType === 'run' || log.activityType === 'walk' ||
-                            log.activityType === 'cycle' || log.activityType === 'hiit') {
-                            const durationMatch = log.duration?.match(/(\d+)/);
-                            if (durationMatch) {
-                                minutes += parseInt(durationMatch[1], 10);
-                            }
+                        if (['run', 'walk', 'cycle', 'hiit'].includes(log.activityType || '')) {
+                            const m = log.duration?.match(/(\d+)/);
+                            if (m) minutes += parseInt(m[1], 10);
                         }
                     });
                     return minutes;
-                }
-                case 'personalRecords':
-                    // Count PRs (simplified - would need PR tracking in real implementation)
-                    return 0;
-                default:
-                    return 0;
+                case 'personalRecords': return 0;
+                default: return 0;
             }
         };
 
-        // Show the current user only if they're opted in
-        return [
-            {
-                rank: 1,
-                displayName: profile?.leaderboardSettings?.generatedName || generatedName,
-                customName: profile?.leaderboardSettings?.displayNameType === 'custom'
-                    ? profile?.leaderboardSettings?.customDisplayName
+        return {
+            rank: 1, // Placeholder
+            displayName: profile?.leaderboardSettings?.generatedName || generatedName,
+            customName: profile?.leaderboardSettings?.displayNameType === 'custom' ? profile?.leaderboardSettings?.customDisplayName : undefined,
+            avatarEmoji: '🦁', // We need a real avatar picker/generator stored in profile eventually
+            value: calculateStats(activeTab === 'friends' ? friendsTimePeriod : activeTab),
+            userId: user.uid,
+            isCurrentUser: true,
+        };
+    }, [user, profile, generatedName, selectedMetric, activeTab, workoutLogs, friendsTimePeriod]);
+
+
+    const friendsLeaderboardEntries: LeaderboardEntry[] = useMemo(() => {
+        if (!user || !profile?.leaderboardSettings?.optedIn) return [];
+
+        // Map friends to entries using their cached stats
+        const friendEntries: LeaderboardEntry[] = friends.map(friend => {
+            const stats = friend.profile?.leaderboardStats;
+            // Default to 0 if no stats
+            let value = 0;
+
+            if (stats) {
+                const periodStats = stats[friendsTimePeriod as keyof typeof stats];
+                if (periodStats) {
+                    value = periodStats[selectedMetric] || 0;
+                }
+            }
+
+            return {
+                rank: 0,
+                displayName: friend.displayName, // Use the name from the friend relation (snapshot) or profile? Profile is fresher.
+                customName: friend.profile?.leaderboardSettings?.displayNameType === 'custom'
+                    ? friend.profile?.leaderboardSettings?.customDisplayName
                     : undefined,
-                avatarEmoji: '🦁',
-                value: getMetricValue(),
-                userId: user.uid,
-                isCurrentUser: true,
-            },
-        ];
-    }, [user, profile, generatedName, selectedMetric, activeTab, workoutLogs]);
+                avatarEmoji: friend.avatarEmoji || '🦁', // Needs to come from friend profile ideally
+                value,
+                userId: friend.friendUserId,
+            };
+        });
+
+        // Add current user
+        if (currentUserEntry) {
+            friendEntries.push(currentUserEntry);
+        }
+
+        // Sort
+        friendEntries.sort((a, b) => b.value - a.value);
+
+        // Rank
+        friendEntries.forEach((e, i) => e.rank = i + 1);
+
+        return friendEntries;
+    }, [friends, currentUserEntry, friendsTimePeriod, selectedMetric, user, profile]);
+
+    // Placeholder entries for Global tabs (reusing current user entry logic for simple view)
+    // In a real implementation this would fetch from 'leaderboards' collection
+    const globalEntries: LeaderboardEntry[] = useMemo(() => {
+        return currentUserEntry ? [currentUserEntry] : [];
+    }, [currentUserEntry]);
 
     const handleSaveSettings = async () => {
         if (!user || !userProfileRef) return;
         setIsSaving(true);
 
         try {
+            // Generate friend code if opting in and don't have one yet
+            const existingFriendCode = profile?.leaderboardSettings?.friendCode;
+            const friendCode = optedIn
+                ? (existingFriendCode || generateFriendCode())
+                : existingFriendCode;
+
             const settings: LeaderboardSettings = {
                 optedIn,
                 displayNameType,
                 generatedName: generatedName,
                 customDisplayName: displayNameType === 'custom' ? customName : undefined,
+                friendCode,
             };
 
             await setDocumentNonBlocking(userProfileRef, { leaderboardSettings: settings }, { merge: true });
@@ -449,19 +742,201 @@ export default function LeaderboardPage() {
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="friends" className="mt-4">
+                <TabsContent value="friends" className="mt-4 space-y-4">
+                    {/* Friends Time Period Selector */}
+                    {isOptedIn && (
+                        <div className="flex justify-center pb-2">
+                            <Tabs value={friendsTimePeriod} onValueChange={(v) => setFriendsTimePeriod(v as any)} className="w-[300px]">
+                                <TabsList className="grid w-full grid-cols-3 h-8">
+                                    <TabsTrigger value="weekly" className="text-xs">Weekly</TabsTrigger>
+                                    <TabsTrigger value="monthly" className="text-xs">Monthly</TabsTrigger>
+                                    <TabsTrigger value="allTime" className="text-xs">All Time</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+                    )}
+
+                    {/* Rankings */}
+                    {isOptedIn && friendsLeaderboardEntries.length > 0 && (
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <Trophy className="h-5 w-5 text-yellow-500" />
+                                    Rankings
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {friendsLeaderboardEntries.map((entry) => (
+                                    <LeaderboardRow
+                                        key={entry.userId}
+                                        entry={entry}
+                                        isCurrentUser={entry.userId === user?.uid}
+                                    />
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Friend Code Display */}
+                    {isOptedIn && profile?.leaderboardSettings?.friendCode && (
+                        <Card className="border-primary/20 bg-primary/5">
+                            <CardContent className="py-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground mb-1">Your Friend Code</p>
+                                        <p className="font-mono text-xl font-bold tracking-wider">
+                                            {profile.leaderboardSettings.friendCode}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleCopyFriendCode}
+                                        className="gap-2"
+                                    >
+                                        {copiedCode ? (
+                                            <>
+                                                <Check className="h-4 w-4" />
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy className="h-4 w-4" />
+                                                Copy
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    Share this code with friends so they can add you
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Add Friend Section */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    <UserPlus className="h-5 w-5" />
+                                    Add Friend
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {!isOptedIn ? (
+                                <p className="text-muted-foreground text-sm">
+                                    Opt in to leaderboards to add friends
+                                </p>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="Enter friend code"
+                                        value={friendCodeInput}
+                                        onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
+                                        maxLength={8}
+                                        className="font-mono uppercase"
+                                    />
+                                    <Button
+                                        onClick={handleSendFriendRequest}
+                                        disabled={isAddingFriend || friendCodeInput.length < 8}
+                                    >
+                                        {isAddingFriend ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            'Add'
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Pending Requests */}
+                    {pendingRequests.length > 0 && (
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Users className="h-5 w-5" />
+                                    Pending Requests
+                                    <Badge variant="secondary">{pendingRequests.length}</Badge>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {pendingRequests.map((request) => (
+                                    <div
+                                        key={request.id}
+                                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                                    >
+                                        <span className="font-medium">{request.senderDisplayName || 'User'}</span>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="default"
+                                                onClick={() => handleAcceptRequest(request)}
+                                            >
+                                                <Check className="h-4 w-4 mr-1" />
+                                                Accept
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleDeclineRequest(request)}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Friends List */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Users className="h-5 w-5" />
-                                Friends Leaderboard
+                                My Friends
+                                {friends.length > 0 && (
+                                    <Badge variant="secondary">{friends.length}</Badge>
+                                )}
                             </CardTitle>
                             <CardDescription>
                                 Compare your stats with friends
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <EmptyLeaderboard message="Add friends to compare your progress! Friend system coming soon." />
+                            {friendsLoading ? (
+                                <div className="flex justify-center py-4">
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : friends.length === 0 ? (
+                                <EmptyLeaderboard message="No friends yet. Share your friend code or add friends using their code!" />
+                            ) : (
+                                <div className="space-y-2">
+                                    {friends.map((friend) => (
+                                        <div
+                                            key={friend.id}
+                                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-xl">{getRandomEmoji()}</span>
+                                                <span className="font-medium">{friend.displayName}</span>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-destructive hover:text-destructive"
+                                                onClick={() => handleRemoveFriend(friend)}
+                                            >
+                                                <UserMinus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -480,9 +955,9 @@ export default function LeaderboardPage() {
                         <CardContent>
                             {!isOptedIn ? (
                                 <EmptyLeaderboard message="Opt in to see the leaderboard" />
-                            ) : placeholderEntries.length > 0 ? (
+                            ) : globalEntries.length > 0 ? (
                                 <div className="space-y-2">
-                                    {placeholderEntries.map((entry) => (
+                                    {globalEntries.map((entry) => (
                                         <LeaderboardRow
                                             key={entry.userId}
                                             entry={entry}
@@ -514,9 +989,9 @@ export default function LeaderboardPage() {
                         <CardContent>
                             {!isOptedIn ? (
                                 <EmptyLeaderboard message="Opt in to see the leaderboard" />
-                            ) : placeholderEntries.length > 0 ? (
+                            ) : globalEntries.length > 0 ? (
                                 <div className="space-y-2">
-                                    {placeholderEntries.map((entry) => (
+                                    {globalEntries.map((entry) => (
                                         <LeaderboardRow
                                             key={entry.userId}
                                             entry={entry}
@@ -548,9 +1023,9 @@ export default function LeaderboardPage() {
                         <CardContent>
                             {!isOptedIn ? (
                                 <EmptyLeaderboard message="Opt in to see the leaderboard" />
-                            ) : placeholderEntries.length > 0 ? (
+                            ) : globalEntries.length > 0 ? (
                                 <div className="space-y-2">
-                                    {placeholderEntries.map((entry) => (
+                                    {globalEntries.map((entry) => (
                                         <LeaderboardRow
                                             key={entry.userId}
                                             entry={entry}
