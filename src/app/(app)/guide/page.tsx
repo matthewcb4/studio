@@ -721,10 +721,10 @@ export default function GuidePage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${activeProgram.weekProgression.intensityModifier === 'brutal'
-                    ? 'bg-red-500/20 text-red-500'
-                    : activeProgram.weekProgression.intensityModifier === 'high'
-                      ? 'bg-orange-500/20 text-orange-500'
-                      : 'bg-green-500/20 text-green-500'
+                  ? 'bg-red-500/20 text-red-500'
+                  : activeProgram.weekProgression.intensityModifier === 'high'
+                    ? 'bg-orange-500/20 text-orange-500'
+                    : 'bg-green-500/20 text-green-500'
                   }`}>
                   {activeProgram.weekProgression.intensityModifier.toUpperCase()} WEEK
                 </span>
@@ -1156,7 +1156,10 @@ export default function GuidePage() {
                   // Define mapping locally to bypass import caching issue
                   const localCategoryToMuscle: Record<string, string[]> = {
                     'Chest': ['chest', 'shoulders_front', 'triceps'],
-                    'Back': ['lats', 'traps', 'biceps', 'back_lower'],
+                    'Back': ['lats', 'traps', 'biceps', 'back_lower'],  // Legacy fallback
+                    'Lats': ['lats', 'biceps'],                         // Vertical pulling
+                    'Upper Back': ['traps', 'shoulders_back', 'lats'],  // Horizontal pulling
+                    'Lower Back': ['back_lower', 'glutes', 'hamstrings'], // Hip hinge
                     'Shoulders': ['shoulders_front', 'shoulders_back', 'triceps'],
                     'Legs': ['quads', 'glutes', 'hamstrings', 'calves'],
                     'Arms': ['biceps', 'triceps'],

@@ -1,6 +1,9 @@
 export const categoryToMuscleGroup: Record<string, string[]> = {
     'Chest': ['chest', 'shoulders_front', 'triceps'],
-    'Back': ['lats', 'traps', 'biceps', 'back_lower'],
+    'Back': ['lats', 'traps', 'biceps', 'back_lower'],  // Legacy fallback
+    'Lats': ['lats', 'biceps'],                         // Vertical pulling movements
+    'Upper Back': ['traps', 'shoulders_back', 'lats'],  // Horizontal pulling, shrugs
+    'Lower Back': ['back_lower', 'glutes', 'hamstrings'], // Hip hinge movements
     'Shoulders': ['shoulders_front', 'shoulders_back', 'triceps'],
     'Legs': ['quads', 'glutes', 'hamstrings', 'calves'],
     'Arms': ['biceps', 'triceps'],
@@ -10,6 +13,7 @@ export const categoryToMuscleGroup: Record<string, string[]> = {
     'Full Body': ['chest', 'lats', 'traps', 'shoulders_front', 'shoulders_back', 'quads', 'glutes', 'hamstrings', 'biceps', 'triceps', 'abs'],
     'Upper Body': ['chest', 'lats', 'traps', 'shoulders_front', 'shoulders_back', 'biceps', 'triceps'],
     'Lower Body': ['quads', 'glutes', 'hamstrings', 'calves', 'abs'],
+
 
     // Cardio Activities
     'Run': ['quads', 'hamstrings', 'glutes', 'calves', 'abs'],

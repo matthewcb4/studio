@@ -11,13 +11,20 @@ export const seedExercises: Omit<Exercise, 'id'>[] = [
   { name: 'Push-up', category: 'Chest', defaultUnit: 'bodyweight' },
   { name: 'Dip', category: 'Chest', defaultUnit: 'bodyweight' },
 
-  // Back
-  { name: 'Pull-up', category: 'Back', defaultUnit: 'bodyweight' },
-  { name: 'Lat Pulldown', category: 'Back' },
-  { name: 'Bent-over Row', category: 'Back' },
-  { name: 'Seated Cable Row', category: 'Back' },
-  { name: 'Deadlift', category: 'Back' },
-  { name: 'T-Bar Row', category: 'Back' },
+  // Back - Lats (vertical pulling)
+  { name: 'Pull-up', category: 'Lats', defaultUnit: 'bodyweight' },
+  { name: 'Lat Pulldown', category: 'Lats' },
+
+  // Back - Upper Back (horizontal pulling)
+  { name: 'Bent-over Row', category: 'Upper Back' },
+  { name: 'Seated Cable Row', category: 'Upper Back' },
+  { name: 'T-Bar Row', category: 'Upper Back' },
+
+  // Back - Lower Back (hip hinge)
+  { name: 'Deadlift', category: 'Lower Back' },
+  { name: 'Romanian Deadlift', category: 'Lower Back' },
+  { name: 'Good Morning', category: 'Lower Back' },
+  { name: 'Back Extension', category: 'Lower Back' },
 
   // Legs
   { name: 'Barbell Squat', category: 'Legs' },
@@ -57,11 +64,11 @@ export const seedExercises: Omit<Exercise, 'id'>[] = [
   { name: 'Decline Push-up', category: 'Chest', defaultUnit: 'bodyweight' },
   { name: 'Wide Push-up', category: 'Chest', defaultUnit: 'bodyweight' },
 
-  // Calisthenics - Back
-  { name: 'Chin-up', category: 'Back', defaultUnit: 'bodyweight' },
-  { name: 'Inverted Row', category: 'Back', defaultUnit: 'bodyweight' },
-  { name: 'Australian Pull-up', category: 'Back', defaultUnit: 'bodyweight' },
-  { name: 'Negative Pull-up', category: 'Back', defaultUnit: 'bodyweight' },
+  // Calisthenics - Back (Lats)
+  { name: 'Chin-up', category: 'Lats', defaultUnit: 'bodyweight' },
+  { name: 'Inverted Row', category: 'Upper Back', defaultUnit: 'bodyweight' },
+  { name: 'Australian Pull-up', category: 'Upper Back', defaultUnit: 'bodyweight' },
+  { name: 'Negative Pull-up', category: 'Lats', defaultUnit: 'bodyweight' },
 
   // Calisthenics - Legs
   { name: 'Pistol Squat', category: 'Legs', defaultUnit: 'bodyweight' },
