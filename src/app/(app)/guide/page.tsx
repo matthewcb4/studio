@@ -202,10 +202,16 @@ export default function GuidePage() {
   });
 
   const muscleGroupHierarchy: Record<string, string[]> = {
+    // Workout Type → Group Focused
     "Full Body": ["Upper Body", "Lower Body", "Core"],
     "Upper Body": ["Chest", "Back", "Shoulders", "Arms"],
     "Lower Body": ["Legs", "Glutes", "Calves"],
     "Core": ["Abs", "Obliques"],
+
+    // Group Focused → Muscle Focused
+    "Back": ["Lats", "Traps", "Lower Back"],
+    "Shoulders": ["Front Delts", "Rear Delts"],
+    "Legs": ["Quads", "Hamstrings", "Glutes", "Calves"],
     "Arms": ["Biceps", "Triceps"],
   };
 
