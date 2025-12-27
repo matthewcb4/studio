@@ -26,10 +26,11 @@ import {
     useFirestore,
     useMemoFirebase,
     useDoc,
+    useCollection,
     setDocumentNonBlocking,
 } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { LeaderboardMetric, LeaderboardEntry, LeaderboardSettings, UserProfile } from '@/lib/types';
+import { doc, collection } from 'firebase/firestore';
+import type { LeaderboardMetric, LeaderboardEntry, LeaderboardSettings, UserProfile, WorkoutLog } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Trophy, Medal, Award, Users, Calendar, CalendarDays, Crown, Settings2, UserPlus, Loader2 } from 'lucide-react';
 import {
@@ -135,6 +136,12 @@ export default function LeaderboardPage() {
         , [firestore, user]);
     const { data: profile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
 
+    // Fetch workout logs for calculating metrics
+    const workoutLogsCollection = useMemoFirebase(() =>
+        user ? collection(firestore, `users/${user.uid}/workoutLogs`) : null
+        , [firestore, user]);
+    const { data: workoutLogs } = useCollection<WorkoutLog>(workoutLogsCollection);
+
     const [selectedMetric, setSelectedMetric] = useState<LeaderboardMetric>('totalVolume');
     const [activeTab, setActiveTab] = useState('weekly');
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -159,25 +166,72 @@ export default function LeaderboardPage() {
         }
     }, [profile]);
 
-    // For now, we'll use placeholder data since the Cloud Function isn't set up yet
+    // Calculate metrics from workout logs based on time period
     const placeholderEntries: LeaderboardEntry[] = useMemo(() => {
         if (!user || !profile?.leaderboardSettings?.optedIn) return [];
 
-        // Get value based on selected metric
+        // Get start date based on active tab
+        const getStartDate = (): Date | null => {
+            const now = new Date();
+            if (activeTab === 'weekly') {
+                // Start of current week (Monday)
+                const dayOfWeek = now.getDay();
+                const daysToMonday = (dayOfWeek + 6) % 7;
+                const monday = new Date(now);
+                monday.setDate(now.getDate() - daysToMonday);
+                monday.setHours(0, 0, 0, 0);
+                return monday;
+            } else if (activeTab === 'monthly') {
+                // Start of current month
+                return new Date(now.getFullYear(), now.getMonth(), 1);
+            }
+            // All-time - no start date filter
+            return null;
+        };
+
+        const startDate = getStartDate();
+
+        // Filter logs by time period
+        const filteredLogs = workoutLogs?.filter(log => {
+            if (!startDate) return true; // all-time
+            const logDate = new Date(log.date);
+            return logDate >= startDate;
+        }) || [];
+
+        // Calculate metrics from filtered logs
         const getMetricValue = (): number => {
             switch (selectedMetric) {
                 case 'totalVolume':
-                    return profile?.lifetimeVolume || 0;
+                    return filteredLogs.reduce((sum, log) => sum + (log.volume || 0), 0);
                 case 'workoutCount':
-                    return 0; // Would come from workout logs count
-                case 'activeDays':
-                    return profile?.currentStreak || 0;
+                    return filteredLogs.length;
+                case 'activeDays': {
+                    const uniqueDates = new Set(filteredLogs.map(log => log.date.split('T')[0]));
+                    return uniqueDates.size;
+                }
                 case 'xpEarned':
-                    return profile?.xp || 0;
-                case 'cardioMinutes':
-                    return 0; // Would come from cardio workout logs
+                    // XP is calculated per workout (simplified: 50 base + volume bonus)
+                    return filteredLogs.reduce((sum, log) => {
+                        const baseXP = 50;
+                        const volumeBonus = Math.floor((log.volume || 0) / 1000) * 10;
+                        return sum + baseXP + volumeBonus;
+                    }, 0);
+                case 'cardioMinutes': {
+                    let minutes = 0;
+                    filteredLogs.forEach(log => {
+                        if (log.activityType === 'run' || log.activityType === 'walk' ||
+                            log.activityType === 'cycle' || log.activityType === 'hiit') {
+                            const durationMatch = log.duration?.match(/(\d+)/);
+                            if (durationMatch) {
+                                minutes += parseInt(durationMatch[1], 10);
+                            }
+                        }
+                    });
+                    return minutes;
+                }
                 case 'personalRecords':
-                    return 0; // Would come from PR count
+                    // Count PRs (simplified - would need PR tracking in real implementation)
+                    return 0;
                 default:
                     return 0;
             }
@@ -197,7 +251,7 @@ export default function LeaderboardPage() {
                 isCurrentUser: true,
             },
         ];
-    }, [user, profile, generatedName, selectedMetric]);
+    }, [user, profile, generatedName, selectedMetric, activeTab, workoutLogs]);
 
     const handleSaveSettings = async () => {
         if (!user || !userProfileRef) return;
