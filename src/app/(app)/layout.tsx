@@ -15,6 +15,7 @@ import {
   Settings,
   List,
   Bookmark,
+  Trophy,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -50,6 +51,7 @@ const navItems = [
   { href: "/exercises", icon: List, label: "Exercises" },
   { href: "/history", icon: History, label: "History" },
   { href: "/progress", icon: BarChart3, label: "Progress" },
+  { href: "/leaderboard", icon: Trophy, label: "Leaderboard" },
 ];
 
 const secondaryNavItems = [

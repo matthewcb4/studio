@@ -132,6 +132,17 @@ service cloud.firestore {
         allow update: if isOwner(userId);
         allow delete: if isOwner(userId);
       }
+
+      /**
+       * @description User's accepted friends list for leaderboard comparisons.
+       * @path /users/{userId}/friends/{friendId}
+       */
+      match /friends/{friendId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
     }
     
     /**
@@ -158,6 +169,32 @@ service cloud.firestore {
       allow list: if isSignedIn() && request.auth.token.email == 'matthewcb4@gmail.com';
       // Users can delete their own feedback
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * @description Pre-computed leaderboard snapshots. Readable by any authenticated user.
+     * Only Cloud Functions can write (via admin SDK).
+     * @path /leaderboards/{snapshotId}
+     */
+    match /leaderboards/{snapshotId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Admin SDK only (Cloud Functions)
+    }
+
+    /**
+     * @description Friend connection requests between users.
+     * Users can read requests they sent or received.
+     * Users can create requests where they are the sender.
+     * Users can update requests they received (to accept/decline).
+     * @path /friendRequests/{requestId}
+     */
+    match /friendRequests/{requestId} {
+      allow read: if isSignedIn() && 
+        (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.receiverId == request.auth.uid;
+      allow delete: if isSignedIn() && 
+        (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
     }
   }
 }

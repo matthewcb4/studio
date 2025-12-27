@@ -149,6 +149,9 @@ export type UserProfile = {
   // Review Prompt
   dismissedReviewPrompt?: boolean; // User chose "Don't ask again"
   lastReviewPromptDate?: string;   // ISO date - for 30-day cooldown
+
+  // Leaderboard
+  leaderboardSettings?: LeaderboardSettings;
 }
 
 export type ProgressLog = {
@@ -235,4 +238,79 @@ export type Feedback = {
   message: string;
   createdAt: string;                     // ISO date
   status?: 'new' | 'reviewed' | 'resolved';
+};
+
+// ============================================
+// LEADERBOARD TYPES
+// ============================================
+
+/**
+ * Available metrics for leaderboard ranking
+ */
+export type LeaderboardMetric =
+  | 'totalVolume'
+  | 'workoutCount'
+  | 'activeDays'
+  | 'xpEarned'
+  | 'cardioMinutes'
+  | 'personalRecords';
+
+/**
+ * A single entry on a leaderboard
+ */
+export type LeaderboardEntry = {
+  rank: number;
+  displayName: string;           // Safe generated name like "FitHawk#2847"
+  customName?: string;           // Optional verified custom name
+  avatarEmoji?: string;          // Random emoji avatar (🦁, 🐺, 🦅, etc.)
+  value: number;                 // Metric value
+  userId: string;                // For friend matching
+  isCurrentUser?: boolean;       // Highlight in UI
+};
+
+/**
+ * User's leaderboard preferences (stored in UserProfile)
+ */
+export type LeaderboardSettings = {
+  optedIn: boolean;
+  displayNameType: 'generated' | 'custom';
+  generatedName?: string;        // Auto-assigned unique name
+  customDisplayName?: string;    // User-chosen name (moderated)
+};
+
+/**
+ * Friend connection for leaderboard comparison
+ */
+export type FriendConnection = {
+  id: string;
+  senderId: string;               // Who sent the request
+  receiverId: string;           // Who received it
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: string;            // ISO date
+  acceptedAt?: string;          // ISO date when accepted
+};
+
+/**
+ * A friend in the user's friend list (denormalized for quick access)
+ */
+export type Friend = {
+  id: string;                    // Document ID
+  friendUserId: string;          // The friend's user ID
+  displayName: string;           // Their leaderboard display name
+  avatarEmoji?: string;          // Their emoji avatar
+  addedAt: string;               // ISO date
+};
+
+/**
+ * Pre-computed leaderboard snapshot (stored in /leaderboards collection)
+ */
+export type LeaderboardSnapshot = {
+  id: string;                    // e.g., "weekly_totalVolume_2025_01"
+  metric: LeaderboardMetric;
+  period: 'weekly' | 'monthly' | 'alltime';
+  periodStart?: string;          // ISO date (for weekly/monthly)
+  periodEnd?: string;            // ISO date (for weekly/monthly)
+  entries: LeaderboardEntry[];   // Top 100 entries
+  totalParticipants: number;     // Total opted-in users
+  updatedAt: string;             // ISO timestamp
 };
