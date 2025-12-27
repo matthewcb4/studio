@@ -478,13 +478,13 @@ const athleticPower: WorkoutProgram = {
 
 /**
  * 21-Day New Year Challenge (FREE)
- * A beginner-friendly full-body program to kickstart 2025
+ * A beginner-friendly full-body program to kickstart 2026
  */
 const newYearChallenge: WorkoutProgram = {
     id: 'new-year-challenge-21day',
     name: '21-Day New Year Challenge',
-    description: 'Start 2025 strong with this beginner-friendly 3-week challenge! Build lasting fitness habits with progressive full-body workouts designed to get you moving consistently. Perfect for New Year\'s resolutions - no gym required, just commitment!',
-    shortDescription: 'Kickstart 2025 with a 21-day fitness transformation',
+    description: 'Start 2026 strong with this beginner-friendly 3-week challenge! Build lasting fitness habits with progressive full-body workouts designed to get you moving consistently. Perfect for New Year\'s resolutions - no gym required, just commitment!',
+    shortDescription: 'Kickstart 2026 with a 21-day fitness transformation',
     durationWeeks: 3,
     daysPerWeek: 4,
     price: 0, // FREE
@@ -528,7 +528,7 @@ const newYearChallenge: WorkoutProgram = {
             focusNotes: 'Week 3: The final push! This is where transformation happens. Push a little harder each session. Finish strong and celebrate your achievement!',
         },
     ],
-    tags: ['beginner', 'full-body', 'new-year', 'challenge', 'free', 'habit-building', '2025'],
+    tags: ['beginner', 'full-body', 'new-year', 'challenge', 'free', 'habit-building', '2026'],
     isActive: true,
     createdAt: new Date().toISOString(),
 };
