@@ -154,6 +154,26 @@ export default function LeaderboardPage() {
     const placeholderEntries: LeaderboardEntry[] = useMemo(() => {
         if (!user || !profile?.leaderboardSettings?.optedIn) return [];
 
+        // Get value based on selected metric
+        const getMetricValue = (): number => {
+            switch (selectedMetric) {
+                case 'totalVolume':
+                    return profile?.lifetimeVolume || 0;
+                case 'workoutCount':
+                    return 0; // Would come from workout logs count
+                case 'activeDays':
+                    return profile?.currentStreak || 0;
+                case 'xpEarned':
+                    return profile?.xp || 0;
+                case 'cardioMinutes':
+                    return 0; // Would come from cardio workout logs
+                case 'personalRecords':
+                    return 0; // Would come from PR count
+                default:
+                    return 0;
+            }
+        };
+
         // Show the current user only if they're opted in
         return [
             {
@@ -163,12 +183,12 @@ export default function LeaderboardPage() {
                     ? profile?.leaderboardSettings?.customDisplayName
                     : undefined,
                 avatarEmoji: '🦁',
-                value: profile?.lifetimeVolume || 0,
+                value: getMetricValue(),
                 userId: user.uid,
                 isCurrentUser: true,
             },
         ];
-    }, [user, profile, generatedName]);
+    }, [user, profile, generatedName, selectedMetric]);
 
     const handleSaveSettings = async () => {
         if (!user || !userProfileRef) return;
