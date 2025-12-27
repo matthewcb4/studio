@@ -139,9 +139,9 @@ service cloud.firestore {
        */
       match /friends/{friendId} {
         allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update: if isOwner(userId);
-        allow delete: if isOwner(userId);
+        // Allow owner to manage their list
+        // OR allow the friend themselves to add/remove their own entry (reciprocal actions for friend requests/removals)
+        allow create, update, delete: if isOwner(userId) || (isSignedIn() && friendId == request.auth.uid);
       }
     }
     

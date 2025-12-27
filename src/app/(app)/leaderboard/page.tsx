@@ -70,11 +70,13 @@ function generateRandomName(): string {
     return `${adj}${animal}#${num}`;
 }
 
-// Random avatar emojis
+// Avatar emojis - deterministic based on userId for consistency
 const AVATAR_EMOJIS = ['🦁', '🐺', '🦅', '🐯', '🦈', '🐻', '🦊', '🐲', '🦍', '🦬', '🦏', '🐘'];
 
-function getRandomEmoji(): string {
-    return AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)];
+function getAvatarEmoji(userId: string): string {
+    // Deterministic emoji based on userId hash
+    const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return AVATAR_EMOJIS[hash % AVATAR_EMOJIS.length];
 }
 
 // Generate unique 8-character friend code
@@ -249,60 +251,51 @@ export default function LeaderboardPage() {
         if (!searchQuery.trim() || !user) return;
         setIsSearching(true);
         try {
-            // Search users by generatedName or customDisplayName
-            // Note: In a real app we'd use Algolia or Typesense for full-text search
-            // Here we'll rely on an exact match or prefix match if index exists
-            // We are querying the 'profile' collection group which contains 'main' docs
+            const term = searchQuery.trim().toLowerCase();
 
-            // Try exact match on custom name first
-            const customNameQuery = query(
+            // Perform prefix search on searchName
+            // Requires a composite index on [leaderboardSettings.searchName, leaderboardSettings.optedIn]
+            const searchNameQuery = query(
                 collectionGroup(firestore, 'profile'),
-                where('leaderboardSettings.customDisplayName', '==', searchQuery.trim()),
+                where('leaderboardSettings.searchName', '>=', term),
+                where('leaderboardSettings.searchName', '<=', term + '\uf8ff'),
                 where('leaderboardSettings.optedIn', '==', true),
-                limit(5)
+                limit(10)
             );
 
-            // Try match on generated name
-            const generatedNameQuery = query(
-                collectionGroup(firestore, 'profile'),
-                where('leaderboardSettings.generatedName', '==', searchQuery.trim()),
-                where('leaderboardSettings.optedIn', '==', true),
-                limit(5)
-            );
-
-            const [customSnap, generatedSnap] = await Promise.all([
-                getDocs(customNameQuery),
-                getDocs(generatedNameQuery)
-            ]);
-
+            const snapshot = await getDocs(searchNameQuery);
             const results = new Map<string, UserProfile & { id: string }>();
 
-            const processSnap = (snap: any) => {
-                snap.docs.forEach((doc: any) => {
-                    // The doc ID is 'main', but the parent's parent is the user doc
-                    // doc.ref.parent.parent.id should be the userId
-                    const userId = doc.ref.parent.parent?.id;
-                    if (userId && userId !== user.uid) { // Don't show self
-                        results.set(userId, { id: userId, ...doc.data() });
-                    }
-                });
-            };
-
-            processSnap(customSnap);
-            processSnap(generatedSnap);
+            snapshot.docs.forEach((doc: any) => {
+                // The doc ID is 'main', but the parent's parent is the user doc
+                const userId = doc.ref.parent.parent?.id;
+                if (userId && userId !== user.uid) { // Don't show self
+                    results.set(userId, { id: userId, ...doc.data() });
+                }
+            });
 
             setSearchResults(Array.from(results.values()));
         } catch (error) {
             console.error('Error searching users:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to search users. Please try again.',
-                variant: 'destructive'
-            });
+            // Fallback for missing index error
+            if (error instanceof Error && error.message.includes('index')) {
+                toast({
+                    title: 'Configuration Required',
+                    description: 'Search index is building. Please try again in specific exact matches for now.',
+                    variant: 'destructive'
+                });
+            } else {
+                toast({
+                    title: 'Error',
+                    description: 'Failed to search users. Please try again.',
+                    variant: 'destructive'
+                });
+            }
         } finally {
             setIsSearching(false);
         }
     };
+
 
     const handleSendRequest = async (targetUserId: string, targetDisplayName: string) => {
         if (!user || !profile || !profile.leaderboardSettings?.optedIn) {
@@ -593,12 +586,17 @@ export default function LeaderboardPage() {
                 ? (existingFriendCode || generateFriendCode())
                 : existingFriendCode;
 
+            // Calculate search name for prefix search
+            const activeDisplayName = displayNameType === 'custom' ? customName : generatedName;
+            const searchName = activeDisplayName?.toLowerCase().trim();
+
             const settings: LeaderboardSettings = {
                 optedIn,
                 displayNameType,
                 generatedName: generatedName,
                 friendCode,
                 ...(displayNameType === 'custom' ? { customDisplayName: customName } : {}),
+                searchName,
             };
 
             await setDocumentNonBlocking(userProfileRef, { leaderboardSettings: settings }, { merge: true });
@@ -957,7 +955,7 @@ export default function LeaderboardPage() {
                                             className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <span className="text-xl">{getRandomEmoji()}</span>
+                                                <span className="text-xl">{friend.avatarEmoji || getAvatarEmoji(friend.friendUserId)}</span>
                                                 <span className="font-medium">{friend.displayName}</span>
                                             </div>
                                             <Button

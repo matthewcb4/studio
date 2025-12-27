@@ -283,6 +283,7 @@ export type LeaderboardSettings = {
   generatedName?: string;        // Auto-assigned unique name
   customDisplayName?: string;    // User-chosen name (moderated)
   friendCode?: string;           // 8-char code for receiving friend requests
+  searchName?: string;           // Lowercase normalized name for prefix search
 };
 
 /**

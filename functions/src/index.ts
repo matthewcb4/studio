@@ -111,91 +111,7 @@ async function calculateUserMetrics(
 /**
  * Aggregate leaderboard for a specific metric and period
  */
-async function aggregateLeaderboard(
-    metric: LeaderboardMetric,
-    period: 'weekly' | 'monthly' | 'alltime',
-    snapshotId: string
-): Promise<void> {
-    console.log(`Aggregating leaderboard: ${snapshotId}`);
 
-    // Calculate start date based on period
-    let startDate: Date | undefined;
-    const now = new Date();
-
-    if (period === 'weekly') {
-        // Start of current week (Monday)
-        const dayOfWeek = now.getUTCDay();
-        const daysToMonday = (dayOfWeek + 6) % 7;
-        startDate = new Date(now);
-        startDate.setUTCDate(now.getUTCDate() - daysToMonday);
-        startDate.setUTCHours(0, 0, 0, 0);
-    } else if (period === 'monthly') {
-        // Start of current month
-        startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    }
-    // alltime has no startDate
-
-    // Get all users who have opted into leaderboards
-    const usersSnapshot = await db.collection('users').get();
-
-    const entries: LeaderboardEntry[] = [];
-
-    for (const userDoc of usersSnapshot.docs) {
-        const userId = userDoc.id;
-
-        // Get user profile
-        const profileDoc = await db.doc(`users/${userId}/profile/main`).get();
-        const profile = profileDoc.data() as UserProfile | undefined;
-
-        // Skip users who haven't opted in
-        if (!profile?.leaderboardSettings?.optedIn) {
-            continue;
-        }
-
-        // Get user's workout logs
-        const logsSnapshot = await db.collection(`users/${userId}/workoutLogs`).get();
-        const logs = logsSnapshot.docs.map(doc => doc.data() as WorkoutLog);
-
-        // Calculate metrics
-        const metrics = await calculateUserMetrics(userId, logs, profile, startDate);
-
-        // Get display name
-        const displayName = profile.leaderboardSettings.generatedName || `User#${userId.slice(0, 4)}`;
-        const customName = profile.leaderboardSettings.displayNameType === 'custom'
-            ? profile.leaderboardSettings.customDisplayName
-            : undefined;
-
-        entries.push({
-            rank: 0, // Will be set after sorting
-            displayName,
-            customName,
-            avatarEmoji: getAvatarEmoji(userId),
-            value: metrics[metric],
-            userId,
-        });
-    }
-
-    // Sort by value (descending) and assign ranks
-    entries.sort((a, b) => b.value - a.value);
-    entries.forEach((entry, index) => {
-        entry.rank = index + 1;
-    });
-
-    // Keep top 100
-    const topEntries = entries.slice(0, 100);
-
-    // Save to Firestore
-    await db.doc(`leaderboards/${snapshotId}`).set({
-        id: snapshotId,
-        metric,
-        period,
-        entries: topEntries,
-        totalParticipants: entries.length,
-        updatedAt: new Date().toISOString(),
-    });
-
-    console.log(`Saved ${topEntries.length} entries to ${snapshotId}`);
-}
 
 /**
  * Scheduled function that runs daily at midnight UTC
@@ -378,120 +294,123 @@ export const aggregateLeaderboards = onSchedule({
 // ... Actually, to avoid code duplication in this file, I'll just leave this as a "TODO: Update manual trigger" 
 // or essentially copy the body of the `aggregateLeaderboards` function's callback here.
 
-// RE-IMPLEMENTING MANUALLY FOR NOW TO ENSURE IT WORKS SAME AS SCHEDULED
+export const manualAggregateLeaderboards = onRequest({
+    timeoutSeconds: 540,
+    memory: '1GiB',
+}, async (req, res) => {
+    console.log('Starting MANUALLY TRIGGERED optimized aggregation...');
 
-console.log('Starting MANUALLY TRIGGERED optimized aggregation...');
+    const now = new Date();
+    const yearMonth = `${now.getUTCFullYear()}_${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 
-const now = new Date();
-const yearMonth = `${now.getUTCFullYear()}_${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    // Calculate start dates
+    const dayOfWeek = now.getUTCDay();
+    const daysToMonday = (dayOfWeek + 6) % 7;
+    const weeklyStart = new Date(now);
+    weeklyStart.setUTCDate(now.getUTCDate() - daysToMonday);
+    weeklyStart.setUTCHours(0, 0, 0, 0);
 
-const dayOfWeek = now.getUTCDay();
-const daysToMonday = (dayOfWeek + 6) % 7;
-const weeklyStart = new Date(now);
-weeklyStart.setUTCDate(now.getUTCDate() - daysToMonday);
-weeklyStart.setUTCHours(0, 0, 0, 0);
+    const monthlyStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-const monthlyStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const metrics: LeaderboardMetric[] = [
+        'totalVolume',
+        'workoutCount',
+        'activeDays',
+        'xpEarned',
+        'cardioMinutes',
+    ];
 
-const metrics: LeaderboardMetric[] = [
-    'totalVolume',
-    'workoutCount',
-    'activeDays',
-    'xpEarned',
-    'cardioMinutes',
-];
+    const leaders: Record<string, Record<string, LeaderboardEntry[]>> = {
+        weekly: {},
+        monthly: {},
+        alltime: {}
+    };
 
-const leaders: Record<string, Record<string, LeaderboardEntry[]>> = {
-    weekly: {},
-    monthly: {},
-    alltime: {}
-};
+    for (const metric of metrics) {
+        leaders.weekly[metric] = [];
+        leaders.monthly[metric] = [];
+        leaders.alltime[metric] = [];
+    }
 
-for (const metric of metrics) {
-    leaders.weekly[metric] = [];
-    leaders.monthly[metric] = [];
-    leaders.alltime[metric] = [];
-}
+    const usersSnapshot = await db.collection('users').get();
+    const users = usersSnapshot.docs;
+    const CHUNK_SIZE = 50;
 
-const usersSnapshot = await db.collection('users').get();
-const users = usersSnapshot.docs;
-const CHUNK_SIZE = 50;
+    for (let i = 0; i < users.length; i += CHUNK_SIZE) {
+        const chunk = users.slice(i, i + CHUNK_SIZE);
+        await Promise.all(chunk.map(async (userDoc) => {
+            try {
+                const userId = userDoc.id;
+                const profileDoc = await db.doc(`users/${userId}/profile/main`).get();
+                if (!profileDoc.exists) return;
+                const profile = profileDoc.data() as UserProfile;
 
-for (let i = 0; i < users.length; i += CHUNK_SIZE) {
-    const chunk = users.slice(i, i + CHUNK_SIZE);
-    await Promise.all(chunk.map(async (userDoc) => {
-        try {
-            const userId = userDoc.id;
-            const profileDoc = await db.doc(`users/${userId}/profile/main`).get();
-            if (!profileDoc.exists) return;
-            const profile = profileDoc.data() as UserProfile;
+                const logsSnapshot = await db.collection(`users/${userId}/workoutLogs`).get();
+                const logs = logsSnapshot.docs.map(doc => doc.data() as WorkoutLog);
 
-            const logsSnapshot = await db.collection(`users/${userId}/workoutLogs`).get();
-            const logs = logsSnapshot.docs.map(doc => doc.data() as WorkoutLog);
+                const weeklyStats = await calculateUserMetrics(userId, logs, profile, weeklyStart);
+                const monthlyStats = await calculateUserMetrics(userId, logs, profile, monthlyStart);
+                const allTimeStats = await calculateUserMetrics(userId, logs, profile, undefined);
 
-            const weeklyStats = await calculateUserMetrics(userId, logs, profile, weeklyStart);
-            const monthlyStats = await calculateUserMetrics(userId, logs, profile, monthlyStart);
-            const allTimeStats = await calculateUserMetrics(userId, logs, profile, undefined);
+                await db.doc(`users/${userId}/profile/main`).set({
+                    leaderboardStats: {
+                        weekly: weeklyStats,
+                        monthly: monthlyStats,
+                        allTime: allTimeStats,
+                        updatedAt: new Date().toISOString()
+                    }
+                }, { merge: true });
 
-            await db.doc(`users/${userId}/profile/main`).set({
-                leaderboardStats: {
-                    weekly: weeklyStats,
-                    monthly: monthlyStats,
-                    allTime: allTimeStats,
-                    updatedAt: new Date().toISOString()
+                if (profile.leaderboardSettings?.optedIn) {
+                    const displayName = profile.leaderboardSettings.generatedName || `User#${userId.slice(0, 4)}`;
+                    const customName = profile.leaderboardSettings.displayNameType === 'custom'
+                        ? profile.leaderboardSettings.customDisplayName
+                        : undefined;
+                    const avatarEmoji = getAvatarEmoji(userId);
+                    const createEntry = (value: number): LeaderboardEntry => ({
+                        rank: 0,
+                        displayName,
+                        customName,
+                        avatarEmoji,
+                        value,
+                        userId
+                    });
+
+                    for (const metric of metrics) {
+                        leaders.weekly[metric].push(createEntry(weeklyStats[metric]));
+                        leaders.monthly[metric].push(createEntry(monthlyStats[metric]));
+                        leaders.alltime[metric].push(createEntry(allTimeStats[metric]));
+                    }
                 }
-            }, { merge: true });
-
-            if (profile.leaderboardSettings?.optedIn) {
-                const displayName = profile.leaderboardSettings.generatedName || `User#${userId.slice(0, 4)}`;
-                const customName = profile.leaderboardSettings.displayNameType === 'custom'
-                    ? profile.leaderboardSettings.customDisplayName
-                    : undefined;
-                const avatarEmoji = getAvatarEmoji(userId);
-                const createEntry = (value: number): LeaderboardEntry => ({
-                    rank: 0,
-                    displayName,
-                    customName,
-                    avatarEmoji,
-                    value,
-                    userId
-                });
-
-                for (const metric of metrics) {
-                    leaders.weekly[metric].push(createEntry(weeklyStats[metric]));
-                    leaders.monthly[metric].push(createEntry(monthlyStats[metric]));
-                    leaders.alltime[metric].push(createEntry(allTimeStats[metric]));
-                }
+            } catch (err) {
+                console.error(`Error processing user ${userDoc.id}:`, err);
             }
-        } catch (err) {
-            console.error(`Error processing user ${userDoc.id}:`, err);
-        }
-    }));
-}
+        }));
+    }
 
-const saveLeaderboard = async (period: 'weekly' | 'monthly' | 'alltime', metric: LeaderboardMetric, entries: LeaderboardEntry[]) => {
-    entries.sort((a, b) => b.value - a.value);
-    entries.forEach((e, idx) => e.rank = idx + 1);
-    const top100 = entries.slice(0, 100);
-    let snapshotId = `alltime_${metric}`;
-    if (period === 'weekly') snapshotId = `weekly_${metric}_${yearMonth}`;
-    if (period === 'monthly') snapshotId = `monthly_${metric}_${yearMonth}`;
+    const saveLeaderboard = async (period: 'weekly' | 'monthly' | 'alltime', metric: LeaderboardMetric, entries: LeaderboardEntry[]) => {
+        entries.sort((a, b) => b.value - a.value);
+        entries.forEach((e, idx) => e.rank = idx + 1);
+        const top100 = entries.slice(0, 100);
+        let snapshotId = `alltime_${metric}`;
+        if (period === 'weekly') snapshotId = `weekly_${metric}_${yearMonth}`;
+        if (period === 'monthly') snapshotId = `monthly_${metric}_${yearMonth}`;
 
-    await db.doc(`leaderboards/${snapshotId}`).set({
-        id: snapshotId,
-        metric,
-        period,
-        entries: top100,
-        totalParticipants: entries.length,
-        updatedAt: new Date().toISOString(),
-    });
-};
+        await db.doc(`leaderboards/${snapshotId}`).set({
+            id: snapshotId,
+            metric,
+            period,
+            entries: top100,
+            totalParticipants: entries.length,
+            updatedAt: new Date().toISOString(),
+        });
+    };
 
-for (const metric of metrics) {
-    await saveLeaderboard('weekly', metric, leaders.weekly[metric]);
-    await saveLeaderboard('monthly', metric, leaders.monthly[metric]);
-    await saveLeaderboard('alltime', metric, leaders.alltime[metric]);
-}
+    for (const metric of metrics) {
+        await saveLeaderboard('weekly', metric, leaders.weekly[metric]);
+        await saveLeaderboard('monthly', metric, leaders.monthly[metric]);
+        await saveLeaderboard('alltime', metric, leaders.alltime[metric]);
+    }
 
-res.json({ success: true, message: 'Optimized leaderboard aggregation complete' });
+    res.json({ success: true, message: 'Optimized leaderboard aggregation complete' });
 });
