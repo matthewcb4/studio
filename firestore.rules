@@ -196,5 +196,13 @@ service cloud.firestore {
       allow delete: if isSignedIn() && 
         (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
     }
+
+    /**
+     * @description Collection Group query for profiles.
+     * Allows searching for users who have opted into leaderboards.
+     */
+    match /{path=**}/profile/{profileId} {
+      allow read: if isSignedIn() && resource.data.leaderboardSettings.optedIn == true;
+    }
   }
 }
