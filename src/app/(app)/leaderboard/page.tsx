@@ -258,6 +258,7 @@ export default function LeaderboardPage() {
             const customNameQuery = query(
                 collectionGroup(firestore, 'profile'),
                 where('leaderboardSettings.customDisplayName', '==', searchQuery.trim()),
+                where('leaderboardSettings.optedIn', '==', true),
                 limit(5)
             );
 
@@ -265,6 +266,7 @@ export default function LeaderboardPage() {
             const generatedNameQuery = query(
                 collectionGroup(firestore, 'profile'),
                 where('leaderboardSettings.generatedName', '==', searchQuery.trim()),
+                where('leaderboardSettings.optedIn', '==', true),
                 limit(5)
             );
 
