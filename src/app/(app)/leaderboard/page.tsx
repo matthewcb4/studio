@@ -500,9 +500,12 @@ export default function LeaderboardPage() {
             // Default to 0 if no stats
             let value = 0;
 
-            if (stats) {
-                const periodStats = stats[friendsTimePeriod as keyof typeof stats];
-                if (periodStats) {
+            if (stats && friendsTimePeriod in stats) {
+                // We know friendsTimePeriod is not 'updatedAt' based on our state type, but we need to tell TS
+                const periodStats = stats[friendsTimePeriod as keyof typeof stats] as Record<LeaderboardMetric, number> | undefined;
+
+                // Extra check to ensure it's an object and not the updatedAt string
+                if (periodStats && typeof periodStats === 'object') {
                     value = periodStats[selectedMetric] || 0;
                 }
             }
