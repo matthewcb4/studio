@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     Card,
     CardContent,
@@ -141,14 +141,23 @@ export default function LeaderboardPage() {
     const [isSaving, setIsSaving] = useState(false);
 
     // Local state for settings form
-    const [optedIn, setOptedIn] = useState(profile?.leaderboardSettings?.optedIn ?? false);
-    const [displayNameType, setDisplayNameType] = useState<'generated' | 'custom'>(
-        profile?.leaderboardSettings?.displayNameType ?? 'generated'
-    );
-    const [customName, setCustomName] = useState(profile?.leaderboardSettings?.customDisplayName ?? '');
-    const [generatedName] = useState(() =>
-        profile?.leaderboardSettings?.generatedName || generateRandomName()
-    );
+    const [optedIn, setOptedIn] = useState(false);
+    const [displayNameType, setDisplayNameType] = useState<'generated' | 'custom'>('generated');
+    const [customName, setCustomName] = useState('');
+    const [generatedName, setGeneratedName] = useState('');
+
+    // Sync local state with profile when it loads
+    useEffect(() => {
+        if (profile?.leaderboardSettings) {
+            setOptedIn(profile.leaderboardSettings.optedIn ?? false);
+            setDisplayNameType(profile.leaderboardSettings.displayNameType ?? 'generated');
+            setCustomName(profile.leaderboardSettings.customDisplayName ?? '');
+            setGeneratedName(profile.leaderboardSettings.generatedName || generateRandomName());
+        } else if (profile && !profile.leaderboardSettings) {
+            // Profile exists but no leaderboard settings yet - generate a name
+            setGeneratedName(prev => prev || generateRandomName());
+        }
+    }, [profile]);
 
     // For now, we'll use placeholder data since the Cloud Function isn't set up yet
     const placeholderEntries: LeaderboardEntry[] = useMemo(() => {
