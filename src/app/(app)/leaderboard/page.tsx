@@ -595,8 +595,8 @@ export default function LeaderboardPage() {
                 optedIn,
                 displayNameType,
                 generatedName: generatedName,
-                customDisplayName: displayNameType === 'custom' ? customName : undefined,
                 friendCode,
+                ...(displayNameType === 'custom' ? { customDisplayName: customName } : {}),
             };
 
             await setDocumentNonBlocking(userProfileRef, { leaderboardSettings: settings }, { merge: true });
