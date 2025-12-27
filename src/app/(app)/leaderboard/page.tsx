@@ -135,25 +135,7 @@ function EmptyLeaderboard({ message }: { message: string }) {
     );
 }
 
-// Helper functions for names and codes
-const ADJECTIVES = ['Swift', 'Strong', 'Bold', 'Fast', 'Fit', 'Iron', 'Steel', 'Power', 'Mighty', 'Grand'];
-const NOUNS = ['Lion', 'Tiger', 'Eagle', 'Hawk', 'Wolf', 'Bear', 'Shark', 'Falcon', 'Panther', 'Titan'];
 
-function generateRandomName(): string {
-    const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-    const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-    const num = Math.floor(Math.random() * 9000) + 1000;
-    return `${adj}${noun}#${num}`;
-}
-
-function generateFriendCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I, O, 0, 1
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-}
 
 export default function LeaderboardPage() {
     const { user } = useUser();
