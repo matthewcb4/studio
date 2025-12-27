@@ -225,7 +225,13 @@ export default function GuidePage() {
   // UI Display Groups
   const workoutTypes = ["Full Body", "Upper Body", "Lower Body", "Core"];
   const muscleGroups = ["Chest", "Back", "Shoulders", "Arms", "Legs"];
-  const specificMuscles = ["Biceps", "Triceps", "Glutes", "Calves", "Abs", "Obliques"];
+  const specificMuscles = [
+    "Lats", "Traps", "Lower Back",           // Back muscles
+    "Front Delts", "Rear Delts",             // Shoulder muscles  
+    "Quads", "Hamstrings", "Glutes", "Calves", // Leg muscles
+    "Biceps", "Triceps",                      // Arm muscles
+    "Abs", "Obliques",                        // Core muscles
+  ];
 
 
   useEffect(() => {

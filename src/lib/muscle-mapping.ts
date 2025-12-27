@@ -3,13 +3,22 @@ export const categoryToMuscleGroup: Record<string, string[]> = {
     'Back': ['lats', 'traps', 'biceps', 'back_lower'],  // Legacy fallback
     'Lats': ['lats', 'biceps'],                         // Vertical pulling movements
     'Upper Back': ['traps', 'shoulders_back', 'lats'],  // Horizontal pulling, shrugs
+    'Traps': ['traps', 'shoulders_back'],               // Shrugs, upright rows
     'Lower Back': ['back_lower', 'glutes', 'hamstrings'], // Hip hinge movements
     'Shoulders': ['shoulders_front', 'shoulders_back', 'triceps'],
+    'Front Delts': ['shoulders_front', 'triceps'],      // Front raises, overhead press
+    'Rear Delts': ['shoulders_back', 'traps'],          // Face pulls, reverse fly
     'Legs': ['quads', 'glutes', 'hamstrings', 'calves'],
+    'Quads': ['quads'],                                 // Leg extensions, squats
+    'Hamstrings': ['hamstrings', 'glutes'],             // Leg curls, RDLs
+    'Glutes': ['glutes', 'hamstrings'],                 // Hip thrusts, glute bridges
+    'Calves': ['calves'],                               // Calf raises
     'Arms': ['biceps', 'triceps'],
     'Biceps': ['biceps'],
     'Triceps': ['triceps'],
     'Core': ['abs'],
+    'Abs': ['abs'],                                     // Crunches, leg raises
+    'Obliques': ['abs'],                                // Russian twists, side planks
     'Full Body': ['chest', 'lats', 'traps', 'shoulders_front', 'shoulders_back', 'quads', 'glutes', 'hamstrings', 'biceps', 'triceps', 'abs'],
     'Upper Body': ['chest', 'lats', 'traps', 'shoulders_front', 'shoulders_back', 'biceps', 'triceps'],
     'Lower Body': ['quads', 'glutes', 'hamstrings', 'calves', 'abs'],
