@@ -167,16 +167,18 @@ export default function LeaderboardPage() {
 
     // Sync local state with profile when it loads
     useEffect(() => {
+        if (isLoadingProfile) return;
+
         if (profile?.leaderboardSettings) {
             setOptedIn(profile.leaderboardSettings.optedIn ?? false);
             setDisplayNameType(profile.leaderboardSettings.displayNameType ?? 'generated');
             setCustomName(profile.leaderboardSettings.customDisplayName ?? '');
             setGeneratedName(profile.leaderboardSettings.generatedName || generateRandomName());
-        } else if (profile && !profile.leaderboardSettings) {
-            // Profile exists but no leaderboard settings yet - generate a name
+        } else {
+            // Profile doesn't exist or has no settings - ensure we have a generated name ready
             setGeneratedName(prev => prev || generateRandomName());
         }
-    }, [profile]);
+    }, [profile, isLoadingProfile]);
 
     // Friend management state
     const [addFriendOpen, setAddFriendOpen] = useState(false);
