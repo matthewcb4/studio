@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">fitness Repo</string>
-    <string name="title_activity_main">fitness Repo</string>
-    <string name="package_name">app.frepo.fitness</string>
-    <string name="custom_url_scheme">app.frepo.fitness</string>
+    <string name="app_name">fRepo</string>
+    <string name="title_activity_main">fRepo</string>
+    <string name="package_name">app.frepo.twa</string>
+    <string name="custom_url_scheme">app.frepo.twa</string>
 </resources>

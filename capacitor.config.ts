@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.frepo.twa',
-  appName: 'fitness Repo',
+  appName: 'fRepo',
   webDir: 'out',
   // Load from live web URL (supports SSR features)
   // Native plugins still work via bridge
