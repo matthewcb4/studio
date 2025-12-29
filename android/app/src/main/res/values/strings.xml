@@ -4,4 +4,5 @@
     <string name="title_activity_main">fRepo</string>
     <string name="package_name">app.frepo.twa</string>
     <string name="custom_url_scheme">app.frepo.twa</string>
+    <string name="default_web_client_id">196694469805-hlprr6jv0oqs5p62kn46skqenr3t9ut4.apps.googleusercontent.com</string>
 </resources>

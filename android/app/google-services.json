@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "196694469805-1ikbp7svkqhi455koh4crrvrtt87j8ud.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.frepo.fitness",
+            "certificate_hash": "c13bf93baaeff1528d9e1e02f1769ce0fceb88c0"
+          }
+        },
+        {
           "client_id": "196694469805-s1gd1ht2f5o6dsp5irqr17gbvj4saar6.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
