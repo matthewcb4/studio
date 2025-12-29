@@ -75,6 +75,14 @@
           }
         },
         {
+          "client_id": "196694469805-fmjdfnoahot30o62sjr16erfdes18ldh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.frepo.twa",
+            "certificate_hash": "c13bf93baaeff1528d9e1e02f1769ce0fceb88c0"
+          }
+        },
+        {
           "client_id": "196694469805-p4fta1i7v7p7ef1pni2caqk8ga9cdft7.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
