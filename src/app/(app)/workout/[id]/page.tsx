@@ -1033,7 +1033,7 @@ export default function WorkoutSessionPage() {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Total Volume</span>
                 <span className="font-bold text-primary">
-                  {(finishedLog.volume || 0).toLocaleString()} lbs
+                  {Math.round(finishedLog.volume || 0).toLocaleString()} lbs
                 </span>
               </div>
               <div className="space-y-2">
@@ -1046,7 +1046,7 @@ export default function WorkoutSessionPage() {
                     <div key={exercise.exerciseId} className="text-sm">
                       <p className="font-medium">{exercise.exerciseName}</p>
                       <p className="text-muted-foreground">
-                        {exercise.sets.length} sets, Total Volume: {totalVolume.toLocaleString()} lbs
+                        {exercise.sets.length} sets, Total Volume: {Math.round(totalVolume).toLocaleString()} lbs
                       </p>
                     </div>
                   );

@@ -27,6 +27,21 @@ import { FeedbackDialog } from '@/components/feedback-dialog';
 import { getPrograms, getProgramById } from '@/lib/program-data';
 import type { WorkoutProgram, UserProgramEnrollment, UserProfile } from '@/lib/types';
 
+/**
+ * Calculate the current week of a program based on start date
+ */
+const calculateCurrentWeek = (startedAt: string | undefined, durationWeeks: number): number => {
+    if (!startedAt) return 1;
+
+    const startDate = new Date(startedAt);
+    const now = new Date();
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const elapsedWeeks = Math.floor((now.getTime() - startDate.getTime()) / msPerWeek);
+
+    // Week is 1-indexed, capped at program duration
+    return Math.min(Math.max(elapsedWeeks + 1, 1), durationWeeks);
+};
+
 export default function ProgramsPage() {
     const { user } = useUser();
     const firestore = useFirestore();
@@ -258,10 +273,10 @@ export default function ProgramsPage() {
                                             <Badge variant="outline" className="text-xs">{selectedProgram.daysPerWeek}x/week</Badge>
                                             <Badge
                                                 className={`text-xs ${selectedProgram.difficulty === 'beginner'
-                                                        ? 'bg-green-500/20 text-green-600'
-                                                        : selectedProgram.difficulty === 'intermediate'
-                                                            ? 'bg-yellow-500/20 text-yellow-600'
-                                                            : 'bg-red-500/20 text-red-600'
+                                                    ? 'bg-green-500/20 text-green-600'
+                                                    : selectedProgram.difficulty === 'intermediate'
+                                                        ? 'bg-yellow-500/20 text-yellow-600'
+                                                        : 'bg-red-500/20 text-red-600'
                                                     }`}
                                             >
                                                 {selectedProgram.difficulty}
@@ -397,7 +412,7 @@ export default function ProgramsPage() {
                                 <div>
                                     <p className="font-semibold">{activeEnrollment.programName}</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Week {activeEnrollment.currentWeek} of {activeEnrollment.durationWeeks} •{' '}
+                                        Week {calculateCurrentWeek(activeEnrollment.startedAt, activeEnrollment.durationWeeks)} of {activeEnrollment.durationWeeks} •{' '}
                                         {activeEnrollment.workoutsCompletedThisWeek}/{activeEnrollment.daysPerWeek} workouts this week
                                     </p>
                                 </div>

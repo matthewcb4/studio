@@ -7,6 +7,21 @@ import { Progress } from '@/components/ui/progress';
 import type { WorkoutProgram, UserProgramEnrollment } from '@/lib/types';
 import { Check, Clock, Dumbbell, Lock, Play, Star, ShoppingCart } from 'lucide-react';
 
+/**
+ * Calculate the current week of a program based on start date
+ */
+const calculateCurrentWeek = (startedAt: string | undefined, durationWeeks: number): number => {
+    if (!startedAt) return 1;
+
+    const startDate = new Date(startedAt);
+    const now = new Date();
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const elapsedWeeks = Math.floor((now.getTime() - startDate.getTime()) / msPerWeek);
+
+    // Week is 1-indexed, capped at program duration
+    return Math.min(Math.max(elapsedWeeks + 1, 1), durationWeeks);
+};
+
 interface ProgramCardProps {
     program: WorkoutProgram;
     enrollment?: UserProgramEnrollment | null;
@@ -38,9 +53,12 @@ export function ProgramCard({
     const isActive = enrollment?.isActive;
     const isCompleted = enrollment?.isCompleted;
 
-    // Calculate progress if enrolled
+    // Calculate progress if enrolled (using dynamic week calculation)
+    const currentWeek = enrollment
+        ? calculateCurrentWeek(enrollment.startedAt, program.durationWeeks)
+        : 1;
     const progressPercent = enrollment
-        ? ((enrollment.currentWeek - 1) / program.durationWeeks) * 100 +
+        ? ((currentWeek - 1) / program.durationWeeks) * 100 +
         (enrollment.workoutsCompletedThisWeek / program.daysPerWeek / program.durationWeeks) * 100
         : 0;
 
@@ -121,7 +139,7 @@ export function ProgramCard({
                 {enrollment && !isCompleted && (
                     <div className="space-y-1">
                         <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Week {enrollment.currentWeek} of {program.durationWeeks}</span>
+                            <span>Week {currentWeek} of {program.durationWeeks}</span>
                             <span>{Math.round(progressPercent)}%</span>
                         </div>
                         <Progress value={progressPercent} className="h-2" />

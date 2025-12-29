@@ -66,8 +66,19 @@ import { MergeExercisesDialog } from '@/components/merge-exercises-dialog';
 const exerciseFormSchema = z.object({
     name: z.string().min(2, { message: 'Exercise name must be at least 2 characters.' }),
     category: z.string().min(2, { message: 'Please select a category.' }),
+    targetMuscles: z.array(z.string()).optional(),
     defaultUnit: z.enum(['reps', 'seconds', 'bodyweight', 'reps-only']).optional(),
 });
+
+// Muscle options for each category
+const categoryMuscleOptions: Record<string, string[]> = {
+    'Back': ['Lats', 'Traps', 'Lower Back', 'Rhomboids', 'Rear Delts'],
+    'Chest': ['Upper Chest', 'Middle Chest', 'Lower Chest'],
+    'Shoulders': ['Front Delts', 'Side Delts', 'Rear Delts'],
+    'Legs': ['Quads', 'Hamstrings', 'Glutes', 'Calves', 'Hip Flexors'],
+    'Arms': ['Biceps', 'Triceps', 'Forearms'],
+    'Core': ['Abs', 'Obliques', 'Lower Back'],
+};
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
     return (
@@ -92,21 +103,27 @@ function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: M
         defaultValues: {
             name: exercise?.name || '',
             category: exercise?.category || '',
+            targetMuscles: exercise?.targetMuscles || [],
             defaultUnit: exercise?.defaultUnit || 'reps',
         },
     });
+
+    const selectedCategory = form.watch('category');
+    const availableMuscles = selectedCategory ? (categoryMuscleOptions[selectedCategory] || []) : [];
 
     useEffect(() => {
         if (exercise) {
             form.reset({
                 name: exercise.name,
                 category: exercise.category,
+                targetMuscles: exercise.targetMuscles || [],
                 defaultUnit: exercise.defaultUnit || 'reps',
             });
         } else {
             form.reset({
                 name: '',
                 category: '',
+                targetMuscles: [],
                 defaultUnit: 'reps',
             });
         }
@@ -187,6 +204,38 @@ function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: M
                             </FormItem>
                         )}
                     />
+                    {availableMuscles.length > 0 && (
+                        <FormField
+                            control={form.control}
+                            name="targetMuscles"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Target Muscles (Optional)</FormLabel>
+                                    <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg bg-muted/20">
+                                        {availableMuscles.map(muscle => (
+                                            <label key={muscle} className="flex items-center gap-2 text-sm cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-gray-300"
+                                                    checked={field.value?.includes(muscle) || false}
+                                                    onChange={(e) => {
+                                                        const current = field.value || [];
+                                                        if (e.target.checked) {
+                                                            field.onChange([...current, muscle]);
+                                                        } else {
+                                                            field.onChange(current.filter(m => m !== muscle));
+                                                        }
+                                                    }}
+                                                />
+                                                {muscle}
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>

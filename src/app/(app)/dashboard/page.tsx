@@ -69,6 +69,21 @@ const parseDuration = (duration: string): number => {
     return 0;
 };
 
+/**
+ * Calculate the current week of a program based on start date
+ */
+const calculateCurrentWeek = (startedAt: string | undefined, durationWeeks: number): number => {
+    if (!startedAt) return 1;
+
+    const startDate = new Date(startedAt);
+    const now = new Date();
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const elapsedWeeks = Math.floor((now.getTime() - startDate.getTime()) / msPerWeek);
+
+    // Week is 1-indexed, capped at program duration
+    return Math.min(Math.max(elapsedWeeks + 1, 1), durationWeeks);
+};
+
 function UserStatsCard({ userProfile }: { userProfile: UserProfile | null | undefined }) {
     if (!userProfile) return null;
 
@@ -103,7 +118,7 @@ function UserStatsCard({ userProfile }: { userProfile: UserProfile | null | unde
                     <div className="flex flex-col items-center p-2 bg-background/50 rounded-lg">
                         <Zap className="w-6 h-6 text-blue-500 mb-1" />
                         <span className="text-xs font-bold mt-1">
-                            {(userProfile.lifetimeVolume || 0).toLocaleString()} lbs
+                            {Math.round(userProfile.lifetimeVolume || 0).toLocaleString()} lbs
                         </span>
                         <span className="text-xs text-muted-foreground">Lifetime Volume</span>
                     </div>
@@ -413,7 +428,11 @@ export default function DashboardPage() {
         if (!activeEnrollment) return null;
         const program = getProgramById(activeEnrollment.programId);
         if (!program) return null;
-        return { program, enrollment: activeEnrollment };
+
+        // Calculate current week dynamically from start date
+        const calculatedWeek = calculateCurrentWeek(activeEnrollment.startedAt, program.durationWeeks);
+
+        return { program, enrollment: activeEnrollment, currentWeek: calculatedWeek };
     }, [activeEnrollment]);
 
     // Equipment collection (for migration)
@@ -689,13 +708,13 @@ export default function DashboardPage() {
                             <CardContent className="space-y-3">
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-sm">
-                                        <span>Week {activeProgram.enrollment.currentWeek} of {activeProgram.program.durationWeeks}</span>
+                                        <span>Week {activeProgram.currentWeek} of {activeProgram.program.durationWeeks}</span>
                                         <span className="text-muted-foreground">
-                                            {Math.round((activeProgram.enrollment.currentWeek / activeProgram.program.durationWeeks) * 100)}%
+                                            {Math.round((activeProgram.currentWeek / activeProgram.program.durationWeeks) * 100)}%
                                         </span>
                                     </div>
                                     <Progress
-                                        value={(activeProgram.enrollment.currentWeek / activeProgram.program.durationWeeks) * 100}
+                                        value={(activeProgram.currentWeek / activeProgram.program.durationWeeks) * 100}
                                         className="h-2"
                                     />
                                 </div>

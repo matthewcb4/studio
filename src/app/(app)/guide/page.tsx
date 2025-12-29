@@ -88,6 +88,21 @@ const formSchema = z.object({
   allowSupersets: z.boolean().optional(),
 });
 
+/**
+ * Calculate the current week of a program based on start date
+ */
+const calculateCurrentWeek = (startedAt: string | undefined, durationWeeks: number): number => {
+  if (!startedAt) return 1;
+
+  const startDate = new Date(startedAt);
+  const now = new Date();
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const elapsedWeeks = Math.floor((now.getTime() - startDate.getTime()) / msPerWeek);
+
+  // Week is 1-indexed, capped at program duration
+  return Math.min(Math.max(elapsedWeeks + 1, 1), durationWeeks);
+};
+
 const generateUniqueId = () => `_${Math.random().toString(36).substr(2, 9)}`;
 
 // Helper to group AI-generated exercises by supersetId for display
@@ -164,9 +179,12 @@ export default function GuidePage() {
     if (!activeEnrollment) return null;
     const program = getProgramById(activeEnrollment.programId);
     if (!program) return null;
-    const weekProgression = getWeekProgression(activeEnrollment.programId, activeEnrollment.currentWeek);
+
+    // Calculate current week dynamically from start date
+    const currentWeek = calculateCurrentWeek(activeEnrollment.startedAt, program.durationWeeks);
+    const weekProgression = getWeekProgression(activeEnrollment.programId, currentWeek);
     if (!weekProgression) return null;
-    return { program, enrollment: activeEnrollment, weekProgression };
+    return { program, enrollment: activeEnrollment, weekProgression, currentWeek };
   }, [activeEnrollment]);
 
   const allWorkoutLogsQuery = useMemoFirebase(() => {
@@ -321,7 +339,7 @@ export default function GuidePage() {
           // Build active program context if user is enrolled
           const activeProgramContext = activeProgram ? {
             name: activeProgram.program.name,
-            currentWeek: activeProgram.enrollment.currentWeek,
+            currentWeek: activeProgram.currentWeek,
             totalWeeks: activeProgram.program.durationWeeks,
             phase: activeProgram.weekProgression.phase,
             primaryMuscles: activeProgram.program.primaryMuscles,
@@ -727,7 +745,7 @@ export default function GuidePage() {
                 <div>
                   <p className="font-semibold">{activeProgram.program.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    Week {activeProgram.enrollment.currentWeek} of {activeProgram.program.durationWeeks} • {activeProgram.weekProgression.phase} Phase
+                    Week {activeProgram.currentWeek} of {activeProgram.program.durationWeeks} • {activeProgram.weekProgression.phase} Phase
                   </p>
                 </div>
               </div>

@@ -3,6 +3,7 @@ export type Exercise = {
   id: string;
   name: string;
   category?: string;
+  targetMuscles?: string[];  // Specific muscles like 'traps', 'lats_upper', 'lats_lower'
   activityType?: ActivityType;        // Defaults to 'resistance'
   isCardioActivity?: boolean;         // For run, walk, cycle pseudo-exercises
   defaultUnit?: 'reps' | 'seconds' | 'bodyweight' | 'reps-only';
