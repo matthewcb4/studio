@@ -50,7 +50,7 @@ import {
     addDoc,
     updateDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, query, orderBy, writeBatch } from 'firebase/firestore';
+import { collection, doc, query, orderBy, writeBatch, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { findExerciseVideo, FindExerciseVideoOutput } from '@/ai/flows/find-exercise-video-flow';
 import Image from 'next/image';
@@ -346,18 +346,41 @@ export default function ExercisesPage() {
         setIsSeeding(true);
         try {
             const exercisesRef = collection(firestore, 'exercises');
+
+            // Get existing exercises to check for duplicates
+            const existingSnapshot = await getDocs(exercisesRef);
+            const existingByName = new Map<string, string>(); // name -> docId
+            existingSnapshot.docs.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.name) {
+                    existingByName.set(data.name, docSnap.id);
+                }
+            });
+
             const batch = writeBatch(firestore);
+            let updated = 0;
+            let added = 0;
 
             seedExercises.forEach(exercise => {
-                const docRef = doc(exercisesRef);
-                batch.set(docRef, exercise);
+                const existingId = existingByName.get(exercise.name);
+                if (existingId) {
+                    // Update existing exercise with targetMuscles (merge)
+                    const docRef = doc(exercisesRef, existingId);
+                    batch.set(docRef, exercise, { merge: true });
+                    updated++;
+                } else {
+                    // Add new exercise
+                    const docRef = doc(exercisesRef);
+                    batch.set(docRef, exercise);
+                    added++;
+                }
             });
 
             await batch.commit();
 
             toast({
-                title: 'Database Seeded!',
-                description: `${seedExercises.length} starter exercises have been added.`,
+                title: 'Database Updated!',
+                description: `${updated} exercises updated, ${added} new exercises added.`,
             });
 
         } catch (error) {
