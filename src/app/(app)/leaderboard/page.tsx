@@ -121,7 +121,7 @@ function LeaderboardRow({ entry, isCurrentUser }: { entry: LeaderboardEntry; isC
                 </div>
             </div>
             <div className="text-right">
-                <span className="font-bold text-lg">{entry.value.toLocaleString()}</span>
+                <span className="font-bold text-lg">{Math.round(entry.value).toLocaleString()}</span>
             </div>
         </div>
     );

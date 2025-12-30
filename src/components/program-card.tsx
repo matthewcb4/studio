@@ -57,9 +57,14 @@ export function ProgramCard({
     const currentWeek = enrollment
         ? calculateCurrentWeek(enrollment.startedAt, program.durationWeeks)
         : 1;
+
+    // If the week has advanced past lastWeekReset, workoutsCompletedThisWeek should display as 0
+    const lastResetWeek = enrollment?.lastWeekReset ?? 1;
+    const workoutsThisWeek = enrollment && currentWeek > lastResetWeek ? 0 : (enrollment?.workoutsCompletedThisWeek ?? 0);
+
     const progressPercent = enrollment
         ? ((currentWeek - 1) / program.durationWeeks) * 100 +
-        (enrollment.workoutsCompletedThisWeek / program.daysPerWeek / program.durationWeeks) * 100
+        (workoutsThisWeek / program.daysPerWeek / program.durationWeeks) * 100
         : 0;
 
     const getDifficultyColor = (difficulty: string) => {

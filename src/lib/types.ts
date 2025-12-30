@@ -224,6 +224,7 @@ export type UserProgramEnrollment = {
   startedAt?: string;                    // ISO date when user started
   currentWeek: number;                   // 1-indexed
   workoutsCompletedThisWeek: number;
+  lastWeekReset?: number;                // The week number when workoutsCompletedThisWeek was last reset
   totalWorkoutsCompleted: number;        // Total across all weeks
   isCompleted: boolean;
   isActive: boolean;                     // Is this the currently active program?

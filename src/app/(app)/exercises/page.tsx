@@ -70,14 +70,15 @@ const exerciseFormSchema = z.object({
     defaultUnit: z.enum(['reps', 'seconds', 'bodyweight', 'reps-only']).optional(),
 });
 
-// Muscle options for each category
-const categoryMuscleOptions: Record<string, string[]> = {
-    'Back': ['Lats', 'Traps', 'Lower Back', 'Rhomboids', 'Rear Delts'],
-    'Chest': ['Upper Chest', 'Middle Chest', 'Lower Chest'],
-    'Shoulders': ['Front Delts', 'Side Delts', 'Rear Delts'],
-    'Legs': ['Quads', 'Hamstrings', 'Glutes', 'Calves', 'Hip Flexors'],
-    'Arms': ['Biceps', 'Triceps', 'Forearms'],
-    'Core': ['Abs', 'Obliques', 'Lower Back'],
+// All available muscle groups (flat list matching AI workout generator)
+const allMuscleOptions = {
+    'Muscle Groups': ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core'],
+    'Back Muscles': ['Lats', 'Traps', 'Lower Back', 'Rhomboids'],
+    'Shoulder Muscles': ['Front Delts', 'Side Delts', 'Rear Delts'],
+    'Leg Muscles': ['Quads', 'Hamstrings', 'Glutes', 'Calves', 'Hip Flexors'],
+    'Arm Muscles': ['Biceps', 'Triceps', 'Forearms'],
+    'Core Muscles': ['Abs', 'Obliques'],
+    'Chest Muscles': ['Upper Chest', 'Middle Chest', 'Lower Chest'],
 };
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
@@ -108,8 +109,6 @@ function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: M
         },
     });
 
-    const selectedCategory = form.watch('category');
-    const availableMuscles = selectedCategory ? (categoryMuscleOptions[selectedCategory] || []) : [];
 
     useEffect(() => {
         if (exercise) {
@@ -204,38 +203,43 @@ function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: M
                             </FormItem>
                         )}
                     />
-                    {availableMuscles.length > 0 && (
-                        <FormField
-                            control={form.control}
-                            name="targetMuscles"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Target Muscles (Optional)</FormLabel>
-                                    <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg bg-muted/20">
-                                        {availableMuscles.map(muscle => (
-                                            <label key={muscle} className="flex items-center gap-2 text-sm cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="rounded border-gray-300"
-                                                    checked={field.value?.includes(muscle) || false}
-                                                    onChange={(e) => {
-                                                        const current = field.value || [];
-                                                        if (e.target.checked) {
-                                                            field.onChange([...current, muscle]);
-                                                        } else {
-                                                            field.onChange(current.filter(m => m !== muscle));
-                                                        }
-                                                    }}
-                                                />
-                                                {muscle}
-                                            </label>
-                                        ))}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
+                    <FormField
+                        control={form.control}
+                        name="targetMuscles"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Target Muscles (Optional)</FormLabel>
+                                <div className="max-h-[250px] overflow-y-auto border rounded-lg p-3 bg-muted/20 space-y-4">
+                                    {Object.entries(allMuscleOptions).map(([groupName, muscles]) => (
+                                        <div key={groupName}>
+                                            <p className="text-xs font-semibold text-muted-foreground mb-2">{groupName}</p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {muscles.map(muscle => (
+                                                    <label key={muscle} className="flex items-center gap-2 text-sm cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="rounded border-gray-300"
+                                                            checked={field.value?.includes(muscle) || false}
+                                                            onChange={(e) => {
+                                                                const current = field.value || [];
+                                                                if (e.target.checked) {
+                                                                    field.onChange([...current, muscle]);
+                                                                } else {
+                                                                    field.onChange(current.filter(m => m !== muscle));
+                                                                }
+                                                            }}
+                                                        />
+                                                        {muscle}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>

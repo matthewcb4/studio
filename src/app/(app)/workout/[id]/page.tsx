@@ -96,6 +96,21 @@ import { Badge } from '@/components/ui/badge';
 import { ReviewPromptDialog } from '@/components/review-prompt-dialog';
 import { usePersistedWorkoutSession } from '@/hooks/use-persisted-workout-session';
 
+/**
+ * Calculate the current week of a program based on start date
+ */
+const calculateCurrentWeek = (startedAt: string | undefined, durationWeeks: number): number => {
+  if (!startedAt) return 1;
+
+  const startDate = new Date(startedAt);
+  const now = new Date();
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const elapsedWeeks = Math.floor((now.getTime() - startDate.getTime()) / msPerWeek);
+
+  // Week is 1-indexed, capped at program duration
+  return Math.min(Math.max(elapsedWeeks + 1, 1), durationWeeks);
+};
+
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
     <div className="aspect-[9/16] w-full max-w-sm mx-auto mt-2">
@@ -900,10 +915,38 @@ export default function WorkoutSessionPage() {
       // 4. Update active program enrollment if user is in a program
       if (userProfile?.activeProgramId) {
         const enrollmentRef = doc(firestore, `users/${user.uid}/programEnrollments/${userProfile.activeProgramId}`);
-        updateDocumentNonBlocking(enrollmentRef, {
-          workoutsCompletedThisWeek: increment(1),
-          totalWorkoutsCompleted: increment(1),
-        });
+
+        // Fetch current enrollment to check if we need to reset the week counter
+        try {
+          const enrollmentDoc = await import('firebase/firestore').then(m => m.getDoc(enrollmentRef));
+          if (enrollmentDoc.exists()) {
+            const enrollment = enrollmentDoc.data();
+            const currentWeek = calculateCurrentWeek(enrollment.startedAt, enrollment.durationWeeks);
+            const lastResetWeek = enrollment.lastWeekReset ?? 1;
+
+            if (currentWeek > lastResetWeek) {
+              // Week has advanced, reset counter and update lastWeekReset
+              updateDocumentNonBlocking(enrollmentRef, {
+                workoutsCompletedThisWeek: 1, // This is the first workout of the new week
+                totalWorkoutsCompleted: increment(1),
+                lastWeekReset: currentWeek,
+              });
+            } else {
+              // Same week, just increment
+              updateDocumentNonBlocking(enrollmentRef, {
+                workoutsCompletedThisWeek: increment(1),
+                totalWorkoutsCompleted: increment(1),
+              });
+            }
+          }
+        } catch (err) {
+          // Fallback to simple increment if fetch fails
+          console.error('Error fetching enrollment:', err);
+          updateDocumentNonBlocking(enrollmentRef, {
+            workoutsCompletedThisWeek: increment(1),
+            totalWorkoutsCompleted: increment(1),
+          });
+        }
       }
 
       // Clear persisted session since workout is complete

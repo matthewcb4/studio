@@ -432,7 +432,11 @@ export default function DashboardPage() {
         // Calculate current week dynamically from start date
         const calculatedWeek = calculateCurrentWeek(activeEnrollment.startedAt, program.durationWeeks);
 
-        return { program, enrollment: activeEnrollment, currentWeek: calculatedWeek };
+        // If the week has advanced past lastWeekReset, workoutsCompletedThisWeek should display as 0
+        const lastResetWeek = activeEnrollment.lastWeekReset ?? 1;
+        const workoutsThisWeek = calculatedWeek > lastResetWeek ? 0 : activeEnrollment.workoutsCompletedThisWeek;
+
+        return { program, enrollment: activeEnrollment, currentWeek: calculatedWeek, workoutsThisWeek };
     }, [activeEnrollment]);
 
     // Equipment collection (for migration)
@@ -720,7 +724,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">
-                                        {activeProgram.enrollment.workoutsCompletedThisWeek}/{activeProgram.program.daysPerWeek} this week
+                                        {activeProgram.workoutsThisWeek}/{activeProgram.program.daysPerWeek} this week
                                     </span>
                                     <Button size="sm" variant="ghost" asChild className="h-8">
                                         <Link href="/guide">

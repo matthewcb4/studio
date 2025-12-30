@@ -413,7 +413,12 @@ export default function ProgramsPage() {
                                     <p className="font-semibold">{activeEnrollment.programName}</p>
                                     <p className="text-sm text-muted-foreground">
                                         Week {calculateCurrentWeek(activeEnrollment.startedAt, activeEnrollment.durationWeeks)} of {activeEnrollment.durationWeeks} •{' '}
-                                        {activeEnrollment.workoutsCompletedThisWeek}/{activeEnrollment.daysPerWeek} workouts this week
+                                        {(() => {
+                                            const currentWeek = calculateCurrentWeek(activeEnrollment.startedAt, activeEnrollment.durationWeeks);
+                                            const lastResetWeek = activeEnrollment.lastWeekReset ?? 1;
+                                            const workoutsThisWeek = currentWeek > lastResetWeek ? 0 : activeEnrollment.workoutsCompletedThisWeek;
+                                            return workoutsThisWeek;
+                                        })()}/{activeEnrollment.daysPerWeek} workouts this week
                                     </p>
                                 </div>
                             </div>
