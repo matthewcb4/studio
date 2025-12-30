@@ -540,11 +540,31 @@ export default function GuidePage() {
     const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
 
     try {
+      // Prepare available exercises with their targetMuscles for the AI
+      const exercisesWithMuscles = masterExercises?.map(ex => ({
+        name: ex.name,
+        category: ex.category || 'Other',
+        targetMuscles: ex.targetMuscles,
+      })) || [];
+
+      // Build active program context if user is enrolled
+      const activeProgramContext = activeProgram ? {
+        name: activeProgram.program.name,
+        currentWeek: activeProgram.currentWeek,
+        totalWeeks: activeProgram.program.durationWeeks,
+        phase: activeProgram.weekProgression?.phase || 'Training',
+        primaryMuscles: activeProgram.program.primaryMuscles || [],
+        intensityModifier: (activeProgram.weekProgression?.intensityModifier || 'standard') as 'standard' | 'high' | 'brutal',
+        focusNotes: activeProgram.weekProgression?.focusNotes || '',
+      } : undefined;
+
       const result = await generateWorkout({
         ...values,
         fitnessGoals: goals.length > 0 ? goals : ["General Fitness"],
         workoutHistory: history,
         intensityLevel: currentIntensity,
+        availableExercises: exercisesWithMuscles,
+        activeProgram: activeProgramContext,
       });
       setGeneratedWorkout(result);
       if (userProfileRef) {
@@ -584,6 +604,7 @@ export default function GuidePage() {
             const newExercise: Omit<Exercise, 'id'> = {
               name: ex.name,
               category: ex.category,
+              targetMuscles: ex.targetMuscles || [], // Use AI's targetMuscles
             };
             await setDocumentNonBlocking(newExerciseDocRef, newExercise, { merge: false });
             masterExerciseId = newExerciseDocRef.id;

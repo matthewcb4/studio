@@ -17,23 +17,44 @@ const WorkoutHistoryItemSchema = z.object({
   exercises: z.string().describe("A comma-separated list of exercises from the past workout."),
 });
 
+// Schema for available exercises from user's database
+const AvailableExerciseSchema = z.object({
+  name: z.string().describe("Name of the exercise."),
+  category: z.string().describe("Broad category (e.g., Back, Chest, Legs)."),
+  targetMuscles: z.array(z.string()).optional().describe("Specific muscles targeted (e.g., Lats, Traps, Quads)."),
+});
+
+// Active program context schema
+const ActiveProgramSchema = z.object({
+  name: z.string().describe("The name of the active program."),
+  currentWeek: z.number().describe("The current week number (1-indexed)."),
+  totalWeeks: z.number().describe("Total weeks in the program."),
+  phase: z.string().describe("The current phase name (e.g., 'Foundation', 'Volume', 'Intensity')."),
+  primaryMuscles: z.array(z.string()).describe("Primary muscles targeted by this program (e.g., Lats, Traps, Chest)."),
+  intensityModifier: z.enum(['standard', 'high', 'brutal']).describe("The intensity level for this week."),
+  focusNotes: z.string().describe("Coaching notes for the current week."),
+}).optional();
+
 const GenerateWorkoutInputSchema = z.object({
   availableEquipment: z.array(z.string()).describe("A list of available fitness equipment."),
   fitnessGoals: z.array(z.string()).describe("A list of the user's fitness goals (e.g., increase_max_lift, gain_overall_mass, reduce_body_fat)."),
   fitnessLevel: z.string().describe("The user's current fitness level (e.g., beginner, intermediate, advanced)."),
   workoutDuration: z.number().describe("The desired workout duration in minutes."),
-  focusArea: z.array(z.string()).describe("A list of primary muscle groups or areas to focus on (e.g., Full Body, Upper Body, Lower Body, Core, Arms, Legs, Chest, Back, Shoulders)."),
+  focusArea: z.array(z.string()).describe("A list of primary muscle groups or areas to focus on (e.g., Full Body, Upper Body, Lower Body, Core, Arms, Legs, Chest, Back, Shoulders, or specific muscles like Lats, Traps, Quads)."),
   supersetStrategy: z.string().describe("The user's preferred superset strategy. 'focused' means supersets should contain exercises for the SAME muscle group. 'mixed' means supersets can combine exercises for DIFFERENT muscle groups (e.g., antagonist or non-competing groups)."),
   workoutHistory: z.array(WorkoutHistoryItemSchema).optional().describe("A list of the user's recent workouts to avoid repetition."),
   intensityLevel: z.enum(['standard', 'high', 'brutal']).optional().describe("The intensity level for the workout. 'standard' is normal training. 'high' includes some advanced techniques. 'brutal' uses drop sets, giant sets, and other intense methods."),
   workoutType: z.enum(['resistance', 'calisthenics']).optional().describe("The type of workout to generate. 'resistance' uses weighted exercises (default). 'calisthenics' generates a pure bodyweight workout."),
   allowSupersets: z.boolean().optional().describe("Whether to allow grouping exercises into supersets, tri-sets, or giant sets. If false, each exercise is standalone."),
+  availableExercises: z.array(AvailableExerciseSchema).optional().describe("A list of exercises from the user's database with their specific target muscles. PREFER these exercises when creating the workout."),
+  activeProgram: ActiveProgramSchema.describe("Optional: The user's currently active workout program context."),
 });
 export type GenerateWorkoutInput = z.infer<typeof GenerateWorkoutInputSchema>;
 
 const ExerciseSchema = z.object({
   name: z.string().describe("Name of the exercise."),
   category: z.string().describe("The primary muscle group targeted by this exercise (e.g., Chest, Back, Legs, Shoulders, Arms, Core)."),
+  targetMuscles: z.array(z.string()).optional().describe("Specific muscles targeted by this exercise (e.g., Lats, Traps, Quads, Hamstrings). Be granular!"),
   sets: z.string().describe("Number of sets to perform, can be a range like '3-4'."),
   reps: z.string().describe("Number of repetitions per set (e.g., '8-12'), or duration in seconds for timed exercises (e.g., '30-60s')."),
   rest: z.string().describe("Rest time in seconds between sets."),
@@ -77,7 +98,49 @@ const prompt = ai.definePrompt({
   {{/each}}
   {{/if}}
   
+  {{#if activeProgram}}
+  **🎯 ACTIVE PROGRAM (PRIORITY):**
+  The user is enrolled in a structured program. Your workout MUST align with this program's focus!
+  
+  - **Program:** {{activeProgram.name}}
+  - **Current Week:** {{activeProgram.currentWeek}} of {{activeProgram.totalWeeks}}
+  - **Phase:** {{activeProgram.phase}}
+  - **Week's Intensity:** {{activeProgram.intensityModifier}}
+  - **Primary Target Muscles:** {{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  - **Coach Notes for This Week:** {{activeProgram.focusNotes}}
+  
+  **PROGRAM OVERRIDE RULES:**
+  1. **Prioritize the program's primary muscles** - Select exercises that specifically target these muscles
+  2. **Use the program's intensity modifier** - If it says 'brutal', include more advanced techniques!
+  3. **Reference the program in the workout name/description** - e.g., "Week 3 Back Builder"
+  4. **Override the focus area** - The program's muscles take priority over the general focus area
+  {{/if}}
+
+  {{#if availableExercises}}
+  **📋 AVAILABLE EXERCISES (PREFER THESE!):**
+  The user has the following exercises in their database with specific target muscles. 
+  STRONGLY PREFER selecting from this list to ensure accurate muscle tracking:
+  
+  {{#each availableExercises}}
+  - **{{name}}** ({{category}}){{#if targetMuscles}} → Targets: {{#each targetMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}
+  {{/each}}
+  
+  **EXERCISE SELECTION PRIORITY:**
+  1. FIRST: Choose exercises from the available list above that match the focus/program muscles
+  2. SECOND: If you need an exercise not on the list, use standard exercise names
+  3. For each exercise, include 'targetMuscles' array with specific muscles (e.g., ['Lats', 'Traps'] not just ['Back'])
+  {{/if}}
+
   Generate a complete workout routine including a workout name, a short description, and a list of exercises.
+  
+  **GRANULAR MUSCLE TARGETING (CRITICAL):**
+  For EVERY exercise, you MUST include a 'targetMuscles' array with SPECIFIC muscles:
+  - Back exercises: Use ['Lats'], ['Traps'], ['Lower Back'], ['Rhomboids'] - NOT just ['Back']
+  - Leg exercises: Use ['Quads'], ['Hamstrings'], ['Glutes'], ['Calves'] - NOT just ['Legs']
+  - Shoulder exercises: Use ['Front Delts'], ['Side Delts'], ['Rear Delts'] - NOT just ['Shoulders']
+  - Arm exercises: Use ['Biceps'], ['Triceps'], ['Forearms'] - NOT just ['Arms']
+  - Core exercises: Use ['Abs'], ['Obliques'] - NOT just ['Core']
+  - Chest exercises: Use ['Chest'] (no subdivision needed)
   
   **WORKOUT VARIETY & PERSONALITY:**
   To keep workouts engaging and prevent staleness, YOU MUST:
