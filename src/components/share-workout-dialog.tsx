@@ -2,6 +2,9 @@
 
 import React, { useRef } from 'react';
 import html2canvas from 'html2canvas';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -182,9 +185,37 @@ export function ShareWorkoutDialog({ log, userProfile, prs, isOpen, onOpenChange
                 scale: 2, // Higher quality
                 backgroundColor: '#FFFFFF', // White background for vibrant color rendering
             });
-            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
 
-            // Try Web Share API with image first (works on mobile including Capacitor)
+            // Use native Capacitor sharing on Android/iOS
+            if (Capacitor.isNativePlatform()) {
+                try {
+                    // Convert canvas to base64
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const base64Data = dataUrl.replace('data:image/png;base64,', '');
+
+                    // Save to cache directory
+                    const fileName = `workout-${Date.now()}.png`;
+                    const writeResult = await Filesystem.writeFile({
+                        path: fileName,
+                        data: base64Data,
+                        directory: Directory.Cache,
+                    });
+
+                    // Share using native share sheet with image file
+                    await Share.share({
+                        title: 'My fRepo Workout',
+                        text: fullShareText,
+                        files: [writeResult.uri],
+                    });
+                    return;
+                } catch (nativeShareError) {
+                    console.log("Native share failed, trying fallback:", nativeShareError);
+                    // Fall through to web fallbacks
+                }
+            }
+
+            // Web: Try Web Share API with image
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
             if (blob && navigator.share) {
                 const file = new File([blob], 'workout.png', { type: 'image/png' });
                 try {
