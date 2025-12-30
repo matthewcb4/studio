@@ -441,16 +441,24 @@ export default function ExercisesPage() {
                         <p className="text-muted-foreground">Manage your exercise library and perform quick logs.</p>
                     </div>
                 </div>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={() => setIsAddDialogOpen(true)}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Add New
-                        </Button>
-                    </DialogTrigger>
-                    <ExerciseForm exercise={null} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setIsAddDialogOpen(false)} />
-                </Dialog>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleSeedDatabase} disabled={isSeeding}>
+                        {isSeeding ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Updating...</>
+                        ) : (
+                            "Update Muscles"
+                        )}
+                    </Button>
+                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button onClick={() => setIsAddDialogOpen(true)}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add New
+                            </Button>
+                        </DialogTrigger>
+                        <ExerciseForm exercise={null} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setIsAddDialogOpen(false)} />
+                    </Dialog>
+                </div>
             </div>
-
             <Dialog open={!!editingExercise} onOpenChange={(isOpen) => { if (!isOpen) setEditingExercise(null) }}>
                 <ExerciseForm exercise={editingExercise} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setEditingExercise(null)} />
             </Dialog>
