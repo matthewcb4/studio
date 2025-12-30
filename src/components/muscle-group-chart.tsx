@@ -80,9 +80,31 @@ export function MuscleGroupVolumeChart({
 
       (log.exercises || []).forEach(loggedEx => {
         const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
-        if (masterEx?.category) {
-          const exerciseVolume = loggedEx.sets.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0);
+        const exerciseVolume = loggedEx.sets.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0);
 
+        // Mapping from specific muscles to chart groups
+        const targetToChartGroup: Record<string, string> = {
+          'Chest': 'Chest', 'Upper Chest': 'Chest', 'Middle Chest': 'Chest', 'Lower Chest': 'Chest',
+          'Back': 'Back', 'Lats': 'Back', 'Traps': 'Back', 'Lower Back': 'Back', 'Rhomboids': 'Back',
+          'Shoulders': 'Shoulders', 'Front Delts': 'Shoulders', 'Side Delts': 'Shoulders', 'Rear Delts': 'Shoulders',
+          'Arms': 'Arms', 'Biceps': 'Arms', 'Triceps': 'Arms', 'Forearms': 'Arms',
+          'Legs': 'Legs', 'Quads': 'Legs', 'Hamstrings': 'Legs', 'Glutes': 'Legs', 'Calves': 'Legs', 'Hip Flexors': 'Legs',
+          'Core': 'Core', 'Abs': 'Core', 'Obliques': 'Core',
+        };
+
+        // Priority 1: Use specific targetMuscles if available
+        if (masterEx?.targetMuscles && masterEx.targetMuscles.length > 0) {
+          const addedGroups = new Set<string>();
+          masterEx.targetMuscles.forEach(muscle => {
+            const mainGroup = targetToChartGroup[muscle];
+            if (mainGroup && ALL_MUSCLE_GROUPS.includes(mainGroup) && !addedGroups.has(mainGroup)) {
+              dataByDate[date][mainGroup] = (dataByDate[date][mainGroup] || 0) + exerciseVolume;
+              addedGroups.add(mainGroup);
+            }
+          });
+        }
+        // Priority 2: Fall back to category mapping
+        else if (masterEx?.category) {
           const affectedGroups = categoryToMuscleGroup[masterEx.category] || [];
           affectedGroups.forEach(subGroup => {
             const mainGroup = muscleToChartGroup[subGroup];

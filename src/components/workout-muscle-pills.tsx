@@ -23,10 +23,31 @@ export function WorkoutMusclePills({ exercises, masterExercises }: WorkoutMuscle
     const muscleGroups = useMemo(() => {
         const groups = new Set<string>();
 
+        // Mapping from specific muscles to display groups
+        const targetToDisplayGroup: Record<string, string> = {
+            'Chest': 'Chest', 'Upper Chest': 'Chest', 'Middle Chest': 'Chest', 'Lower Chest': 'Chest',
+            'Back': 'Back', 'Lats': 'Back', 'Traps': 'Back', 'Lower Back': 'Back', 'Rhomboids': 'Back',
+            'Shoulders': 'Shoulders', 'Front Delts': 'Shoulders', 'Side Delts': 'Shoulders', 'Rear Delts': 'Shoulders',
+            'Arms': 'Arms', 'Biceps': 'Arms', 'Triceps': 'Arms', 'Forearms': 'Arms',
+            'Legs': 'Legs', 'Quads': 'Legs', 'Hamstrings': 'Legs', 'Glutes': 'Legs', 'Calves': 'Legs', 'Hip Flexors': 'Legs',
+            'Core': 'Core', 'Abs': 'Core', 'Obliques': 'Core',
+        };
+
         exercises.forEach(ex => {
             // Find the master exercise to get its category
             const masterEx = masterExercises.find(m => m.id === ex.exerciseId || m.name === ex.exerciseName);
-            if (masterEx?.category) {
+
+            // Priority 1: Use specific targetMuscles if available
+            if (masterEx?.targetMuscles && masterEx.targetMuscles.length > 0) {
+                masterEx.targetMuscles.forEach(muscle => {
+                    const displayGroup = targetToDisplayGroup[muscle];
+                    if (displayGroup) {
+                        groups.add(displayGroup);
+                    }
+                });
+            }
+            // Priority 2: Fall back to category mapping
+            else if (masterEx?.category) {
                 // Get the muscle groups for this category
                 const muscleGroupsForCategory = categoryToMuscleGroup[masterEx.category];
                 if (muscleGroupsForCategory && muscleGroupsForCategory.length > 0) {

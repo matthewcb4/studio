@@ -303,34 +303,81 @@ export function MuscleHeatmap({
       // Process resistance training exercises
       (log.exercises || []).forEach(loggedEx => {
         const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
-        if (masterEx?.category) {
-          const muscleGroups = categoryToMuscleGroup[masterEx.category];
-          if (muscleGroups) {
-            // Volume calculation (Weight * Reps)
-            const totalEffort = loggedEx.sets.reduce((sum, set) => {
-              // If weight is present, use Volume Load
-              if (set.weight && set.weight > 0) {
-                return sum + (set.weight * (set.reps || 0));
-              }
-              // If duration (cardio/static), estimate volume:
-              // 10 seconds ~ 1 rep. Assume 'bodyweight' equivalent or light load (e.g. 50lbs/rep equivalent for intensity)
-              if (set.duration) {
-                const repEquivalent = Math.floor(set.duration / 10);
-                return sum + (repEquivalent * 30); // Arbitrary 30lbs "intensity" per rep-duration
-              }
 
-              // Bodyweight reps (no weight logged)
-              // Assume a baseline weight for bodyweight exercises to make them show up compared to weighted ones.
-              // e.g. 50 lbs effective resistance
-              return sum + ((set.reps || 0) * 40);
-            }, 0);
+        // Determine which muscle groups to credit for this exercise
+        let muscleGroups: string[] = [];
 
-            const decayedEffort = totalEffort * decayFactor;
+        // Priority 1: Use specific targetMuscles if available
+        if (masterEx?.targetMuscles && masterEx.targetMuscles.length > 0) {
+          // Map target muscle names to heatmap keys
+          const targetToHeatmap: Record<string, string[]> = {
+            'Chest': ['chest'],
+            'Upper Chest': ['chest'],
+            'Middle Chest': ['chest'],
+            'Lower Chest': ['chest'],
+            'Back': ['lats', 'traps', 'back_lower'],
+            'Lats': ['lats'],
+            'Traps': ['traps'],
+            'Lower Back': ['back_lower'],
+            'Rhomboids': ['back_lower', 'traps'],
+            'Shoulders': ['shoulders_front', 'shoulders_back'],
+            'Front Delts': ['shoulders_front'],
+            'Side Delts': ['shoulders_front', 'shoulders_back'],
+            'Rear Delts': ['shoulders_back'],
+            'Arms': ['biceps', 'triceps'],
+            'Biceps': ['biceps'],
+            'Triceps': ['triceps'],
+            'Forearms': ['biceps'], // Map to biceps for visualization
+            'Legs': ['quads', 'hamstrings', 'glutes', 'calves'],
+            'Quads': ['quads'],
+            'Hamstrings': ['hamstrings'],
+            'Glutes': ['glutes'],
+            'Calves': ['calves'],
+            'Hip Flexors': ['quads'],
+            'Core': ['abs'],
+            'Abs': ['abs'],
+            'Obliques': ['abs'],
+          };
 
-            muscleGroups.forEach(group => {
-              muscleGroupEffort[group] = (muscleGroupEffort[group] || 0) + decayedEffort;
-            });
-          }
+          masterEx.targetMuscles.forEach(muscle => {
+            const mapped = targetToHeatmap[muscle];
+            if (mapped) {
+              muscleGroups.push(...mapped);
+            }
+          });
+          // Remove duplicates
+          muscleGroups = [...new Set(muscleGroups)];
+        }
+        // Priority 2: Fall back to category mapping
+        else if (masterEx?.category) {
+          muscleGroups = categoryToMuscleGroup[masterEx.category] || [];
+        }
+
+        if (muscleGroups.length > 0) {
+          // Volume calculation (Weight * Reps)
+          const totalEffort = loggedEx.sets.reduce((sum, set) => {
+            // If weight is present, use Volume Load
+            if (set.weight && set.weight > 0) {
+              return sum + (set.weight * (set.reps || 0));
+            }
+            // If duration (cardio/static), estimate volume:
+            // 10 seconds ~ 1 rep. Assume 'bodyweight' equivalent or light load (e.g. 50lbs/rep equivalent for intensity)
+            if (set.duration) {
+              const repEquivalent = Math.floor(set.duration / 10);
+              return sum + (repEquivalent * 30); // Arbitrary 30lbs "intensity" per rep-duration
+            }
+
+            // Bodyweight reps (no weight logged)
+            // Assume a baseline weight for bodyweight exercises to make them show up compared to weighted ones.
+            // e.g. 50 lbs effective resistance
+            return sum + ((set.reps || 0) * 40);
+          }, 0);
+
+          const decayedEffort = totalEffort * decayFactor;
+
+          muscleGroups.forEach(group => {
+            muscleGroupEffort[group] = (muscleGroupEffort[group] || 0) + decayedEffort;
+          });
         }
       });
     });
