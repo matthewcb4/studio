@@ -65,8 +65,8 @@ import { MergeExercisesDialog } from '@/components/merge-exercises-dialog';
 
 const exerciseFormSchema = z.object({
     name: z.string().min(2, { message: 'Exercise name must be at least 2 characters.' }),
-    category: z.string().min(2, { message: 'Please select a category.' }),
-    targetMuscles: z.array(z.string()).optional(),
+    category: z.string().optional(), // Auto-derived from targetMuscles
+    targetMuscles: z.array(z.string()).min(1, { message: 'Please select at least one muscle group.' }),
     defaultUnit: z.enum(['reps', 'seconds', 'bodyweight', 'reps-only']).optional(),
 });
 
@@ -78,7 +78,16 @@ const allMuscleOptions = {
     'Leg Muscles': ['Quads', 'Hamstrings', 'Glutes', 'Calves', 'Hip Flexors'],
     'Arm Muscles': ['Biceps', 'Triceps', 'Forearms'],
     'Core Muscles': ['Abs', 'Obliques'],
-    'Chest Muscles': ['Upper Chest', 'Middle Chest', 'Lower Chest'],
+};
+
+// Mapping from specific muscles to their parent category
+const muscleToCategory: Record<string, string> = {
+    'Chest': 'Chest',
+    'Back': 'Back', 'Lats': 'Back', 'Traps': 'Back', 'Lower Back': 'Back', 'Rhomboids': 'Back',
+    'Shoulders': 'Shoulders', 'Front Delts': 'Shoulders', 'Side Delts': 'Shoulders', 'Rear Delts': 'Shoulders',
+    'Arms': 'Arms', 'Biceps': 'Arms', 'Triceps': 'Arms', 'Forearms': 'Arms',
+    'Legs': 'Legs', 'Quads': 'Legs', 'Hamstrings': 'Legs', 'Glutes': 'Legs', 'Calves': 'Legs', 'Hip Flexors': 'Legs',
+    'Core': 'Core', 'Abs': 'Core', 'Obliques': 'Core',
 };
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
@@ -130,7 +139,11 @@ function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: M
 
     const onSubmit = (data: z.infer<typeof exerciseFormSchema>) => {
         setIsSubmitting(true);
-        onSave(data);
+        // Auto-derive category from the first selected muscle
+        const derivedCategory = data.targetMuscles.length > 0
+            ? muscleToCategory[data.targetMuscles[0]] || 'Other'
+            : 'Other';
+        onSave({ ...data, category: derivedCategory });
     };
 
     const isEditing = !!exercise;
@@ -160,55 +173,10 @@ function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: M
                     />
                     <FormField
                         control={form.control}
-                        name="category"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Category</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a category" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {categories.map(cat => (
-                                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="defaultUnit"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Default Unit</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a default unit" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="reps">Weight & Reps</SelectItem>
-                                        <SelectItem value="reps-only">Reps Only</SelectItem>
-                                        <SelectItem value="seconds">Seconds</SelectItem>
-                                        <SelectItem value="bodyweight">Bodyweight</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
                         name="targetMuscles"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Target Muscles (Optional)</FormLabel>
+                                <FormLabel>Target Muscles</FormLabel>
                                 <div className="max-h-[250px] overflow-y-auto border rounded-lg p-3 bg-muted/20 space-y-4">
                                     {Object.entries(allMuscleOptions).map(([groupName, muscles]) => (
                                         <div key={groupName}>
@@ -236,6 +204,29 @@ function ExerciseForm({ exercise, categories, onSave, onCancel }: { exercise?: M
                                         </div>
                                     ))}
                                 </div>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="defaultUnit"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Default Unit</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a default unit" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="reps">Weight & Reps</SelectItem>
+                                        <SelectItem value="reps-only">Reps Only</SelectItem>
+                                        <SelectItem value="seconds">Seconds</SelectItem>
+                                        <SelectItem value="bodyweight">Bodyweight</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <FormMessage />
                             </FormItem>
                         )}
