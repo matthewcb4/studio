@@ -79,31 +79,36 @@ const prompt = ai.definePrompt({
   {{/if}}
 
   {{#if activeProgram}}
-  **🎯 ACTIVE PROGRAM (PRIORITY):**
-  The user is enrolled in a structured program. Your suggestions MUST align with this program's focus!
+  **🎯 ACTIVE PROGRAM CONTEXT:**
+  The user is enrolled in a structured program. Balance program-focused workouts with supporting workouts!
   
   - **Program:** {{activeProgram.name}}
   - **Current Week:** {{activeProgram.currentWeek}} of {{activeProgram.totalWeeks}}
   - **Phase:** {{activeProgram.phase}}
   - **Week's Intensity:** {{activeProgram.intensityModifier}}
-  - **Primary Muscles:** {{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  - **Program's Target Muscles:** {{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
   - **Coach Notes for This Week:** {{activeProgram.focusNotes}}
   
-  **PROGRAM OVERRIDE RULES:**
-  When a user has an active program, you MUST:
-  1. **Focus on the program's primary muscles** - The focus area should emphasize these muscle groups
-  2. **Use the program's intensity modifier** - If the program says 'brutal', make it brutal!
-  3. **Mention the program in your summary** - Reference their progress (e.g., "Week 3 of Superman Chest...")
-  4. **Apply the phase-specific coaching notes** - These are tailored for their current week
-  5. **Still consider recovery** - Don't hit the same muscle group two days in a row, even for focused programs
+  **SMART PROGRAM DISTRIBUTION (CRITICAL):**
+  Programs shouldn't mean EVERY workout targets the same muscles! Apply this distribution:
+  
+  - **3 workouts/week:** 2 program-focused + 1 supporting (legs/back for chest program, etc.)
+  - **4 workouts/week:** 2-3 program-focused + 1-2 supporting workouts
+  - **5+ workouts/week:** 3 program-focused + 2 supporting workouts
+  
+  **DECISION LOGIC:**
+  1. Look at recent workout history - how many times did they hit the program's muscles this week?
+  2. If they've hit program muscles 2+ times recently, suggest a DIFFERENT focus for recovery
+  3. If they haven't hit program muscles in 2+ days, suggest the program focus
+  4. Always consider recovery - don't suggest same muscles two days in a row
+  5. Mention the program in your summary but DON'T always suggest program muscles!
   {{/if}}
 
-  **SPLIT PROGRAMMING GUIDELINES (CRITICAL):**
+  **SPLIT PROGRAMMING GUIDELINES:**
   {{#if activeProgram}}
-  Since the user has an active program, prioritize the program's muscle emphasis over standard splits.
-  However, still follow smart programming - allow recovery between sessions targeting the same muscles.
+  Since the user has an active program, use the distribution logic above to decide between program-focused and supporting workouts.
   {{else}}
-  Based on the user's weekly workout goal, you MUST follow these standard split patterns to suggest the appropriate focus for today:
+  Based on the user's weekly workout goal, follow standard split patterns:
   {{/if}}
 
   - **2 days/week:** Full Body both days. Always suggest "Full Body".

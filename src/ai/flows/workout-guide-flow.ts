@@ -99,21 +99,22 @@ const prompt = ai.definePrompt({
   {{/if}}
   
   {{#if activeProgram}}
-  **🎯 ACTIVE PROGRAM (PRIORITY):**
-  The user is enrolled in a structured program. Your workout MUST align with this program's focus!
+  **🎯 ACTIVE PROGRAM CONTEXT:**
+  The user is enrolled in a structured program. Use this context to enhance the workout while RESPECTING their selected focus area!
   
   - **Program:** {{activeProgram.name}}
   - **Current Week:** {{activeProgram.currentWeek}} of {{activeProgram.totalWeeks}}
   - **Phase:** {{activeProgram.phase}}
   - **Week's Intensity:** {{activeProgram.intensityModifier}}
-  - **Primary Target Muscles:** {{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  - **Program's Target Muscles:** {{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
   - **Coach Notes for This Week:** {{activeProgram.focusNotes}}
   
-  **PROGRAM OVERRIDE RULES:**
-  1. **Prioritize the program's primary muscles** - Select exercises that specifically target these muscles
-  2. **Use the program's intensity modifier** - If it says 'brutal', include more advanced techniques!
-  3. **Reference the program in the workout name/description** - e.g., "Week 3 Back Builder"
-  4. **Override the focus area** - The program's muscles take priority over the general focus area
+  **PROGRAM CONTEXT RULES (IMPORTANT):**
+  1. **RESPECT THE USER'S SELECTED FOCUS AREA** - They chose: {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}. Generate a workout for THIS focus!
+  2. **Use the program's intensity modifier** - Apply {{activeProgram.intensityModifier}} intensity level
+  3. **Reference the program in naming** - E.g., "Week {{activeProgram.currentWeek}} Leg Builder ({{activeProgram.name}})" or "Recovery Legs - {{activeProgram.name}}"
+  4. **If focus matches program muscles** - This is a "program day"! Go hard on those muscles with the phase-specific techniques
+  5. **If focus is DIFFERENT from program muscles** - This is a "supporting workout" to maintain balance. Still apply program intensity but focus on the SELECTED muscles
   {{/if}}
 
   {{#if availableExercises}}
