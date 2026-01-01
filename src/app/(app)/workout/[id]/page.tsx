@@ -397,13 +397,11 @@ export default function WorkoutSessionPage() {
   useEffect(() => {
     if (exerciseGroups[currentGroupIndex]) {
       setExerciseStates(prev => {
-        const newStates: Record<string, ExerciseState> = {};
+        // Preserve ALL existing states, only initialize new exercises
+        const newStates: Record<string, ExerciseState> = { ...prev };
         exerciseGroups[currentGroupIndex].forEach(ex => {
-          // Preserve existing state if it exists (prevents clearing logged sets on unit change)
-          if (prev[ex.id]) {
-            newStates[ex.id] = prev[ex.id];
-          } else {
-            // Only initialize new exercises that don't have state yet
+          // Only initialize exercises that don't have state yet
+          if (!newStates[ex.id]) {
             const lastValues = lastExerciseValues[ex.exerciseId || ''] || { weight: '', reps: '' };
             newStates[ex.id] = {
               currentSet: 1,
@@ -420,6 +418,7 @@ export default function WorkoutSessionPage() {
       });
     }
   }, [exerciseGroups, currentGroupIndex, lastExerciseValues]);
+
 
 
 

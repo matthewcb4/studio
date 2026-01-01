@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor-firebase/authentication": "^8.0.1",
     "@capacitor/filesystem": "^8.0.0",
     "@capacitor/share": "^8.0.0",

@@ -1,10 +1,31 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 
-// Check if Web Speech API is supported
+// Dynamically import Capacitor plugin only when needed
+let SpeechRecognitionPlugin: typeof import('@capacitor-community/speech-recognition').SpeechRecognition | null = null;
+
+const loadCapacitorPlugin = async () => {
+    if (SpeechRecognitionPlugin) return SpeechRecognitionPlugin;
+    if (Capacitor.isNativePlatform()) {
+        const module = await import('@capacitor-community/speech-recognition');
+        SpeechRecognitionPlugin = module.SpeechRecognition;
+        return SpeechRecognitionPlugin;
+    }
+    return null;
+};
+
+// Check if we're on a native platform (Capacitor)
+export const isCapacitorPlatform = (): boolean => {
+    return Capacitor.isNativePlatform();
+};
+
+// Check if Web Speech API is supported (for web browsers)
 export const isSpeechRecognitionSupported = (): boolean => {
     if (typeof window === 'undefined') return false;
+    // On Capacitor, we'll use the native plugin instead
+    if (Capacitor.isNativePlatform()) return true;
     return !!(
         (window as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown })
             .SpeechRecognition ||
@@ -100,38 +121,92 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognitionRef = useRef<any>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const isNativePlatform = Capacitor.isNativePlatform();
 
     const isSupported = isSpeechRecognitionSupported();
 
-    const clearTimeout = useCallback(() => {
+    const clearTimeoutRef = useCallback(() => {
         if (timeoutRef.current) {
             globalThis.clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
         }
     }, []);
 
-    const stopListening = useCallback(() => {
-        clearTimeout();
-        if (recognitionRef.current) {
+    const stopListening = useCallback(async () => {
+        clearTimeoutRef();
+
+        if (isNativePlatform && SpeechRecognitionPlugin) {
+            try {
+                await SpeechRecognitionPlugin.stop();
+            } catch {
+                // Ignore errors when stopping
+            }
+        } else if (recognitionRef.current) {
             recognitionRef.current.stop();
             recognitionRef.current = null;
         }
-        setIsListening(false);
-    }, [clearTimeout]);
 
-    const startListening = useCallback(() => {
-        if (!isSupported) {
-            const errorMsg = 'Speech recognition is not supported in this browser.';
+        setIsListening(false);
+    }, [clearTimeoutRef, isNativePlatform]);
+
+    const startListeningNative = useCallback(async () => {
+        try {
+            const plugin = await loadCapacitorPlugin();
+            if (!plugin) {
+                throw new Error('Speech recognition plugin not available');
+            }
+
+            // Request permissions first
+            const permResult = await plugin.requestPermissions();
+            if (permResult.speechRecognition !== 'granted') {
+                throw new Error('Speech recognition permission denied');
+            }
+
+            // Check if available
+            const available = await plugin.available();
+            if (!available.available) {
+                throw new Error('Speech recognition not available on this device');
+            }
+
+            setIsListening(true);
+
+            // Start timeout
+            timeoutRef.current = globalThis.setTimeout(() => {
+                stopListening();
+            }, timeoutMs);
+
+            // Start listening
+            const result = await plugin.start({
+                language: 'en-US',
+                maxResults: 1,
+                popup: false,
+                partialResults: true,
+            });
+
+            clearTimeoutRef();
+
+            if (result.matches && result.matches.length > 0) {
+                const currentTranscript = result.matches[0];
+                setTranscript(currentTranscript);
+
+                const number = extractNumber(currentTranscript);
+                setExtractedNumber(number);
+
+                if (number !== null) {
+                    onResult?.(currentTranscript, number);
+                }
+            }
+
+            setIsListening(false);
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : 'Speech recognition failed';
             setError(errorMsg);
             onError?.(errorMsg);
-            return;
+            setIsListening(false);
         }
+    }, [onResult, onError, timeoutMs, stopListening, clearTimeoutRef]);
 
-        // Reset state
-        setTranscript('');
-        setExtractedNumber(null);
-        setError(null);
-
+    const startListeningWeb = useCallback(() => {
         // Create recognition instance
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const SpeechRecognitionClass =
@@ -167,7 +242,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 
             // If we got a final result with a number, auto-stop
             if (result.isFinal && number !== null) {
-                clearTimeout();
+                clearTimeoutRef();
                 onResult?.(currentTranscript, number);
                 stopListening();
             }
@@ -191,12 +266,32 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 
         try {
             recognition.start();
-        } catch (err) {
+        } catch {
             const errorMsg = 'Failed to start speech recognition.';
             setError(errorMsg);
             onError?.(errorMsg);
         }
-    }, [isSupported, onResult, onError, timeoutMs, stopListening, clearTimeout]);
+    }, [onResult, onError, timeoutMs, stopListening, clearTimeoutRef]);
+
+    const startListening = useCallback(() => {
+        if (!isSupported) {
+            const errorMsg = 'Speech recognition is not supported in this browser.';
+            setError(errorMsg);
+            onError?.(errorMsg);
+            return;
+        }
+
+        // Reset state
+        setTranscript('');
+        setExtractedNumber(null);
+        setError(null);
+
+        if (isNativePlatform) {
+            startListeningNative();
+        } else {
+            startListeningWeb();
+        }
+    }, [isSupported, isNativePlatform, onError, startListeningNative, startListeningWeb]);
 
     const reset = useCallback(() => {
         stopListening();
@@ -208,12 +303,12 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
     // Cleanup on unmount
     useEffect(() => {
         return () => {
-            clearTimeout();
+            clearTimeoutRef();
             if (recognitionRef.current) {
                 recognitionRef.current.stop();
             }
         };
-    }, [clearTimeout]);
+    }, [clearTimeoutRef]);
 
     return {
         isListening,
