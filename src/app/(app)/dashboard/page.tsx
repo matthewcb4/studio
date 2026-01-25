@@ -91,6 +91,25 @@ function UserStatsCard({ userProfile }: { userProfile: UserProfile | null | unde
     const xp = userProfile.xp || 0;
     const progress = (xp % 1000) / 10; // (XP % 1000) / 1000 * 100
 
+    // Calculate effective streak
+    let displayStreak = userProfile.currentStreak || 0;
+    if (displayStreak > 0 && userProfile.lastWorkoutDate) {
+        const lastDate = new Date(userProfile.lastWorkoutDate);
+        const now = new Date();
+        const todayStr = now.toLocaleDateString('en-CA');
+
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+        const lastDateStr = lastDate.toLocaleDateString('en-CA');
+
+        // If last workout was not today AND not yesterday, streak is broken
+        if (lastDateStr !== todayStr && lastDateStr !== yesterdayStr) {
+            displayStreak = 0;
+        }
+    }
+
     return (
         <Card className="bg-gradient-to-br from-card to-secondary/30">
             <CardHeader className="pb-2">
@@ -112,7 +131,7 @@ function UserStatsCard({ userProfile }: { userProfile: UserProfile | null | unde
                 <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col items-center p-2 bg-background/50 rounded-lg">
                         <Flame className="w-6 h-6 text-orange-500 mb-1" />
-                        <span className="text-2xl font-bold">{userProfile.currentStreak || 0}</span>
+                        <span className="text-2xl font-bold">{displayStreak}</span>
                         <span className="text-xs text-muted-foreground">Day Streak</span>
                     </div>
                     <div className="flex flex-col items-center p-2 bg-background/50 rounded-lg">
