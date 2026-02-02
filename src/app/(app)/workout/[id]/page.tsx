@@ -85,7 +85,7 @@ import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
 import { checkPersonalRecord } from '@/lib/analytics';
 import { PlateCalculator } from '@/components/plate-calculator';
 import { VoiceLogModal } from '@/components/voice-log-modal';
-import { WheelPicker } from '@/components/ui/wheel-picker';
+import { NumberStepper } from '@/components/ui/number-stepper';
 import { Combobox } from '@/components/ui/combobox';
 import {
   Accordion,
@@ -1388,13 +1388,13 @@ export default function WorkoutSessionPage() {
                 ) : (
                   <>
                     {unit === 'reps' && (
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <Label className="text-sm">Weight</Label>
+                      <div className="flex items-center justify-center gap-6">
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="text-xs text-muted-foreground">Weight</span>
                             <PlateCalculator initialWeight={state.weight ? parseFloat(state.weight) : undefined} />
                           </div>
-                          <WheelPicker
+                          <NumberStepper
                             value={state.weight ? parseInt(state.weight) : 0}
                             onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
                             min={0}
@@ -1403,54 +1403,48 @@ export default function WorkoutSessionPage() {
                             suffix="lbs"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <Label className="text-sm">Reps</Label>
-                          <WheelPicker
-                            value={state.reps ? parseInt(state.reps) : 0}
-                            onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
-                            min={0}
-                            max={50}
-                            step={1}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {unit === 'reps-only' && (
-                      <div className="space-y-1">
-                        <Label className="text-sm">Reps</Label>
-                        <WheelPicker
+                        <NumberStepper
                           value={state.reps ? parseInt(state.reps) : 0}
                           onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
                           min={0}
                           max={50}
                           step={1}
+                          label="Reps"
+                        />
+                      </div>
+                    )}
+                    {unit === 'reps-only' && (
+                      <div className="flex justify-center">
+                        <NumberStepper
+                          value={state.reps ? parseInt(state.reps) : 0}
+                          onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
+                          min={0}
+                          max={50}
+                          step={1}
+                          label="Reps"
                         />
                       </div>
                     )}
                     {unit === 'bodyweight' && (
                       <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <Label className="text-sm">+ Weight</Label>
-                            <WheelPicker
-                              value={state.weight ? parseInt(state.weight) : 0}
-                              onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
-                              min={0}
-                              max={100}
-                              step={5}
-                              suffix="lbs"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-sm">Reps</Label>
-                            <WheelPicker
-                              value={state.reps ? parseInt(state.reps) : 0}
-                              onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
-                              min={0}
-                              max={50}
-                              step={1}
-                            />
-                          </div>
+                        <div className="flex items-center justify-center gap-6">
+                          <NumberStepper
+                            value={state.weight ? parseInt(state.weight) : 0}
+                            onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
+                            min={0}
+                            max={100}
+                            step={5}
+                            label="+ Weight"
+                            suffix="lbs"
+                          />
+                          <NumberStepper
+                            value={state.reps ? parseInt(state.reps) : 0}
+                            onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
+                            min={0}
+                            max={50}
+                            step={1}
+                            label="Reps"
+                          />
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground">Bodyweight</Label>
@@ -1471,14 +1465,14 @@ export default function WorkoutSessionPage() {
                       </div>
                     )}
                     {unit === 'seconds' && (
-                      <div className="space-y-1">
-                        <Label className="text-sm">Duration</Label>
-                        <WheelPicker
+                      <div className="flex justify-center">
+                        <NumberStepper
                           value={state.duration ? parseInt(state.duration) : 0}
                           onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, duration: v.toString() } })}
                           min={0}
                           max={300}
                           step={5}
+                          label="Duration"
                           suffix="s"
                         />
                       </div>
