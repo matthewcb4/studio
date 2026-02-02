@@ -123,7 +123,7 @@ export function LiftingStatsCard() {
                     <div className="flex flex-col items-center p-3 bg-background/50 rounded-lg">
                         <div className="flex items-center gap-1">
                             <Zap className="w-4 h-4 text-blue-500" />
-                            <span className="text-xl font-bold">{liftingStats.totalVolume >= 1000 ? `${(liftingStats.totalVolume / 1000).toFixed(1)}k` : liftingStats.totalVolume}</span>
+                            <span className="text-xl font-bold">{liftingStats.totalVolume >= 1000 ? `${Math.round(liftingStats.totalVolume / 1000)}k` : liftingStats.totalVolume}</span>
                         </div>
                         <span className="text-xs text-muted-foreground">Volume (lbs)</span>
                     </div>

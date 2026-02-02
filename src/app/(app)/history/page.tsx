@@ -323,9 +323,9 @@ export default function HistoryPage() {
                 {workoutLogs?.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-medium">
-                      {format(new Date(log.date), "MMM d, yyyy")}
+                      {format(new Date(log.date), "M/d/yy")}
                     </TableCell>
-                    <TableCell>{log.workoutName}</TableCell>
+                    <TableCell className="max-w-[120px] truncate" title={log.workoutName}>{log.workoutName.length > 18 ? log.workoutName.slice(0, 18) + '…' : log.workoutName}</TableCell>
                     <TableCell className="hidden md:table-cell">{log.duration}</TableCell>
                     <TableCell>{(log.volume || 0).toLocaleString()} lbs</TableCell>
                     <TableCell>
