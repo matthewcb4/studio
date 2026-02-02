@@ -1390,7 +1390,7 @@ export default function WorkoutSessionPage() {
                     {unit === 'reps' && (
                       <div className="space-y-2">
                         <HorizontalDial
-                          value={state.weight ? Math.round(parseFloat(state.weight)) : 0}
+                          value={state.weight ? parseFloat(state.weight) : 0}
                           onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
                           min={0}
                           max={500}
@@ -1425,7 +1425,7 @@ export default function WorkoutSessionPage() {
                     {unit === 'bodyweight' && (
                       <div className="space-y-2">
                         <HorizontalDial
-                          value={state.weight ? Math.round(parseFloat(state.weight)) : 0}
+                          value={state.weight ? parseFloat(state.weight) : 0}
                           onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
                           min={0}
                           max={100}
