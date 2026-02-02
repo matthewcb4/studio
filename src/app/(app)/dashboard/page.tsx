@@ -71,17 +71,24 @@ const parseDuration = (duration: string): number => {
 
 /**
  * Calculate the current week of a program based on start date
+ * Returns both the capped display week and whether the program has expired
  */
-const calculateCurrentWeek = (startedAt: string | undefined, durationWeeks: number): number => {
-    if (!startedAt) return 1;
+const calculateCurrentWeek = (startedAt: string | undefined, durationWeeks: number): { displayWeek: number; rawWeek: number; isExpired: boolean } => {
+    if (!startedAt) return { displayWeek: 1, rawWeek: 1, isExpired: false };
 
     const startDate = new Date(startedAt);
     const now = new Date();
     const msPerWeek = 7 * 24 * 60 * 60 * 1000;
     const elapsedWeeks = Math.floor((now.getTime() - startDate.getTime()) / msPerWeek);
 
-    // Week is 1-indexed, capped at program duration
-    return Math.min(Math.max(elapsedWeeks + 1, 1), durationWeeks);
+    // Raw week is 1-indexed, can exceed program duration
+    const rawWeek = elapsedWeeks + 1;
+    // Display week is capped at program duration
+    const displayWeek = Math.min(Math.max(rawWeek, 1), durationWeeks);
+    // Program is expired if we're past the final week
+    const isExpired = rawWeek > durationWeeks;
+
+    return { displayWeek, rawWeek, isExpired };
 };
 
 function UserStatsCard({ userProfile }: { userProfile: UserProfile | null | undefined }) {
@@ -449,14 +456,49 @@ export default function DashboardPage() {
         if (!program) return null;
 
         // Calculate current week dynamically from start date
-        const calculatedWeek = calculateCurrentWeek(activeEnrollment.startedAt, program.durationWeeks);
+        const { displayWeek, isExpired } = calculateCurrentWeek(activeEnrollment.startedAt, program.durationWeeks);
 
         // If the week has advanced past lastWeekReset, workoutsCompletedThisWeek should display as 0
         const lastResetWeek = activeEnrollment.lastWeekReset ?? 1;
-        const workoutsThisWeek = calculatedWeek > lastResetWeek ? 0 : activeEnrollment.workoutsCompletedThisWeek;
+        const workoutsThisWeek = displayWeek > lastResetWeek ? 0 : activeEnrollment.workoutsCompletedThisWeek;
 
-        return { program, enrollment: activeEnrollment, currentWeek: calculatedWeek, workoutsThisWeek };
+        return { program, enrollment: activeEnrollment, currentWeek: displayWeek, workoutsThisWeek, isExpired };
     }, [activeEnrollment]);
+
+    // Auto-complete expired programs
+    useEffect(() => {
+        const autoCompleteProgram = async () => {
+            if (!activeProgram?.isExpired || !user || !userProfileRef || !activeEnrollmentRef) return;
+            // Don't complete if already marked as completed
+            if (activeProgram.enrollment.isCompleted) return;
+
+            console.log('Program completed! Auto-marking as complete...');
+
+            try {
+                // Mark enrollment as completed
+                await setDocumentNonBlocking(activeEnrollmentRef, {
+                    isCompleted: true,
+                    isActive: false,
+                    completedAt: new Date().toISOString(),
+                }, { merge: true });
+
+                // Clear active program from user profile
+                await setDocumentNonBlocking(userProfileRef, {
+                    activeProgramId: null,
+                }, { merge: true });
+
+                // Show celebration toast
+                toast({
+                    title: "🎉 Program Completed!",
+                    description: `Congratulations! You've completed the ${activeProgram.program.name}!`,
+                });
+            } catch (error) {
+                console.error('Error auto-completing program:', error);
+            }
+        };
+
+        autoCompleteProgram();
+    }, [activeProgram, user, userProfileRef, activeEnrollmentRef, toast]);
 
     // Equipment collection (for migration)
     const equipmentCollection = useMemoFirebase(() =>

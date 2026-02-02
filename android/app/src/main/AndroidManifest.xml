@@ -55,6 +55,9 @@
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     
+    <!-- Speech Recognition Permission (for voice logging) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    
     <!-- Health Connect Permissions - WRITE only (we sync workouts TO Health Connect) -->
     <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
     <uses-permission android:name="android.permission.health.WRITE_TOTAL_CALORIES_BURNED" />

@@ -85,6 +85,7 @@ import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
 import { checkPersonalRecord } from '@/lib/analytics';
 import { PlateCalculator } from '@/components/plate-calculator';
 import { VoiceLogModal } from '@/components/voice-log-modal';
+import { WheelPicker } from '@/components/ui/wheel-picker';
 import { Combobox } from '@/components/ui/combobox';
 import {
   Accordion,
@@ -1353,7 +1354,7 @@ export default function WorkoutSessionPage() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-2xl">{exercise.exerciseName}</CardTitle>
+                    <CardTitle className="text-lg">{exercise.exerciseName}</CardTitle>
                     <CardDescription>
                       Set {state.currentSet} {hasReachedTarget ? `(Target: ${exercise.sets})` : `of ${exercise.sets}`} &bull; Goal: {exercise.reps} {unit === 'bodyweight' ? 'reps' : unit}
                     </CardDescription>
@@ -1387,45 +1388,77 @@ export default function WorkoutSessionPage() {
                 ) : (
                   <>
                     {unit === 'reps' && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2 relative">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
                           <div className="flex justify-between items-center">
-                            <Label htmlFor={`weight-${exercise.id}`} className="text-base">Weight (lbs)</Label>
+                            <Label className="text-sm">Weight</Label>
                             <PlateCalculator initialWeight={state.weight ? parseFloat(state.weight) : undefined} />
                           </div>
-                          <Input id={`weight-${exercise.id}`} type="number" placeholder="135" value={state.weight} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: e.target.value } })} className="h-14 text-2xl text-center" />
+                          <WheelPicker
+                            value={state.weight ? parseInt(state.weight) : 0}
+                            onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
+                            min={0}
+                            max={500}
+                            step={5}
+                            suffix="lbs"
+                          />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                          <Input id={`reps-${exercise.id}`} type="number" placeholder="8" value={state.reps} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: e.target.value } })} className="h-14 text-2xl text-center" />
+                        <div className="space-y-1">
+                          <Label className="text-sm">Reps</Label>
+                          <WheelPicker
+                            value={state.reps ? parseInt(state.reps) : 0}
+                            onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
+                            min={0}
+                            max={50}
+                            step={1}
+                          />
                         </div>
                       </div>
                     )}
                     {unit === 'reps-only' && (
-                      <div className="space-y-2">
-                        <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                        <Input id={`reps-${exercise.id}`} type="number" placeholder="15" value={state.reps} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: e.target.value } })} className="h-14 text-2xl text-center" />
+                      <div className="space-y-1">
+                        <Label className="text-sm">Reps</Label>
+                        <WheelPicker
+                          value={state.reps ? parseInt(state.reps) : 0}
+                          onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
+                          min={0}
+                          max={50}
+                          step={1}
+                        />
                       </div>
                     )}
                     {unit === 'bodyweight' && (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor={`weight-${exercise.id}`} className="text-base">Additional Weight</Label>
-                            <Input id={`weight-${exercise.id}`} type="number" placeholder="0" value={state.weight} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: e.target.value } })} className="h-14 text-2xl text-center" />
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-sm">+ Weight</Label>
+                            <WheelPicker
+                              value={state.weight ? parseInt(state.weight) : 0}
+                              onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
+                              min={0}
+                              max={100}
+                              step={5}
+                              suffix="lbs"
+                            />
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor={`reps-${exercise.id}`} className="text-base">Reps</Label>
-                            <Input id={`reps-${exercise.id}`} type="number" placeholder="10" value={state.reps} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: e.target.value } })} className="h-14 text-2xl text-center" />
+                          <div className="space-y-1">
+                            <Label className="text-sm">Reps</Label>
+                            <WheelPicker
+                              value={state.reps ? parseInt(state.reps) : 0}
+                              onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
+                              min={0}
+                              max={50}
+                              step={1}
+                            />
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Include Bodyweight</Label>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Bodyweight</Label>
                           <Select
                             value={state.bodyweightPercentage.toString()}
                             onValueChange={(val) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, bodyweightPercentage: parseFloat(val) } })}
                           >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className="w-full h-9 text-sm">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1438,9 +1471,16 @@ export default function WorkoutSessionPage() {
                       </div>
                     )}
                     {unit === 'seconds' && (
-                      <div className="space-y-2">
-                        <Label htmlFor={`duration-${exercise.id}`} className="text-base">Duration (seconds)</Label>
-                        <Input id={`duration-${exercise.id}`} type="number" placeholder="60" value={state.duration} onChange={e => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, duration: e.target.value } })} className="h-14 text-2xl text-center" />
+                      <div className="space-y-1">
+                        <Label className="text-sm">Duration</Label>
+                        <WheelPicker
+                          value={state.duration ? parseInt(state.duration) : 0}
+                          onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, duration: v.toString() } })}
+                          min={0}
+                          max={300}
+                          step={5}
+                          suffix="s"
+                        />
                       </div>
                     )}
                   </>
