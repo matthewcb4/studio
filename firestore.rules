@@ -182,6 +182,17 @@ service cloud.firestore {
     }
 
     /**
+     * @description Blog posts for automated SEO content.
+     * Publicly readable (no auth required) for SEO crawlers.
+     * Only Cloud Functions can write (via admin SDK).
+     * @path /blog_posts/{postId}
+     */
+    match /blog_posts/{postId} {
+      allow read: if true; // Public for SEO
+      allow write: if false; // Admin SDK only (Cloud Functions)
+    }
+
+    /**
      * @description Friend connection requests between users.
      * Users can read requests they sent or received.
      * Users can create requests where they are the sender.

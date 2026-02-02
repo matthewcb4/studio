@@ -414,3 +414,282 @@ export const manualAggregateLeaderboards = onRequest({
 
     res.json({ success: true, message: 'Optimized leaderboard aggregation complete' });
 });
+
+// ============================================
+// AUTOMATED BLOG GENERATION
+// ============================================
+
+import { BLOG_TOPICS, getNextTopic, BlogTopic } from './topics';
+
+interface BlogPost {
+    id: string;
+    slug: string;
+    title: string;
+    excerpt: string;
+    content: string;
+    category: string;
+    tags: string[];
+    publishedAt: string;
+    status: 'draft' | 'published';
+    seoDescription: string;
+    readingTime: number;
+}
+
+/**
+ * Generate a URL-friendly slug from a title
+ */
+function generateSlug(title: string): string {
+    return title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 60);
+}
+
+/**
+ * Estimate reading time based on word count (avg 200 wpm)
+ */
+function estimateReadingTime(content: string): number {
+    const words = content.split(/\s+/).length;
+    return Math.ceil(words / 200);
+}
+
+/**
+ * Get all existing blog post slugs to avoid duplicates
+ */
+async function getExistingSlugs(): Promise<string[]> {
+    const snapshot = await db.collection('blog_posts').select('slug').get();
+    return snapshot.docs.map(doc => doc.data().slug as string);
+}
+
+/**
+ * Generate blog content using Google AI (Gemini)
+ * Note: This uses the REST API directly since we're in Cloud Functions
+ */
+async function generateBlogContent(topic: BlogTopic): Promise<Omit<BlogPost, 'id' | 'publishedAt' | 'status'> | null> {
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+        console.error('No Google AI API key found. Set GOOGLE_GENAI_API_KEY in environment.');
+        return null;
+    }
+
+    const prompt = `You are an expert fitness writer creating content for fRepo, a workout tracking app. 
+Generate a high-quality, SEO-optimized blog post on the following topic.
+
+**Topic:** ${topic.topic}
+**Category:** ${topic.category}
+**Target Keywords:** ${topic.targetKeywords.join(', ')}
+**Target Word Count:** 800-1000 words
+
+## Writing Guidelines:
+1. Write in a conversational but authoritative tone
+2. Use short paragraphs (2-3 sentences max) for readability
+3. Include actionable tips and practical advice
+4. Use markdown formatting:
+   - ## for main sections
+   - ### for subsections
+   - **bold** for emphasis
+   - Bullet points for lists
+5. Start with a hook that addresses the reader's pain point
+6. Include 4-6 main sections with clear headings
+7. End with a motivating conclusion and call-to-action
+8. Naturally incorporate the target keywords without keyword stuffing
+9. Make content scannable with headers every 150-200 words
+
+## Content Requirements:
+- Cite specific numbers/statistics when making claims (use realistic estimates)
+- Include form tips and safety notes where relevant
+- Make it practical - readers should be able to apply advice immediately
+- Avoid generic filler content - every sentence should add value
+
+## Output Format:
+Return a JSON object with these exact fields:
+{
+  "title": "An engaging, SEO-friendly title (max 60 chars)",
+  "excerpt": "A compelling 1-2 sentence summary for previews (max 160 chars)",
+  "content": "The full blog post content in markdown format",
+  "seoDescription": "A 150-160 character meta description for search engines",
+  "tags": ["tag1", "tag2", "tag3"] // 3-6 relevant tags
+}
+
+Generate the blog post now. Return ONLY the JSON object, no other text.`;
+
+    try {
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 4096,
+                    }
+                })
+            }
+        );
+
+        if (!response.ok) {
+            console.error('AI API error:', await response.text());
+            return null;
+        }
+
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!text) {
+            console.error('No content in AI response');
+            return null;
+        }
+
+        // Parse JSON from response (handle markdown code blocks)
+        let jsonStr = text;
+        if (text.includes('```json')) {
+            jsonStr = text.split('```json')[1].split('```')[0];
+        } else if (text.includes('```')) {
+            jsonStr = text.split('```')[1].split('```')[0];
+        }
+
+        const parsed = JSON.parse(jsonStr.trim());
+
+        return {
+            slug: generateSlug(parsed.title),
+            title: parsed.title,
+            excerpt: parsed.excerpt,
+            content: parsed.content,
+            category: topic.category,
+            tags: parsed.tags || topic.targetKeywords.slice(0, 3),
+            seoDescription: parsed.seoDescription,
+            readingTime: estimateReadingTime(parsed.content),
+        };
+    } catch (error) {
+        console.error('Error generating blog content:', error);
+        return null;
+    }
+}
+
+/**
+ * Scheduled function that runs daily at 6 AM UTC
+ * Generates a new blog post using AI
+ */
+export const generateDailyBlogPost = onSchedule({
+    schedule: '0 6 * * *', // Every day at 6 AM UTC
+    timeZone: 'UTC',
+    memory: '512MiB',
+    timeoutSeconds: 120,
+    secrets: ['GOOGLE_GENAI_API_KEY'],
+}, async () => {
+    console.log('Starting daily blog post generation...');
+
+    try {
+        // Get existing slugs to avoid duplicates
+        const existingSlugs = await getExistingSlugs();
+        console.log(`Found ${existingSlugs.length} existing blog posts`);
+
+        // Get next topic to generate
+        const topic = getNextTopic(existingSlugs);
+
+        if (!topic) {
+            console.log('All topics have been used. No new post generated.');
+            return;
+        }
+
+        console.log(`Generating post for topic: ${topic.topic}`);
+
+        // Generate content using AI
+        const blogContent = await generateBlogContent(topic);
+
+        if (!blogContent) {
+            console.error('Failed to generate blog content');
+            return;
+        }
+
+        // Check if slug already exists (double-check)
+        if (existingSlugs.includes(blogContent.slug)) {
+            console.log(`Slug "${blogContent.slug}" already exists. Skipping.`);
+            return;
+        }
+
+        // Save to Firestore
+        const blogPost: Omit<BlogPost, 'id'> = {
+            ...blogContent,
+            publishedAt: new Date().toISOString(),
+            status: 'published',
+        };
+
+        const docRef = await db.collection('blog_posts').add(blogPost);
+        console.log(`Successfully created blog post: ${docRef.id} - ${blogPost.title}`);
+
+    } catch (error) {
+        console.error('Error in daily blog generation:', error);
+    }
+});
+
+/**
+ * HTTP endpoint to manually trigger blog generation (for testing)
+ * Usage: POST /manualGenerateBlogPost
+ */
+export const manualGenerateBlogPost = onRequest({
+    timeoutSeconds: 120,
+    memory: '512MiB',
+    secrets: ['GOOGLE_GENAI_API_KEY'],
+}, async (req, res) => {
+    console.log('Manual blog post generation triggered...');
+
+    try {
+        // Get existing slugs
+        const existingSlugs = await getExistingSlugs();
+
+        // Get next topic or use custom topic from request body
+        let topic: BlogTopic | null = null;
+
+        if (req.body?.topic) {
+            // Custom topic from request
+            topic = {
+                topic: req.body.topic,
+                category: req.body.category || 'tips',
+                targetKeywords: req.body.keywords || ['fitness', 'workout'],
+                priority: 'high',
+            };
+        } else {
+            topic = getNextTopic(existingSlugs);
+        }
+
+        if (!topic) {
+            res.status(400).json({ success: false, error: 'No topics available' });
+            return;
+        }
+
+        console.log(`Generating post for: ${topic.topic}`);
+
+        const blogContent = await generateBlogContent(topic);
+
+        if (!blogContent) {
+            res.status(500).json({ success: false, error: 'Failed to generate content' });
+            return;
+        }
+
+        // Save to Firestore
+        const blogPost: Omit<BlogPost, 'id'> = {
+            ...blogContent,
+            publishedAt: new Date().toISOString(),
+            status: 'published',
+        };
+
+        const docRef = await db.collection('blog_posts').add(blogPost);
+
+        res.json({
+            success: true,
+            id: docRef.id,
+            title: blogPost.title,
+            slug: blogPost.slug,
+            message: 'Blog post generated and published!',
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: String(error) });
+    }
+});

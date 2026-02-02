@@ -325,3 +325,25 @@ export type LeaderboardSnapshot = {
   totalParticipants: number;     // Total opted-in users
   updatedAt: string;             // ISO timestamp
 };
+
+// ============================================
+// BLOG TYPES
+// ============================================
+
+/**
+ * Blog post for automated SEO content
+ */
+export type BlogPost = {
+  id: string;
+  slug: string;                    // URL-friendly (e.g., "best-chest-workout-beginners")
+  title: string;                   // "Best Chest Workout for Beginners"
+  excerpt: string;                 // Short description for list view & SEO
+  content: string;                 // Full markdown content
+  category: 'workouts' | 'nutrition' | 'tips' | 'motivation' | 'programs';
+  tags: string[];                  // ["chest", "beginner", "push"]
+  publishedAt: string;             // ISO date
+  status: 'draft' | 'published';
+  seoDescription: string;          // Meta description for SEO
+  featuredImage?: string;          // Optional cover image URL
+  readingTime?: number;            // Estimated reading time in minutes
+};
