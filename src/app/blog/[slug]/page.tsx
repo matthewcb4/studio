@@ -1,8 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
-import { db } from '@/firebase/config';
+import { getServerFirestore } from '@/firebase/server';
 import type { BlogPost } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,14 +14,13 @@ interface BlogPostPageProps {
 
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
     try {
-        const postsRef = collection(db, 'blog_posts');
-        const q = query(
-            postsRef,
-            where('slug', '==', slug),
-            where('status', '==', 'published'),
-            limit(1)
-        );
-        const snapshot = await getDocs(q);
+        const db = getServerFirestore();
+        const postsRef = db.collection('blog_posts');
+        const snapshot = await postsRef
+            .where('slug', '==', slug)
+            .where('status', '==', 'published')
+            .limit(1)
+            .get();
         if (snapshot.empty) return null;
         const doc = snapshot.docs[0];
         return { id: doc.id, ...doc.data() } as BlogPost;
@@ -34,15 +32,14 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
 
 async function getRelatedPosts(currentSlug: string, category: string): Promise<BlogPost[]> {
     try {
-        const postsRef = collection(db, 'blog_posts');
-        const q = query(
-            postsRef,
-            where('status', '==', 'published'),
-            where('category', '==', category),
-            orderBy('publishedAt', 'desc'),
-            limit(4)
-        );
-        const snapshot = await getDocs(q);
+        const db = getServerFirestore();
+        const postsRef = db.collection('blog_posts');
+        const snapshot = await postsRef
+            .where('status', '==', 'published')
+            .where('category', '==', category)
+            .orderBy('publishedAt', 'desc')
+            .limit(4)
+            .get();
         return snapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as BlogPost))
             .filter(post => post.slug !== currentSlug)

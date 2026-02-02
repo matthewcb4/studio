@@ -1,6 +1,5 @@
 import { MetadataRoute } from 'next';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '@/firebase/config';
+import { getServerFirestore } from '@/firebase/server';
 import type { BlogPost } from '@/lib/types';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -38,13 +37,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     let blogPosts: MetadataRoute.Sitemap = [];
 
     try {
-        const postsRef = collection(db, 'blog_posts');
-        const q = query(
-            postsRef,
-            where('status', '==', 'published'),
-            orderBy('publishedAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
+        const db = getServerFirestore();
+        const postsRef = db.collection('blog_posts');
+        const snapshot = await postsRef
+            .where('status', '==', 'published')
+            .orderBy('publishedAt', 'desc')
+            .get();
 
         blogPosts = snapshot.docs.map(doc => {
             const data = doc.data() as BlogPost;
@@ -61,3 +59,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     return [...staticPages, ...blogPosts];
 }
+

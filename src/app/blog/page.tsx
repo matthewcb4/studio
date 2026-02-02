@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/firebase/config';
+import { getServerFirestore } from '@/firebase/server';
 import type { BlogPost } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,14 +26,13 @@ export const metadata: Metadata = {
 
 async function getBlogPosts(): Promise<BlogPost[]> {
     try {
-        const postsRef = collection(db, 'blog_posts');
-        const q = query(
-            postsRef,
-            where('status', '==', 'published'),
-            orderBy('publishedAt', 'desc'),
-            limit(20)
-        );
-        const snapshot = await getDocs(q);
+        const db = getServerFirestore();
+        const postsRef = db.collection('blog_posts');
+        const snapshot = await postsRef
+            .where('status', '==', 'published')
+            .orderBy('publishedAt', 'desc')
+            .limit(20)
+            .get();
         return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
