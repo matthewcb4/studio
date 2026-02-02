@@ -223,7 +223,8 @@ export function HorizontalDial({
         const currentX = e.touches[0].clientX;
         const deltaX = lastX.current - currentX;
         lastX.current = currentX;
-        containerRef.current.scrollLeft += deltaX;
+        // Apply friction to reduce flick momentum
+        containerRef.current.scrollLeft += deltaX * 0.6;
         handleScroll();
     }, [isDragging, handleScroll]);
 
