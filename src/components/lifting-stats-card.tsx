@@ -68,7 +68,7 @@ export function LiftingStatsCard() {
             totalVolume: Math.round(totalVolume),
             totalSets,
             totalReps,
-            maxWeight,
+            maxWeight: Math.round(maxWeight * 10) / 10,
             uniqueExercises: exerciseSet.size,
         };
     }, [allLogs]);
@@ -142,7 +142,7 @@ export function LiftingStatsCard() {
                         <div className="flex flex-col items-center p-3 bg-background/50 rounded-lg">
                             <div className="flex items-center gap-1">
                                 <TrendingUp className="w-4 h-4 text-yellow-500" />
-                                <span className="text-2xl font-bold">{liftingStats.maxWeight}</span>
+                                <span className="text-2xl font-bold">{Number.isInteger(liftingStats.maxWeight) ? liftingStats.maxWeight : liftingStats.maxWeight.toFixed(1)}</span>
                             </div>
                             <span className="text-xs text-muted-foreground">Max (lbs)</span>
                         </div>
