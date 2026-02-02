@@ -40,7 +40,6 @@ export function NumberStepper({
     // Handle hold-to-repeat
     useEffect(() => {
         if (isHolding) {
-            // Start slow, then speed up
             timeoutRef.current = setTimeout(() => {
                 intervalRef.current = setInterval(() => {
                     if (isHolding === 'inc') increment();
@@ -118,7 +117,7 @@ export function NumberStepper({
     );
 }
 
-// Horizontal dial - sleek scrolling dial that looks like a real dial with haptic feedback
+// Horizontal dial props
 interface HorizontalDialProps {
     value: number;
     onChange: (value: number) => void;
@@ -128,12 +127,22 @@ interface HorizontalDialProps {
     label?: string;
     suffix?: string;
     className?: string;
+    compact?: boolean;
 }
 
-// Haptic feedback helper
-const vibrate = (pattern: number | number[]) => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(pattern);
+// Haptic feedback helper - uses Capacitor Haptics on native, fallback to web API
+const triggerHaptic = async (style: 'light' | 'medium' | 'heavy' = 'light') => {
+    try {
+        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+        const impactStyle = style === 'light' ? ImpactStyle.Light :
+            style === 'medium' ? ImpactStyle.Medium : ImpactStyle.Heavy;
+        await Haptics.impact({ style: impactStyle });
+    } catch {
+        // Fallback to web vibration API
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            const duration = style === 'light' ? 5 : style === 'medium' ? 10 : 20;
+            navigator.vibrate(duration);
+        }
     }
 };
 
@@ -146,6 +155,7 @@ export function HorizontalDial({
     label,
     suffix,
     className,
+    compact = true,
 }: HorizontalDialProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -158,24 +168,21 @@ export function HorizontalDial({
         values.push(i);
     }
 
-    // Narrower tick width for more dial-like feel
-    const tickWidth = 16;
+    const tickWidth = compact ? 12 : 16;
+    const dialHeight = compact ? 36 : 52;
     const currentIndex = values.indexOf(value);
     const safeIndex = currentIndex >= 0 ? currentIndex : 0;
 
-    // Scroll to value on mount and when value changes externally
     useEffect(() => {
         if (containerRef.current && !isDragging) {
             const scrollLeft = safeIndex * tickWidth;
             containerRef.current.scrollLeft = scrollLeft;
         }
-    }, [safeIndex, isDragging]);
+    }, [safeIndex, isDragging, tickWidth]);
 
-    // Haptic feedback when value changes
     useEffect(() => {
         if (value !== lastValue.current) {
-            // Short vibration pulse - like clicking into a notch
-            vibrate(5);
+            triggerHaptic('light');
             lastValue.current = value;
         }
     }, [value]);
@@ -185,7 +192,6 @@ export function HorizontalDial({
             const scrollLeft = containerRef.current.scrollLeft;
             const newIndex = Math.round(scrollLeft / tickWidth);
             const clampedIndex = Math.max(0, Math.min(newIndex, values.length - 1));
-
             if (values[clampedIndex] !== value) {
                 onChange(values[clampedIndex]);
             }
@@ -197,13 +203,10 @@ export function HorizontalDial({
             const scrollLeft = containerRef.current.scrollLeft;
             const newIndex = Math.round(scrollLeft / tickWidth);
             const clampedIndex = Math.max(0, Math.min(newIndex, values.length - 1));
-
-            // Snap to nearest tick
             containerRef.current.scrollTo({
                 left: clampedIndex * tickWidth,
                 behavior: 'smooth'
             });
-
             if (values[clampedIndex] !== value) {
                 onChange(values[clampedIndex]);
             }
@@ -213,8 +216,7 @@ export function HorizontalDial({
     const handleTouchStart = useCallback((e: React.TouchEvent) => {
         setIsDragging(true);
         lastX.current = e.touches[0].clientX;
-        // Light vibration on grab
-        vibrate(3);
+        triggerHaptic('light');
     }, []);
 
     const handleTouchMove = useCallback((e: React.TouchEvent) => {
@@ -229,11 +231,9 @@ export function HorizontalDial({
     const handleTouchEnd = useCallback(() => {
         setIsDragging(false);
         handleScrollEnd();
-        // Confirmation vibration
-        vibrate(10);
+        triggerHaptic('medium');
     }, [handleScrollEnd]);
 
-    // Handle mouse wheel for desktop
     const handleWheel = useCallback((e: React.WheelEvent) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? step : -step;
@@ -241,43 +241,112 @@ export function HorizontalDial({
         onChange(newValue);
     }, [value, min, max, step, onChange]);
 
-    return (
-        <div className={cn("flex flex-col items-center gap-2", className)}>
-            {/* Current value display - prominent */}
-            <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold tabular-nums tracking-tight">{value}</span>
-                {suffix && <span className="text-base text-muted-foreground">{suffix}</span>}
-            </div>
-
-            {label && (
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-            )}
-
-            {/* Dial container with metallic look */}
-            <div className="relative w-full max-w-[300px]">
-                {/* Metallic track background */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-b from-zinc-300 via-zinc-200 to-zinc-300 dark:from-zinc-700 dark:via-zinc-800 dark:to-zinc-700 shadow-inner" style={{ height: '52px' }} />
-
-                {/* Center indicator - red notch like a real dial */}
-                <div className="absolute left-1/2 top-0 -translate-x-1/2 z-30 pointer-events-none flex flex-col items-center">
-                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-transparent border-t-red-500 drop-shadow-md" />
+    // Compact layout: value on left, dial on right
+    if (compact) {
+        return (
+            <div className={cn("flex items-center gap-3", className)}>
+                {/* Value on left */}
+                <div className="flex flex-col items-end min-w-[65px]">
+                    <div className="flex items-baseline gap-0.5">
+                        <span className="text-2xl font-bold tabular-nums">{value}</span>
+                        {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
+                    </div>
+                    {label && (
+                        <span className="text-[10px] font-medium text-muted-foreground uppercase">{label}</span>
+                    )}
                 </div>
 
-                {/* Gradient fades for 3D effect */}
+                {/* Compact dial on right */}
+                <div className="relative flex-1 max-w-[160px]">
+                    {/* Metallic background */}
+                    <div
+                        className="absolute inset-0 rounded-full bg-gradient-to-b from-zinc-300 via-zinc-200 to-zinc-300 dark:from-zinc-700 dark:via-zinc-800 dark:to-zinc-700 shadow-inner"
+                        style={{ height: `${dialHeight}px` }}
+                    />
+
+                    {/* Red notch indicator */}
+                    <div className="absolute left-1/2 top-0 -translate-x-1/2 z-30 pointer-events-none">
+                        <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-transparent border-t-red-500" />
+                    </div>
+
+                    {/* Gradient fades */}
+                    <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background via-background/80 to-transparent z-20 pointer-events-none rounded-l-full" />
+                    <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background via-background/80 to-transparent z-20 pointer-events-none rounded-r-full" />
+
+                    {/* Scrollable dial */}
+                    <div
+                        ref={containerRef}
+                        className="overflow-x-auto scrollbar-hide scroll-smooth relative z-10"
+                        style={{ scrollSnapType: 'x mandatory', height: `${dialHeight}px` }}
+                        onScroll={() => {
+                            handleScroll();
+                            if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+                            scrollTimeout.current = setTimeout(handleScrollEnd, 150);
+                        }}
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                        onWheel={handleWheel}
+                    >
+                        <div
+                            className="flex items-end h-full"
+                            style={{ paddingLeft: `calc(50% - ${tickWidth / 2}px)`, paddingRight: `calc(50% - ${tickWidth / 2}px)` }}
+                        >
+                            {values.map((v) => {
+                                const isMajor = v % (step * 5) === 0;
+                                const isSelected = v === value;
+                                return (
+                                    <div
+                                        key={v}
+                                        className="flex flex-col items-center justify-end shrink-0 cursor-pointer select-none"
+                                        style={{ width: `${tickWidth}px`, scrollSnapAlign: 'center', height: '100%', paddingBottom: '2px' }}
+                                        onClick={() => { onChange(v); triggerHaptic('medium'); }}
+                                    >
+                                        <div
+                                            className={cn(
+                                                "rounded-full transition-all",
+                                                isSelected ? "bg-primary w-[2px]" : isMajor ? "bg-zinc-500 dark:bg-zinc-400 w-[1.5px]" : "bg-zinc-400 dark:bg-zinc-500 w-[1px]"
+                                            )}
+                                            style={{ height: isSelected ? '20px' : isMajor ? '14px' : '6px' }}
+                                        />
+                                        {isMajor && (
+                                            <span className={cn("text-[7px] tabular-nums mt-0.5", isSelected ? "font-bold text-primary" : "text-muted-foreground")}>
+                                                {v}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Full-width layout (original)
+    return (
+        <div className={cn("flex flex-col items-center gap-2", className)}>
+            <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-bold tabular-nums">{value}</span>
+                {suffix && <span className="text-base text-muted-foreground">{suffix}</span>}
+            </div>
+            {label && <span className="text-xs font-medium text-muted-foreground uppercase">{label}</span>}
+
+            <div className="relative w-full max-w-[300px]">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-b from-zinc-300 via-zinc-200 to-zinc-300 dark:from-zinc-700 dark:via-zinc-800 dark:to-zinc-700 shadow-inner" style={{ height: '52px' }} />
+                <div className="absolute left-1/2 top-0 -translate-x-1/2 z-30 pointer-events-none">
+                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-transparent border-t-red-500" />
+                </div>
                 <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background via-background/80 to-transparent z-20 pointer-events-none rounded-l-full" />
                 <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background via-background/80 to-transparent z-20 pointer-events-none rounded-r-full" />
 
-                {/* Scrollable dial */}
                 <div
                     ref={containerRef}
                     className="overflow-x-auto scrollbar-hide scroll-smooth relative z-10"
-                    style={{
-                        scrollSnapType: 'x mandatory',
-                        height: '52px',
-                    }}
+                    style={{ scrollSnapType: 'x mandatory', height: '52px' }}
                     onScroll={() => {
                         handleScroll();
-                        // Debounce scroll end
                         if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
                         scrollTimeout.current = setTimeout(handleScrollEnd, 150);
                     }}
@@ -286,69 +355,35 @@ export function HorizontalDial({
                     onTouchEnd={handleTouchEnd}
                     onWheel={handleWheel}
                 >
-                    <div
-                        className="flex items-end h-full"
-                        style={{
-                            paddingLeft: `calc(50% - ${tickWidth / 2}px)`,
-                            paddingRight: `calc(50% - ${tickWidth / 2}px)`
-                        }}
-                    >
-                        {values.map((v, i) => {
+                    <div className="flex items-end h-full" style={{ paddingLeft: `calc(50% - ${tickWidth / 2}px)`, paddingRight: `calc(50% - ${tickWidth / 2}px)` }}>
+                        {values.map((v) => {
                             const isMajor = v % (step * 5) === 0;
                             const isSelected = v === value;
-
                             return (
                                 <div
                                     key={v}
                                     className="flex flex-col items-center justify-end shrink-0 cursor-pointer select-none"
-                                    style={{
-                                        width: `${tickWidth}px`,
-                                        scrollSnapAlign: 'center',
-                                        height: '100%',
-                                        paddingBottom: '4px',
-                                    }}
-                                    onClick={() => {
-                                        onChange(v);
-                                        vibrate(8);
-                                    }}
+                                    style={{ width: `${tickWidth}px`, scrollSnapAlign: 'center', height: '100%', paddingBottom: '4px' }}
+                                    onClick={() => { onChange(v); triggerHaptic('medium'); }}
                                 >
-                                    {/* Tick mark - like ridges on a dial */}
                                     <div
-                                        className={cn(
-                                            "rounded-full transition-all duration-100",
-                                            isSelected
-                                                ? "bg-primary w-[3px]"
-                                                : isMajor
-                                                    ? "bg-zinc-500 dark:bg-zinc-400 w-[2px]"
-                                                    : "bg-zinc-400 dark:bg-zinc-500 w-[1px]"
-                                        )}
-                                        style={{
-                                            height: isSelected ? '32px' : isMajor ? '24px' : '12px',
-                                        }}
+                                        className={cn("rounded-full transition-all", isSelected ? "bg-primary w-[3px]" : isMajor ? "bg-zinc-500 dark:bg-zinc-400 w-[2px]" : "bg-zinc-400 dark:bg-zinc-500 w-[1px]")}
+                                        style={{ height: isSelected ? '32px' : isMajor ? '24px' : '12px' }}
                                     />
-                                    {/* Number labels for major ticks */}
                                     {isMajor && (
-                                        <span className={cn(
-                                            "text-[10px] tabular-nums mt-1 transition-all",
-                                            isSelected ? "font-bold text-primary" : "text-muted-foreground"
-                                        )}>
-                                            {v}
-                                        </span>
+                                        <span className={cn("text-[10px] tabular-nums mt-1", isSelected ? "font-bold text-primary" : "text-muted-foreground")}>{v}</span>
                                     )}
                                 </div>
                             );
                         })}
                     </div>
                 </div>
-
-                {/* Bottom shadow for depth */}
-                <div className="absolute left-4 right-4 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-black/10 to-transparent dark:via-black/30 z-10 pointer-events-none" />
             </div>
         </div>
     );
 }
 
-// Compact preset exports
+// Preset exports
 export function WeightStepper({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
     return <NumberStepper value={value} onChange={onChange} min={0} max={500} step={5} label="Weight" suffix="lbs" className={className} />;
 }

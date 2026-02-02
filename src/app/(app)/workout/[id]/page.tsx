@@ -1388,10 +1388,7 @@ export default function WorkoutSessionPage() {
                 ) : (
                   <>
                     {unit === 'reps' && (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <PlateCalculator initialWeight={state.weight ? parseFloat(state.weight) : undefined} />
-                        </div>
+                      <div className="space-y-2">
                         <HorizontalDial
                           value={state.weight ? parseInt(state.weight) : 0}
                           onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
@@ -1401,7 +1398,7 @@ export default function WorkoutSessionPage() {
                           label="Weight"
                           suffix="lbs"
                         />
-                        <div className="flex justify-center pt-2">
+                        <div className="flex justify-center">
                           <NumberStepper
                             value={state.reps ? parseInt(state.reps) : 0}
                             onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
@@ -1480,9 +1477,10 @@ export default function WorkoutSessionPage() {
                 }
 
                 {!isEditing && (
-                  <div className="flex justify-end mb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <PlateCalculator initialWeight={state.weight ? parseFloat(state.weight) : undefined} />
                     <Select value={state.setType} onValueChange={(val: any) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, setType: val } })}>
-                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectTrigger className="w-[130px] h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
