@@ -31,7 +31,7 @@ export function WheelPicker({
     const animationFrame = useRef<number | null>(null);
 
     // Generate values array
-    const values = [];
+    const values: number[] = [];
     for (let i = min; i <= max; i += step) {
         values.push(i);
     }
