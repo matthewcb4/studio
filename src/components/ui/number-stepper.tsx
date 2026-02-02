@@ -78,11 +78,10 @@ export function NumberStepper({
                         "transition-colors touch-none select-none",
                         value <= min && "opacity-30 pointer-events-none"
                     )}
-                    onMouseDown={() => handleStart('dec')}
-                    onMouseUp={handleEnd}
-                    onMouseLeave={handleEnd}
-                    onTouchStart={() => handleStart('dec')}
-                    onTouchEnd={handleEnd}
+                    onPointerDown={(e) => { e.preventDefault(); handleStart('dec'); }}
+                    onPointerUp={handleEnd}
+                    onPointerLeave={handleEnd}
+                    onPointerCancel={handleEnd}
                     disabled={value <= min}
                 >
                     <Minus className="w-5 h-5" />
@@ -103,11 +102,10 @@ export function NumberStepper({
                         "transition-colors touch-none select-none",
                         value >= max && "opacity-30 pointer-events-none"
                     )}
-                    onMouseDown={() => handleStart('inc')}
-                    onMouseUp={handleEnd}
-                    onMouseLeave={handleEnd}
-                    onTouchStart={() => handleStart('inc')}
-                    onTouchEnd={handleEnd}
+                    onPointerDown={(e) => { e.preventDefault(); handleStart('inc'); }}
+                    onPointerUp={handleEnd}
+                    onPointerLeave={handleEnd}
+                    onPointerCancel={handleEnd}
                     disabled={value >= max}
                 >
                     <Plus className="w-5 h-5" />
