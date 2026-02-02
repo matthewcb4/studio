@@ -1008,7 +1008,7 @@ export default function DashboardPage() {
                                                 ) : "-"}
                                             </TableCell>
                                             <TableCell className="text-right font-medium">
-                                                {log.volume?.toLocaleString() || 0} lbs
+                                                {Math.round(log.volume || 0).toLocaleString()} lbs
                                             </TableCell>
                                         </TableRow>
                                     ))}

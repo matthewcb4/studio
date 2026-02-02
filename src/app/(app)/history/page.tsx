@@ -112,7 +112,7 @@ function WorkoutLogDetail({ log }: { log: WorkoutLog }) {
                         </Badge>
                       )}
                     </div>
-                    <span>{set.weight} lbs x {set.reps} reps</span>
+                    <span>{Number.isInteger(set.weight) ? set.weight : (set.weight || 0).toFixed(1)} lbs x {set.reps} reps</span>
                   </li>
                 ))}
               </ul>
