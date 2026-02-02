@@ -20,7 +20,7 @@ export function NumberStepper({
     onChange,
     min = 0,
     max = 500,
-    step = 5,
+    step = 1,
     label,
     suffix,
     className,
@@ -169,7 +169,7 @@ export function HorizontalDial({
         values.push(i);
     }
 
-    const tickWidth = compact ? 8 : 12;
+    const tickWidth = compact ? 12 : 16;
     const dialHeight = compact ? 36 : 52;
     const currentIndex = values.indexOf(value);
     const safeIndex = currentIndex >= 0 ? currentIndex : Math.round((value - min) / step);
