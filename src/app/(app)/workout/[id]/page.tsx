@@ -85,7 +85,7 @@ import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
 import { checkPersonalRecord } from '@/lib/analytics';
 import { PlateCalculator } from '@/components/plate-calculator';
 import { VoiceLogModal } from '@/components/voice-log-modal';
-import { NumberStepper } from '@/components/ui/number-stepper';
+import { NumberStepper, HorizontalDial } from '@/components/ui/number-stepper';
 import { Combobox } from '@/components/ui/combobox';
 import {
   Accordion,
@@ -1388,29 +1388,29 @@ export default function WorkoutSessionPage() {
                 ) : (
                   <>
                     {unit === 'reps' && (
-                      <div className="flex items-center justify-center gap-6">
-                        <div className="flex flex-col items-center">
-                          <div className="flex items-center gap-1 mb-1">
-                            <span className="text-xs text-muted-foreground">Weight</span>
-                            <PlateCalculator initialWeight={state.weight ? parseFloat(state.weight) : undefined} />
-                          </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <PlateCalculator initialWeight={state.weight ? parseFloat(state.weight) : undefined} />
+                        </div>
+                        <HorizontalDial
+                          value={state.weight ? parseInt(state.weight) : 0}
+                          onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
+                          min={0}
+                          max={500}
+                          step={5}
+                          label="Weight"
+                          suffix="lbs"
+                        />
+                        <div className="flex justify-center pt-2">
                           <NumberStepper
-                            value={state.weight ? parseInt(state.weight) : 0}
-                            onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
+                            value={state.reps ? parseInt(state.reps) : 0}
+                            onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
                             min={0}
-                            max={500}
-                            step={5}
-                            suffix="lbs"
+                            max={50}
+                            step={1}
+                            label="Reps"
                           />
                         </div>
-                        <NumberStepper
-                          value={state.reps ? parseInt(state.reps) : 0}
-                          onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
-                          min={0}
-                          max={50}
-                          step={1}
-                          label="Reps"
-                        />
                       </div>
                     )}
                     {unit === 'reps-only' && (
@@ -1465,17 +1465,15 @@ export default function WorkoutSessionPage() {
                       </div>
                     )}
                     {unit === 'seconds' && (
-                      <div className="flex justify-center">
-                        <NumberStepper
-                          value={state.duration ? parseInt(state.duration) : 0}
-                          onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, duration: v.toString() } })}
-                          min={0}
-                          max={300}
-                          step={5}
-                          label="Duration"
-                          suffix="s"
-                        />
-                      </div>
+                      <HorizontalDial
+                        value={state.duration ? parseInt(state.duration) : 0}
+                        onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, duration: v.toString() } })}
+                        min={0}
+                        max={300}
+                        step={5}
+                        label="Duration"
+                        suffix="s"
+                      />
                     )}
                   </>
                 )
