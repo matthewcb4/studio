@@ -167,7 +167,7 @@ export function HorizontalDial({
         values.push(i);
     }
 
-    const tickWidth = compact ? 12 : 16;
+    const tickWidth = compact ? 20 : 24;
     const dialHeight = compact ? 36 : 52;
     const currentIndex = values.indexOf(value);
     const safeIndex = currentIndex >= 0 ? currentIndex : Math.round((value - min) / step);

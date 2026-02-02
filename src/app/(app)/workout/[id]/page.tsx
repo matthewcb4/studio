@@ -1548,17 +1548,17 @@ export default function WorkoutSessionPage() {
               </CardContent >
               <CardContent>
                 <Collapsible>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {videoId && (
                       <CollapsibleTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button variant="outline" size="sm" className="flex-1 min-w-[120px]">
                           <Video className="mr-2 h-4 w-4" />
-                          Show/Hide Video
+                          Show/Hide
                         </Button>
                       </CollapsibleTrigger>
                     )}
                     <Button
-                      variant="outline" size="sm" className="w-full"
+                      variant="outline" size="sm" className="flex-1 min-w-[120px]"
                       onClick={() => handleFindVideo(exercise.exerciseId, exercise.exerciseName)}
                       disabled={findingVideoFor === exercise.id}
                     >
