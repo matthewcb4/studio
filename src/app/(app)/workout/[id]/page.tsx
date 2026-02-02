@@ -1390,11 +1390,11 @@ export default function WorkoutSessionPage() {
                     {unit === 'reps' && (
                       <div className="space-y-2">
                         <HorizontalDial
-                          value={state.weight ? parseInt(state.weight) : 0}
+                          value={state.weight ? Math.round(parseFloat(state.weight)) : 0}
                           onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
                           min={0}
                           max={500}
-                          step={5}
+                          step={2.5}
                           label="Weight"
                           suffix="lbs"
                         />
@@ -1423,17 +1423,17 @@ export default function WorkoutSessionPage() {
                       </div>
                     )}
                     {unit === 'bodyweight' && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-center gap-6">
-                          <NumberStepper
-                            value={state.weight ? parseInt(state.weight) : 0}
-                            onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
-                            min={0}
-                            max={100}
-                            step={5}
-                            label="+ Weight"
-                            suffix="lbs"
-                          />
+                      <div className="space-y-2">
+                        <HorizontalDial
+                          value={state.weight ? Math.round(parseFloat(state.weight)) : 0}
+                          onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
+                          min={0}
+                          max={100}
+                          step={2.5}
+                          label="+ Weight"
+                          suffix="lbs"
+                        />
+                        <div className="flex justify-center">
                           <NumberStepper
                             value={state.reps ? parseInt(state.reps) : 0}
                             onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
@@ -1455,7 +1455,7 @@ export default function WorkoutSessionPage() {
                             <SelectContent>
                               <SelectItem value="0">Don't Include</SelectItem>
                               <SelectItem value="0.65">Partial 65% ({Math.round(latestWeight * 0.65)} lbs)</SelectItem>
-                              <SelectItem value="1">Full 100% ({latestWeight} lbs)</SelectItem>
+                              <SelectItem value="1">Full 100% ({Math.round(latestWeight)} lbs)</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
