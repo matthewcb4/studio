@@ -163,15 +163,16 @@ export function HorizontalDial({
     const lastValue = useRef(value);
     const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
 
+    // Values for snapping (main step values)
     const values: number[] = [];
     for (let i = min; i <= max; i += step) {
         values.push(i);
     }
 
-    const tickWidth = compact ? 12 : 16;
+    const tickWidth = compact ? 8 : 12;
     const dialHeight = compact ? 36 : 52;
     const currentIndex = values.indexOf(value);
-    const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+    const safeIndex = currentIndex >= 0 ? currentIndex : Math.round((value - min) / step);
 
     useEffect(() => {
         if (containerRef.current && !isDragging) {
@@ -281,7 +282,7 @@ export function HorizontalDial({
                         onScroll={() => {
                             handleScroll();
                             if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-                            scrollTimeout.current = setTimeout(handleScrollEnd, 150);
+                            scrollTimeout.current = setTimeout(handleScrollEnd, 100);
                         }}
                         onTouchStart={handleTouchStart}
                         onTouchMove={handleTouchMove}
@@ -293,23 +294,39 @@ export function HorizontalDial({
                             style={{ paddingLeft: `calc(50% - ${tickWidth / 2}px)`, paddingRight: `calc(50% - ${tickWidth / 2}px)` }}
                         >
                             {values.map((v) => {
-                                const isMajor = v % (step * 5) === 0;
                                 const isSelected = v === value;
+                                // Show labels every 10 lbs (or 4 steps of 2.5)
+                                const showLabel = v % 10 === 0;
+                                // Major ticks every 5 lbs
+                                const isMajor = v % 5 === 0;
                                 return (
                                     <div
                                         key={v}
                                         className="flex flex-col items-center justify-end shrink-0 cursor-pointer select-none"
-                                        style={{ width: `${tickWidth}px`, scrollSnapAlign: 'center', height: '100%', paddingBottom: '2px' }}
-                                        onClick={() => { onChange(v); triggerHaptic('medium'); }}
+                                        style={{
+                                            width: `${tickWidth}px`,
+                                            scrollSnapAlign: 'center',
+                                            height: '100%',
+                                            paddingBottom: '2px'
+                                        }}
+                                        onClick={() => {
+                                            onChange(v);
+                                            triggerHaptic('medium');
+                                        }}
                                     >
                                         <div
                                             className={cn(
                                                 "rounded-full transition-all",
-                                                isSelected ? "bg-primary w-[2px]" : isMajor ? "bg-zinc-500 dark:bg-zinc-400 w-[1.5px]" : "bg-zinc-400 dark:bg-zinc-500 w-[1px]"
+                                                isSelected ? "bg-primary w-[2px]" :
+                                                    isMajor ? "bg-zinc-500 dark:bg-zinc-400 w-[1.5px]" :
+                                                        "bg-zinc-400 dark:bg-zinc-500 w-[1px]"
                                             )}
-                                            style={{ height: isSelected ? '20px' : isMajor ? '14px' : '6px' }}
+                                            style={{
+                                                height: isSelected ? '20px' :
+                                                    isMajor ? '12px' : '6px'
+                                            }}
                                         />
-                                        {isMajor && (
+                                        {showLabel && (
                                             <span className={cn("text-[7px] tabular-nums mt-0.5", isSelected ? "font-bold text-primary" : "text-muted-foreground")}>
                                                 {v}
                                             </span>
