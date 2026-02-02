@@ -245,10 +245,10 @@ export function HorizontalDial({
     if (compact) {
         return (
             <div className={cn("flex items-center gap-3", className)}>
-                {/* Value on left */}
-                <div className="flex flex-col items-end min-w-[65px]">
+                {/* Value on left - fixed width to prevent layout shift */}
+                <div className="flex flex-col items-end w-[80px] shrink-0">
                     <div className="flex items-baseline gap-0.5">
-                        <span className="text-2xl font-bold tabular-nums">{value}</span>
+                        <span className="text-2xl font-bold tabular-nums">{Number.isInteger(value) ? value : value.toFixed(1)}</span>
                         {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
                     </div>
                     {label && (
