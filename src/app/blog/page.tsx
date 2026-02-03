@@ -121,10 +121,10 @@ function AppPromoCard() {
                     <li className="flex items-center gap-2">✅ Voice logging for hands-free use</li>
                     <li className="flex items-center gap-2">✅ Works offline as a PWA</li>
                 </ul>
-                <Button asChild className="w-full">
-                    <Link href="/">
-                        <Download className="h-4 w-4 mr-2" />
-                        Get fRepo Free
+                <Button className="w-full font-bold" size="lg" asChild>
+                    <Link href="/signup">
+                        <Download className="mr-2 h-4 w-4" />
+                        Get fRepo ($0.99)
                     </Link>
                 </Button>
             </CardContent>
