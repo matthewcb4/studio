@@ -113,10 +113,16 @@ function CategoryBadge({ category }: { category: string }) {
     );
 }
 
-function formatDate(dateString: string | undefined): string {
-    if (!dateString) return '';
+function formatDate(date: string | any): string {
+    if (!date) return '';
     try {
-        return new Date(dateString).toLocaleDateString();
+        let d: Date;
+        if (typeof date === 'object' && typeof date.toDate === 'function') {
+            d = date.toDate();
+        } else {
+            d = new Date(date);
+        }
+        return d.toLocaleDateString();
     } catch (e) {
         return '';
     }

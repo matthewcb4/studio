@@ -142,10 +142,16 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ slug: 
     );
 }
 
-function formatDate(dateString: string): string {
-    if (!dateString) return '';
+function formatDate(date: string | any): string {
+    if (!date) return '';
     try {
-        return new Date(dateString).toLocaleDateString(undefined, {
+        let d: Date;
+        if (typeof date === 'object' && typeof date.toDate === 'function') {
+            d = date.toDate();
+        } else {
+            d = new Date(date);
+        }
+        return d.toLocaleDateString(undefined, {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
