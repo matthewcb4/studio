@@ -113,14 +113,15 @@ function AppPromoCard() {
                     <span className="text-xl">💪</span> Ready to Start Training?
                 </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                    Track your workouts, generate AI-powered routines, and see real progress.
+            <CardContent className="space-y-4 text-center">
+                <h3 className="text-2xl font-bold mb-4">Ready to Crush Your Goals?</h3>
+                <p className="text-lg mb-6">
+                    Stop guessing and start making progress. Download fRepo today to generate personalized workouts, track your lifts, and visualize your gains. Only a one-time fee of $0.99 for lifetime access.
                 </p>
-                <Button asChild className="w-full">
-                    <Link href="/">
-                        <Download className="h-4 w-4 mr-2" />
-                        Get fRepo Free
+                <Button size="lg" className="font-bold text-lg px-8 py-6 h-auto" asChild>
+                    <Link href="/signup">
+                        <Download className="mr-2 h-6 w-6" />
+                        Get fRepo ($0.99)
                     </Link>
                 </Button>
             </CardContent>
