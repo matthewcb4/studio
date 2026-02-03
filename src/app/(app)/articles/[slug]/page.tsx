@@ -114,7 +114,7 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ slug: 
                     </div>
 
                     <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
-                        {post.title}
+                        {typeof post.title === 'string' ? post.title : 'Untitled Article'}
                     </h1>
 
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">

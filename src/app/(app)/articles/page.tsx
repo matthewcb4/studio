@@ -59,39 +59,42 @@ export default function ArticlesPage() {
     );
 }
 
-function ArticleCard({ post }: { post: BlogPost }) {
-    return (
-        <Link href={`/articles/${post.slug}`}>
-            <Card className="h-full hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group flex flex-col">
-                <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2 mb-2">
-                        <CategoryBadge category={post.category} />
-                        {typeof post.readingTime === 'number' && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1 ml-auto">
-                                <Clock className="h-3 w-3" />
-                                {post.readingTime} min
-                            </span>
-                        )}
-                    </div>
-                    <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                        {post.title}
-                    </CardTitle>
-                    <CardDescription className="text-xs flex items-center mt-1">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {formatDate(post.publishedAt)}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col">
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4 flex-1">
-                        {post.excerpt}
-                    </p>
-                    <div className="text-primary text-sm font-medium flex items-center gap-1 mt-auto">
-                        Read Article <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                </CardContent>
-            </Card>
-        </Link>
-    );
+const slug = typeof post.slug === 'string' ? post.slug : '#';
+const title = typeof post.title === 'string' ? post.title : 'Untitled Article';
+const excerpt = typeof post.excerpt === 'string' ? post.excerpt : '';
+
+return (
+    <Link href={`/articles/${slug}`}>
+        <Card className="h-full hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group flex flex-col">
+            <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 mb-2">
+                    <CategoryBadge category={post.category} />
+                    {typeof post.readingTime === 'number' && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1 ml-auto">
+                            <Clock className="h-3 w-3" />
+                            {post.readingTime} min
+                        </span>
+                    )}
+                </div>
+                <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                    {title}
+                </CardTitle>
+                <CardDescription className="text-xs flex items-center mt-1">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {formatDate(post.publishedAt)}
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col">
+                <p className="text-sm text-muted-foreground line-clamp-3 mb-4 flex-1">
+                    {excerpt}
+                </p>
+                <div className="text-primary text-sm font-medium flex items-center gap-1 mt-auto">
+                    Read Article <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+            </CardContent>
+        </Card>
+    </Link>
+);
 }
 
 function CategoryBadge({ category }: { category: string }) {
