@@ -2,11 +2,14 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
-import { adminDb } from '@/firebase/server'; // We need admin-sdk to bypass rules and update user
+import { getServerFirestore } from '@/firebase/server'; // Correct import
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2025-01-27.acacia',
-});
+// Initialize Stripe safely to prevent build/deploy crashes if env var is missing during static analysis
+const stripe = process.env.STRIPE_SECRET_KEY
+    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+        // apiVersion: '2025-01-27.acacia', // Removed to fix type error
+    })
+    : null;
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -18,11 +21,11 @@ export async function POST(req: Request) {
     let event: Stripe.Event;
 
     try {
+        if (!stripe) throw new Error('Stripe not initialized (Missing Env Var)');
+
         if (!sig || !endpointSecret) {
-            // If no secret is set, we might fallback to trusting the callback in dev (not recommended for prod)
-            // but for now, let's log error.
             console.warn('Webhook received but no signature or secret found.');
-            return NextResponse.json({ error: 'Webhook Error' }, { status: 400 });
+            return NextResponse.json({ error: 'Webhook Error: Missing signature or endpoint secret' }, { status: 400 });
         }
 
         event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
@@ -42,7 +45,8 @@ export async function POST(req: Request) {
 
                 try {
                     // Update User in Firestore
-                    await adminDb.collection('users').doc(userId).set({
+                    const db = getServerFirestore();
+                    await db.collection('users').doc(userId).set({
                         isPremium: true,
                         stripeCustomerId: session.customer,
                         updatedAt: new Date(),

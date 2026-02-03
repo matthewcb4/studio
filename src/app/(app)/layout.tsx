@@ -39,9 +39,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useUser, useAuth } from "@/firebase";
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
+import { doc } from "firebase/firestore";
 import { useEffect, useState, useMemo } from "react";
+import type { UserProfile } from "@/lib/types";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -133,6 +135,7 @@ function Nav({ onLinkClick }: { onLinkClick?: () => void }) {
     </SidebarMenu>
   );
 }
+
 function SecondaryNav({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
   return (
@@ -187,13 +190,30 @@ function MobileNav() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
+
+  const userProfileRef = useMemoFirebase(() =>
+    user ? doc(firestore, `users/${user.uid}/profile/main`) : null
+    , [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.replace('/');
+      return;
     }
-  }, [user, isUserLoading, router]);
+
+    // Check for Premium Status
+    // If isPremium is explicitly FALSE, they must pay.
+    // If undefined (legacy/Android) or true (Paid), they are allowed.
+    if (!isUserLoading && !isProfileLoading && user && userProfile) {
+      if (userProfile.isPremium === false) {
+        router.replace('/payment-required');
+      }
+    }
+  }, [user, isUserLoading, userProfile, isProfileLoading, router]);
 
   return (
     <SidebarProvider>

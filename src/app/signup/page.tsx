@@ -71,6 +71,7 @@ export default function SignupPage() {
         id: user.uid,
         email: user.email,
         displayName: form.getValues('name') || user.displayName || user.email,
+        isPremium: isAndroid, // Android = free premium immediately. Web = false until payment.
       }, { merge: true });
 
       if (!user.emailVerified) {

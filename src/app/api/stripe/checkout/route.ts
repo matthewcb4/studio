@@ -2,9 +2,12 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2025-01-27.acacia', // Latest API version
-});
+// Initialize Stripe safely to prevent build/deploy crashes if env var is missing during static analysis
+const stripe = process.env.STRIPE_SECRET_KEY
+    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+        // apiVersion: '2025-01-27.acacia', // Removed to fix type error
+    })
+    : null;
 
 export async function POST(req: Request) {
     try {
@@ -12,6 +15,11 @@ export async function POST(req: Request) {
 
         if (!userId || !email) {
             return NextResponse.json({ error: 'Missing userId or email' }, { status: 400 });
+        }
+
+        if (!stripe) {
+            console.error('Stripe not initialized');
+            return NextResponse.json({ error: 'Internal Server Error: Payment System Unavailable' }, { status: 500 });
         }
 
         // Create Checkout Session

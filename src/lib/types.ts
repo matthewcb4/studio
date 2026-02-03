@@ -131,6 +131,9 @@ export type UserProfile = {
   // Health Connect integration
   healthConnectEnabled?: boolean;
 
+  // Premium Status
+  isPremium?: boolean;
+
   // Active Workout Program
   activeProgramId?: string;              // ID of the currently active program enrollment
 
