@@ -119,17 +119,12 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ slug: 
 
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        <span>{new Date(post.publishedAt).toLocaleDateString(undefined, {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}</span>
+                        <span>{formatDate(post.publishedAt)}</span>
                     </div>
                 </header>
 
                 <div className="prose dark:prose-invert max-w-none">
-                    <div dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }} />
+                    <div dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content || '') }} />
                 </div>
 
                 {/* Tags */}
@@ -145,4 +140,18 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ slug: 
             </article>
         </div>
     );
+}
+
+function formatDate(dateString: string): string {
+    if (!dateString) return '';
+    try {
+        return new Date(dateString).toLocaleDateString(undefined, {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    } catch (e) {
+        return '';
+    }
 }

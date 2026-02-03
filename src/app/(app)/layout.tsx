@@ -48,7 +48,6 @@ const navItems = [
   { href: "/guide", icon: Bot, label: "AI Guide" },
   { href: "/programs", icon: Bookmark, label: "Programs" },
   { href: "/workouts", icon: Dumbbell, label: "Workouts" },
-  { href: "/articles", icon: List, label: "Blog" },
   { href: "/exercises", icon: List, label: "Exercises" },
   { href: "/history", icon: History, label: "History" },
   { href: "/progress", icon: BarChart3, label: "Progress" },
@@ -56,6 +55,7 @@ const navItems = [
 ];
 
 const secondaryNavItems = [
+  { href: "/articles", icon: List, label: "Blog" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 

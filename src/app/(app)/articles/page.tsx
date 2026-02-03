@@ -78,7 +78,7 @@ function ArticleCard({ post }: { post: BlogPost }) {
                     </CardTitle>
                     <CardDescription className="text-xs flex items-center mt-1">
                         <Calendar className="h-3 w-3 mr-1" />
-                        {new Date(post.publishedAt).toLocaleDateString()}
+                        {formatDate(post.publishedAt)}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col">
@@ -108,7 +108,16 @@ function CategoryBadge({ category }: { category: string }) {
 
     return (
         <Badge variant="secondary" className={`${colorClass} hover:bg-opacity-80`}>
-            {category.charAt(0).toUpperCase() + category.slice(1)}
+            {category ? (category.charAt(0).toUpperCase() + category.slice(1)) : 'Blog'}
         </Badge>
     );
+}
+
+function formatDate(dateString: string | undefined): string {
+    if (!dateString) return '';
+    try {
+        return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+        return '';
+    }
 }
