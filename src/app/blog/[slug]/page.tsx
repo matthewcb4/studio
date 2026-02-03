@@ -278,7 +278,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                 <Button asChild size="lg">
                                     <Link href="/">
                                         <Download className="h-5 w-5 mr-2" />
-                                        Download fRepo — It&apos;s Free
+                                        Get fRepo ($0.99)
                                     </Link>
                                 </Button>
                             </CardContent>
