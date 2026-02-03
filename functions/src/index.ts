@@ -419,7 +419,7 @@ export const manualAggregateLeaderboards = onRequest({
 // AUTOMATED BLOG GENERATION
 // ============================================
 
-import { BLOG_TOPICS, getNextTopic, BlogTopic } from './topics';
+import { getNextTopic, BlogTopic } from './topics';
 
 interface BlogPost {
     id: string;
@@ -466,12 +466,11 @@ async function getExistingSlugs(): Promise<string[]> {
  * Generate blog content using Google AI (Gemini)
  * Note: This uses the REST API directly since we're in Cloud Functions
  */
-async function generateBlogContent(topic: BlogTopic): Promise<Omit<BlogPost, 'id' | 'publishedAt' | 'status'> | null> {
+async function generateBlogContent(topic: BlogTopic): Promise<Omit<BlogPost, 'id' | 'publishedAt' | 'status'>> {
     const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-        console.error('No Google AI API key found. Set GOOGLE_GENAI_API_KEY in environment.');
-        return null;
+        throw new Error('No Google AI API key found. Set GOOGLE_GENAI_API_KEY in environment.');
     }
 
     const prompt = `You are an expert fitness writer creating content for fRepo, a workout tracking app. 
@@ -525,15 +524,28 @@ Generate the blog post now. Return ONLY the JSON object, no other text.`;
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: {
                         temperature: 0.7,
-                        maxOutputTokens: 4096,
+                        maxOutputTokens: 8192,
+                        responseMimeType: 'application/json',
+                        responseSchema: {
+                            type: 'OBJECT',
+                            properties: {
+                                title: { type: 'STRING' },
+                                excerpt: { type: 'STRING' },
+                                content: { type: 'STRING' },
+                                seoDescription: { type: 'STRING' },
+                                tags: { type: 'ARRAY', items: { type: 'STRING' } }
+                            },
+                            required: ['title', 'excerpt', 'content', 'seoDescription', 'tags']
+                        }
                     }
                 })
             }
         );
 
         if (!response.ok) {
-            console.error('AI API error:', await response.text());
-            return null;
+            const errorText = await response.text();
+            console.error('AI API error:', errorText);
+            throw new Error(`AI API Error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const data = await response.json();
@@ -541,10 +553,12 @@ Generate the blog post now. Return ONLY the JSON object, no other text.`;
 
         if (!text) {
             console.error('No content in AI response');
-            return null;
+            throw new Error('No content in AI response');
         }
 
-        // Parse JSON from response (handle markdown code blocks)
+        // Parse JSON from response
+        // With responseSchema, the model returns raw JSON without markdown formatting usually,
+        // but we normally handle it just in case.
         let jsonStr = text;
         if (text.includes('```json')) {
             jsonStr = text.split('```json')[1].split('```')[0];
@@ -564,9 +578,9 @@ Generate the blog post now. Return ONLY the JSON object, no other text.`;
             seoDescription: parsed.seoDescription,
             readingTime: estimateReadingTime(parsed.content),
         };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error generating blog content:', error);
-        return null;
+        throw error;
     }
 }
 
@@ -575,10 +589,10 @@ Generate the blog post now. Return ONLY the JSON object, no other text.`;
  * Generates a new blog post using AI
  */
 export const generateDailyBlogPost = onSchedule({
-    schedule: '0 6 * * *', // Every day at 6 AM UTC
+    schedule: '0 5 * * *', // Every day at 5 AM UTC
     timeZone: 'UTC',
     memory: '512MiB',
-    timeoutSeconds: 120,
+    timeoutSeconds: 300,
     secrets: ['GOOGLE_GENAI_API_KEY'],
 }, async () => {
     console.log('Starting daily blog post generation...');
@@ -600,11 +614,6 @@ export const generateDailyBlogPost = onSchedule({
 
         // Generate content using AI
         const blogContent = await generateBlogContent(topic);
-
-        if (!blogContent) {
-            console.error('Failed to generate blog content');
-            return;
-        }
 
         // Check if slug already exists (double-check)
         if (existingSlugs.includes(blogContent.slug)) {
@@ -632,7 +641,7 @@ export const generateDailyBlogPost = onSchedule({
  * Usage: POST /manualGenerateBlogPost
  */
 export const manualGenerateBlogPost = onRequest({
-    timeoutSeconds: 120,
+    timeoutSeconds: 300,
     memory: '512MiB',
     secrets: ['GOOGLE_GENAI_API_KEY'],
 }, async (req, res) => {
@@ -666,11 +675,6 @@ export const manualGenerateBlogPost = onRequest({
 
         const blogContent = await generateBlogContent(topic);
 
-        if (!blogContent) {
-            res.status(500).json({ success: false, error: 'Failed to generate content' });
-            return;
-        }
-
         // Save to Firestore
         const blogPost: Omit<BlogPost, 'id'> = {
             ...blogContent,
@@ -688,8 +692,9 @@ export const manualGenerateBlogPost = onRequest({
             message: 'Blog post generated and published!',
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error:', error);
-        res.status(500).json({ success: false, error: String(error) });
+        // RETURN THE ACTUAL ERROR MESSAGE
+        res.status(500).json({ success: false, error: error.message || String(error) });
     }
 });
