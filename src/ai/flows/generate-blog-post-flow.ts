@@ -33,14 +33,41 @@ export type GenerateBlogPostOutput = z.infer<typeof GenerateBlogPostOutputSchema
 export async function generateBlogPost(input: GenerateBlogPostInput): Promise<GenerateBlogPostOutput> {
     'use server';
 
+    const now = new Date();
+    const month = now.toLocaleString('default', { month: 'long' });
+    const dateString = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Determine season (Northern Hemisphere approximation)
+    const monthIndex = now.getMonth(); // 0-11
+    let season = 'Winter';
+    if (monthIndex >= 2 && monthIndex <= 4) season = 'Spring';
+    else if (monthIndex >= 5 && monthIndex <= 7) season = 'Summer';
+    else if (monthIndex >= 8 && monthIndex <= 10) season = 'Autumn';
+
     const { output } = await ai.generate({
         prompt: `You are an expert fitness writer creating content for fRepo, a workout tracking app. 
 Generate a high-quality, SEO-optimized blog post on the following topic.
+
+**Current Context:**
+- **Date:** ${dateString}
+- **Season:** ${season}
+- **Tone:** ${input.category === 'motivation' ? 'Inspiring & Energetic' : 'Educational & Practical'}
 
 **Topic:** ${input.topic}
 **Category:** ${input.category}
 **Target Keywords:** ${input.targetKeywords.join(', ')}
 **Target Word Count:** ${input.wordCount} words
+
+## Content Strategy & Context:
+1. **Seasonal Relevance:** Since it is ${season} (${month}), tailor the advice to the time of year.
+   - If Winter: Focus on indoor workouts, dealing with cold/darkness, home equipment, or immunity.
+   - If Summer: Suggest outdoor activities, hydration, heat safety, or beach-ready fitness.
+   - If Spring/Autumn: Focus on transitions, fresh starts, or outdoor/indoor hybrid routines.
+2. **Life Context:** Acknowledge real-life constraints (busy schedules, stress, work-life balance).
+3. **Variety:** Do NOT just write a generic essay. Depending on the category, include:
+   - **Workouts:** A specific, follow-along workout routine (e.g., "The 20-Min ${season} HIIT Circuit").
+   - **Nutrition:** specific recipes or seasonal food recommendations.
+   - **Tips:** Practical hacks for the specific season.
 
 ## Writing Guidelines:
 1. Write in a conversational but authoritative tone
