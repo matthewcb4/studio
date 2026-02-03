@@ -24,6 +24,8 @@ export const metadata: Metadata = {
     },
 };
 
+export const dynamic = 'force-dynamic';
+
 async function getBlogPosts(): Promise<BlogPost[]> {
     try {
         const db = getServerFirestore();

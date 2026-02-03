@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, ArrowLeft, Download, Share2, ChevronRight } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 interface BlogPostPageProps {
     params: Promise<{ slug: string }>;
 }
