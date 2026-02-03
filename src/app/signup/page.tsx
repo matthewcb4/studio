@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import Logo from "@/components/logo";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, initiateEmailSignUp, initiateGoogleSignIn, useUser, setDocumentNonBlocking, initiateFacebookSignIn } from "@/firebase";
-import { signOut } from "firebase/auth";
+import { signOut, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
@@ -94,8 +94,53 @@ export default function SignupPage() {
   }, [user, isUserLoading, router, firestore, form, toast, auth]);
 
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    initiateEmailSignUp(auth, values.email, values.password);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (isAndroid) {
+      initiateEmailSignUp(auth, values.email, values.password);
+      return;
+    }
+
+    // Premium Flow for Non-Android
+    try {
+      // 1. Create User (Standard Firebase Auth)
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Update display name immediately
+      await updateProfile(user, { displayName: values.name });
+
+      // 2. Create Stripe Checkout Session
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          email: user.email,
+          returnUrl: window.location.origin + '/dashboard',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.url) {
+        // 3. Redirect to Stripe
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Signup Failed",
+        description: error.message || "Could not start payment session.",
+      });
+    }
   }
 
   async function onGoogleSignIn() {
@@ -125,113 +170,111 @@ export default function SignupPage() {
       )
     }
 
-    if (isAndroid) {
-      return (
-        <>
-          <div className="grid gap-2 text-center">
-            <h2 className="text-2xl font-bold">Create an account</h2>
-            <p className="text-balance text-muted-foreground">
-              Enter your information to get started
-            </p>
-          </div>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="m@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full">
-                Create account
-              </Button>
-              <Button variant="outline" className="w-full" type="button" onClick={onGoogleSignIn}>
-                <svg
-                  className="mr-2 h-4 w-4"
-                  aria-hidden="true"
-                  focusable="false"
-                  data-prefix="fab"
-                  data-icon="google"
-                  role="img"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 488 512"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-69.4 69.4c-24.5-23.4-58.6-37.9-97.9-37.9-86.3 0-156.5 70.2-156.5 156.5s70.2 156.5 156.5 156.5c97.2 0 133-57.2 138.8-88.5H248v-71.3h239.1c1.4 12.2 2.9 24.4 2.9 37.8z"
-                  ></path>
-                </svg>
-                Sign up with Google
-              </Button>
-              <Button variant="outline" className="w-full" type="button" onClick={onFacebookSignIn}>
-                <svg
-                  className="mr-2 h-4 w-4"
-                  aria-hidden="true"
-                  focusable="false"
-                  data-prefix="fab"
-                  data-icon="facebook"
-                  role="img"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 512 512"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"
-                  ></path>
-                </svg>
-                Sign up with Facebook
-              </Button>
-            </form>
-          </Form>
-        </>
-      )
-    }
+    // If on Android, show standard free signup.
+    // If not on Android (iOS/Web), show Premium ($0.99) signup.
+    const isPremium = !isAndroid;
 
     return (
-      <div className="text-center">
-        <h2 className="text-2xl font-bold">Available on Android</h2>
-        <p className="text-balance text-muted-foreground mt-2">
-          To create an account, please download fRepo from the Google Play Store on your Android device.
-        </p>
-        <Button asChild className="mt-4">
-          <Link href="https://play.google.com/store/apps" target="_blank">
-            Go to Play Store
-          </Link>
-        </Button>
-      </div>
+      <>
+        <div className="grid gap-2 text-center">
+          <h2 className="text-2xl font-bold">
+            {isPremium ? "Create Premium Account" : "Create an account"}
+          </h2>
+          <p className="text-balance text-muted-foreground">
+            {isPremium
+              ? "Join fRepo for a one-time fee of $0.99 (Lifetime Access)"
+              : "Enter your information to get started"}
+          </p>
+        </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="m@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full">
+              {isPremium ? "Pay $0.99 & Join" : "Create account"}
+            </Button>
+
+            {/* Social Logins - Only show for Android for now to keep Premium flow simple */}
+            {!isPremium && (
+              <>
+                <Button variant="outline" className="w-full" type="button" onClick={onGoogleSignIn}>
+                  <svg
+                    className="mr-2 h-4 w-4"
+                    aria-hidden="true"
+                    focusable="false"
+                    data-prefix="fab"
+                    data-icon="google"
+                    role="img"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 488 512"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-69.4 69.4c-24.5-23.4-58.6-37.9-97.9-37.9-86.3 0-156.5 70.2-156.5 156.5s70.2 156.5 156.5 156.5c97.2 0 133-57.2 138.8-88.5H248v-71.3h239.1c1.4 12.2 2.9 24.4 2.9 37.8z"
+                    ></path>
+                  </svg>
+                  Sign up with Google
+                </Button>
+                <Button variant="outline" className="w-full" type="button" onClick={onFacebookSignIn}>
+                  <svg
+                    className="mr-2 h-4 w-4"
+                    aria-hidden="true"
+                    focusable="false"
+                    data-prefix="fab"
+                    data-icon="facebook"
+                    role="img"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 512 512"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"
+                    ></path>
+                  </svg>
+                  Sign up with Facebook
+                </Button>
+              </>
+            )}
+          </form>
+        </Form>
+      </>
     );
   }
 
