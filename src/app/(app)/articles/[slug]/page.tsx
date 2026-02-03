@@ -103,9 +103,9 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ slug: 
                 <header className="mb-8">
                     <div className="flex items-center gap-3 mb-4">
                         <Badge variant="secondary" className="capitalize">
-                            {post.category}
+                            {typeof post.category === 'string' ? post.category : 'Blog'}
                         </Badge>
-                        {post.readingTime && (
+                        {typeof post.readingTime === 'number' && (
                             <span className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Clock className="h-4 w-4" />
                                 {post.readingTime} min read

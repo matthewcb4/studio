@@ -66,7 +66,7 @@ function ArticleCard({ post }: { post: BlogPost }) {
                 <CardHeader className="pb-3">
                     <div className="flex items-center gap-2 mb-2">
                         <CategoryBadge category={post.category} />
-                        {post.readingTime && (
+                        {typeof post.readingTime === 'number' && (
                             <span className="text-xs text-muted-foreground flex items-center gap-1 ml-auto">
                                 <Clock className="h-3 w-3" />
                                 {post.readingTime} min
@@ -103,12 +103,13 @@ function CategoryBadge({ category }: { category: string }) {
         programs: 'bg-pink-500/10 text-pink-500',
     };
 
-    // Fallback color
-    const colorClass = colors[category] || 'bg-secondary text-foreground';
+    const safeCategory = (typeof category === 'string' && category) || 'Blog';
+    // Fallback color - safely check keys
+    const colorClass = (typeof category === 'string' && colors[category]) || 'bg-secondary text-foreground';
 
     return (
         <Badge variant="secondary" className={`${colorClass} hover:bg-opacity-80`}>
-            {category ? (category.charAt(0).toUpperCase() + category.slice(1)) : 'Blog'}
+            {safeCategory.charAt(0).toUpperCase() + safeCategory.slice(1)}
         </Badge>
     );
 }
