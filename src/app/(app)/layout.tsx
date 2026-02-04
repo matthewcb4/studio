@@ -206,14 +206,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     // Check for Premium Status
-    // If isPremium is explicitly FALSE, they must pay.
-    // If undefined (legacy/Android) or true (Paid), they are allowed.
+    // Strict Guard: If isPremium is NOT true, redirect.
+    // This blocks 'false' (unpaid) AND 'undefined' (legacy/broken state).
     if (!isUserLoading && !isProfileLoading && user && userProfile) {
-      if (userProfile.isPremium === false) {
+      const isPaymentPage = pathname === '/payment-required';
+
+      // If NOT premium and NOT already on payment page, kick them out.
+      if (userProfile.isPremium !== true && !isPaymentPage) {
         router.replace('/payment-required');
       }
     }
-  }, [user, isUserLoading, userProfile, isProfileLoading, router]);
+  }, [user, isUserLoading, userProfile, isProfileLoading, router, pathname]);
 
   return (
     <SidebarProvider>
