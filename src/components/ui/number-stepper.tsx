@@ -57,6 +57,7 @@ export function NumberStepper({
     }, [isHolding, increment, decrement]);
 
     const handleStart = (direction: 'inc' | 'dec') => {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
         setIsHolding(direction);
         if (direction === 'inc') increment();
         else decrement();
@@ -125,9 +126,63 @@ export function NumberStepper({
     );
 }
 
-// Preset exports
+// Helper for haptics
+const vibrate = () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(10); // Light tap
+    }
+};
+
 export function WeightStepper({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
-    return <NumberStepper value={value} onChange={onChange} min={0} max={500} step={2.5} label="Weight" suffix="lbs" className={className} size="large" />;
+    const whole = Math.floor(value);
+    const fraction = value - whole;
+
+    // Fix floating point precision issues (e.g. 0.2500000001)
+    const normalizedFraction = Math.round(fraction * 100) / 100;
+
+    const handleWholeChange = (newWhole: number) => {
+        vibrate();
+        onChange(newWhole + normalizedFraction);
+    };
+
+    const handleFractionChange = (newFraction: number) => {
+        vibrate();
+        onChange(whole + newFraction);
+    };
+
+    return (
+        <div className={cn("flex flex-col items-center gap-2", className)}>
+            <NumberStepper
+                value={whole}
+                onChange={handleWholeChange}
+                min={0}
+                max={500}
+                step={1}
+                label="Weight"
+                suffix="lbs"
+                size="large"
+            />
+
+            {/* Compact Fractional Row */}
+            <div className="flex items-center gap-1 bg-secondary/30 p-1 rounded-lg">
+                {[0, 0.25, 0.5, 0.75].map((frac) => (
+                    <button
+                        key={frac}
+                        type="button"
+                        onClick={() => handleFractionChange(frac)}
+                        className={cn(
+                            "flex-1 px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
+                            normalizedFraction === frac
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : "text-muted-foreground hover:bg-secondary/50"
+                        )}
+                    >
+                        {frac === 0 ? '.0' : frac.toString().substring(1)}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
 }
 
 export function RepsStepper({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
