@@ -16,30 +16,52 @@ export function BlogReader({ content, title }: BlogReaderProps) {
     const [isPaused, setIsPaused] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [rate, setRate] = useState(1);
+    const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+    const [selectedVoiceName, setSelectedVoiceName] = useState<string>("");
     const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
     useEffect(() => {
-        // Check browser support
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            setIsReady(true);
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
-            // Cleanup on unmount
-            return () => {
-                window.speechSynthesis.cancel();
-            };
-        }
+        setIsReady(true);
+
+        const loadVoices = () => {
+            const vs = window.speechSynthesis.getVoices();
+            setVoices(vs);
+
+            // Smart select default
+            if (vs.length > 0) {
+                const preferred =
+                    vs.find(v => v.name.includes("Google US English")) ||
+                    vs.find(v => v.name.includes("Natural") && v.lang.startsWith("en")) ||
+                    vs.find(v => v.lang === "en-US" && !v.name.includes("Microsoft")) || // Microsoft's default web voices are often robotic 'Mark'/'David'
+                    vs.find(v => v.lang.startsWith("en"));
+
+                if (preferred) setSelectedVoiceName(preferred.name);
+            }
+        };
+
+        loadVoices();
+
+        // Chrome loads voices asynchronously
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        return () => {
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.onvoiceschanged = null;
+        };
     }, []);
 
     const cleanText = (markdown: string) => {
         return markdown
-            .replace(/#{1,6} /g, '') // Remove headers
-            .replace(/(\*\*|__)(.*?)\1/g, '$2') // Remove bold
-            .replace(/(\*|_)(.*?)\1/g, '$2') // Remove italic
-            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links
-            .replace(/`{1,3}(.*?)`{1,3}/g, '$1') // Remove code
-            .replace(/> /g, '') // Remove blockquotes
-            .replace(/\n\n/g, '. ') // Replace double newlines with pauses
-            .replace(/\n/g, ' '); // Replace single newlines with spaces
+            .replace(/#{1,6} /g, '')
+            .replace(/(\*\*|__)(.*?)\1/g, '$2')
+            .replace(/(\*|_)(.*?)\1/g, '$2')
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+            .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
+            .replace(/> /g, '')
+            .replace(/\n\n/g, '. ')
+            .replace(/\n/g, ' ');
     };
 
     const handlePlay = () => {
@@ -62,14 +84,10 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         const textToRead = `${title}. ${cleanText(content)}`;
         const utterance = new SpeechSynthesisUtterance(textToRead);
 
-        // Attempt to pick a good voice
-        const voices = window.speechSynthesis.getVoices();
-        // Prefer "Google US English" or standard "Samantha" (iOS)
-        const preferredVoice = voices.find(v => v.name.includes('Google US English')) ||
-            voices.find(v => v.lang === 'en-US' && !v.name.includes('Microsoft')) ||
-            voices.find(v => v.lang === 'en-US');
+        // Apply selected voice
+        const voice = voices.find(v => v.name === selectedVoiceName);
+        if (voice) utterance.voice = voice;
 
-        if (preferredVoice) utterance.voice = preferredVoice;
         utterance.rate = rate;
         utterance.pitch = 1;
 
@@ -94,10 +112,6 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         setIsPlaying(false);
         setIsPaused(false);
     };
-
-    // Always render, but maybe disable if not ready? 
-    // Actually, on mobile, 'isReady' checks might fail initially. Let's show it anyway.
-    // if (!isReady) return null;
 
     return (
         <div className="flex flex-col gap-2 p-3 bg-secondary/30 rounded-lg border border-border/50 mb-6">
@@ -132,29 +146,51 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                 </div>
             </div>
 
-            {(isPlaying || isPaused) && (
-                <div className="flex items-center gap-3 px-1 pt-1">
-                    <span className="text-xs text-muted-foreground w-8">Speed</span>
-                    <Slider
-                        value={[rate]}
-                        min={0.5}
-                        max={2}
-                        step={0.1}
-                        onValueChange={(vals) => {
-                            const newRate = vals[0];
-                            setRate(newRate);
-                            // Live update rate if supported (Chrome buggy, usually requires restart)
-                            if (window.speechSynthesis.speaking && !isPaused) {
-                                // For broad compatibility, we might just set state. 
-                                // Cancelling and restarting loses position without complex logic.
-                                // We'll trust the user to pause/play to reset play rate if needed 
-                                // or just accept it applies to next utterance for simple web speech.
-                                // HOWEVER, some browsers allow dynamic updates.
-                            }
-                        }}
-                        className="flex-1"
-                    />
-                    <span className="text-xs font-mono w-8 text-right">{rate}x</span>
+            {(isPlaying || isPaused || voices.length > 0) && (
+                <div className="flex flex-col gap-2 px-1 pt-2">
+                    {/* Voice Selection */}
+                    {voices.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-12 flex-shrink-0">Voice</span>
+                            <select
+                                className="flex-1 h-7 text-xs rounded-md border border-input bg-background px-2 py-1"
+                                value={selectedVoiceName}
+                                onChange={(e) => {
+                                    setSelectedVoiceName(e.target.value);
+                                    // If playing, restart with new voice? ideally yes, but keeping it simple for now.
+                                    // Usually users pick voice then play.
+                                    if (isPlaying) {
+                                        window.speechSynthesis.cancel();
+                                        setTimeout(handlePlay, 100);
+                                    }
+                                }}
+                            >
+                                {voices
+                                    .filter(v => v.lang.startsWith('en')) // Filter to English for UI cleanliness
+                                    .map(v => (
+                                        <option key={v.name} value={v.name}>
+                                            {v.name.replace(/Google |Microsoft /, '')}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Speed Control */}
+                    {(isPlaying || isPaused) && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-12 flex-shrink-0">Speed</span>
+                            <Slider
+                                value={[rate]}
+                                min={0.5}
+                                max={2}
+                                step={0.1}
+                                onValueChange={(vals) => setRate(vals[0])}
+                                className="flex-1"
+                            />
+                            <span className="text-xs font-mono w-8 text-right">{rate}x</span>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
