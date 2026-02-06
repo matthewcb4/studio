@@ -125,29 +125,15 @@ export function NumberStepper({
     );
 }
 
-// Keep the HorizontalDial component as is, or remove if truly unused.
-// For now, minimal compatibility or keep it if we want to fallback.
-// (Omitting full HorizontalDial code here to rely on existing if I utilize replace_file correctly,
-//  but I am replacing the END of the file so I need to preserve what I'm not deleting,
-//  OR if I am replacing the export functions at the bottom.
-//  Wait, the prompt says "EndLine: 414", which is the end of the file.
-//  I need to be careful not to delete HorizontalDial if I don't intend to.
-//  Actually, I will just export the Steppers and keep HorizontalDial above this block if I target correctly.
-//  The Previous ViewFile showed HorizontalDial ends around line 400.
-//  I will target lines 7-414 to replace the main component and the exports,
-//  BUT HorizontalDial is in the middle (lines 118-400).
-//  I should use MultiReplace to surgically edit NumberStepper and the exports,
-//  OR just Replace the top and bottom.
-//  Let's actually just replace the presets at the bottom and the NumberStepper component at the top,
-//  leaving HorizontalDial alone in the middle? No, `replace_file_content` is a single contiguous block.
-//
-//  Let's use `multi_replace_file_content` to be safe and clean.)
+// Preset exports
+export function WeightStepper({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
+    return <NumberStepper value={value} onChange={onChange} min={0} max={500} step={2.5} label="Weight" suffix="lbs" className={className} size="large" />;
+}
 
-// Actually, looking at `number-stepper.tsx`, `HorizontalDial` is defined there.
-// If I use `replace_file_content` on the whole file, I have to provide the whole file.
-// If I use it on a range, I must match exact content.
+export function RepsStepper({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
+    return <NumberStepper value={value} onChange={onChange} min={0} max={50} step={1} label="Reps" className={className} />;
+}
 
-// Let's use `multi_replace_file_content`.
-// 1. Update `NumberStepper` definition (lines 7-116).
-// 2. Update `WeightStepper` and `DurationStepper` exports (lines 403-413).
-
+export function DurationStepper({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
+    return <NumberStepper value={value} onChange={onChange} min={0} max={300} step={5} label="Duration" suffix="s" className={className} size="large" />;
+}
