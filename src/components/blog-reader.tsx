@@ -11,93 +11,39 @@ interface BlogReaderProps {
     title: string;
 }
 
+const AI_VOICES = [
+    { name: 'AI Male (J)', id: 'en-US-Neural2-J' },
+    { name: 'AI Female (C)', id: 'en-US-Neural2-C' },
+    { name: 'AI Female (H)', id: 'en-US-Neural2-H' },
+    { name: 'AI Male (I)', id: 'en-US-Neural2-I' },
+    { name: 'Studio Male (D)', id: 'en-US-Studio-M' },
+    { name: 'Studio Female (O)', id: 'en-US-Studio-O' },
+];
+
 export function BlogReader({ content, title }: BlogReaderProps) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
-    const [isReady, setIsReady] = useState(false);
+    const [isLoadingAudio, setIsLoadingAudio] = useState(false);
     const [hasError, setHasError] = useState(false);
     const [rate, setRate] = useState(1);
-    const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
-    // State for UI
-    const [selectedVoiceName, setSelectedVoiceName] = useState<string>("");
-
-    // Refs to track latest state during recursive callbacks (Stale Closure Fix)
-    const selectedVoiceRef = useRef<string>("");
-    const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+    // Default to the first high-quality voice
+    const [selectedVoiceId, setSelectedVoiceId] = useState<string>(AI_VOICES[0].id);
+    const selectedVoiceRef = useRef<string>(AI_VOICES[0].id);
 
     // Queue state
     const [sentences, setSentences] = useState<string[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+    // Audio Element Ref
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     // Sync state to refs
     useEffect(() => {
-        selectedVoiceRef.current = selectedVoiceName;
-    }, [selectedVoiceName]);
+        selectedVoiceRef.current = selectedVoiceId;
+    }, [selectedVoiceId]);
 
-    useEffect(() => {
-        voicesRef.current = voices;
-    }, [voices]);
-
-    // 1. Voice Loading & Polling (Fixes Android empty list)
-    useEffect(() => {
-        if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
-        setIsReady(true);
-
-        const loadVoices = () => {
-            const vs = window.speechSynthesis.getVoices();
-            setVoices(vs);
-            voicesRef.current = vs;
-
-            // Smart select default ONLY if user hasn't picked one
-            if (vs.length > 0 && !selectedVoiceRef.current) {
-                const preferred =
-                    vs.find(v => v.name.includes("Google US English")) ||
-                    vs.find(v => v.name.includes("Natural") && v.lang.startsWith("en")) ||
-                    vs.find(v => v.lang === "en-US" && !v.name.includes("Microsoft")) ||
-                    vs.find(v => v.lang.startsWith("en"));
-
-                if (preferred) setSelectedVoiceName(preferred.name);
-            }
-        };
-
-        loadVoices();
-
-        // Listener
-        window.speechSynthesis.onvoiceschanged = loadVoices;
-
-        // Aggressive polling for Android/Mobile (sometimes onvoiceschanged doesn't fire)
-        const intervalId = setInterval(() => {
-            const vs = window.speechSynthesis.getVoices();
-            if (vs.length > 0) {
-                // If we found voices and existing list was empty, update!
-                setVoices(prev => {
-                    if (prev.length === 0) {
-                        loadVoices(); // Load and sets refs
-                        return vs;
-                    }
-                    return prev;
-                });
-            }
-        }, 500);
-
-        // Stop polling after 5 seconds to save resources
-        const timeoutId = setTimeout(() => {
-            clearInterval(intervalId);
-        }, 5000);
-
-        return () => {
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.onvoiceschanged = null;
-            clearInterval(intervalId);
-            clearTimeout(timeoutId);
-        };
-    }, []); // Run once on mount
-
-    // 2. Prepare Text Chunks (Fixes text-too-long crashes)
+    // 1. Prepare Text Chunks
     useEffect(() => {
         if (!content) return;
 
@@ -111,7 +57,6 @@ export function BlogReader({ content, title }: BlogReaderProps) {
             .replace(/\n\n/g, '. ')
             .replace(/\n/g, ' ');
 
-        // Split by simple sentence delimiters. 
         const chunkRaw = clean.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g);
 
         if (chunkRaw) {
@@ -120,13 +65,27 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                 .filter(s => s.length > 0);
             setSentences(chunks);
         } else {
-            // Fallback if regex fails
             setSentences([title, clean]);
+        }
+
+        // Initialize Audio Element
+        if (!audioRef.current) {
+            audioRef.current = new Audio();
         }
     }, [content, title]);
 
-    // 3. Playback Logic
-    const speakSentence = (index: number) => {
+    // Cleanup
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = "";
+            }
+        };
+    }, []);
+
+    // 2. Playback Logic (Buffer & Play)
+    const playSentence = async (index: number) => {
         if (index >= sentences.length) {
             setIsPlaying(false);
             setIsPaused(false);
@@ -134,118 +93,144 @@ export function BlogReader({ content, title }: BlogReaderProps) {
             return;
         }
 
-        // Cancel previous
-        window.speechSynthesis.cancel();
-
-        const text = sentences[index];
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        // Use REF for latest voices list (FIX for Android stale objects)
-        const currentVoices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
-
-        if (selectedVoiceRef.current) {
-            const v = currentVoices.find(val => val.name === selectedVoiceRef.current);
-            if (v) utterance.voice = v;
-        }
-
-        utterance.rate = rate;
-
-        utterance.onend = () => {
-            const next = index + 1;
-            setCurrentIndex(next);
-            // Small delay between sentences sounds more natural
-            setTimeout(() => {
-                if (window.speechSynthesis.paused && !window.speechSynthesis.pending) return;
-                speakSentence(next);
-            }, 50); // 50ms pause
-        };
-
-        utterance.onerror = (e) => {
-            console.error("TTS Error", e);
-            setHasError(true);
-            // Try to skip to next even on error?
-            if (e.error !== 'interrupted' && e.error !== 'canceled') {
-                // skip
-                const next = index + 1;
-                setCurrentIndex(next);
-                speakSentence(next);
-            }
-        };
-
-        utteranceRef.current = utterance;
+        // Ensure audio ref exists
+        if (!audioRef.current) audioRef.current = new Audio();
+        const audio = audioRef.current;
 
         try {
-            window.speechSynthesis.speak(utterance);
+            setIsLoadingAudio(true);
+            setHasError(false);
+
+            const text = sentences[index];
+
+            // Call our new API
+            const res = await fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text,
+                    voiceName: selectedVoiceRef.current,
+                    languageCode: 'en-US'
+                })
+            });
+
+            if (!res.ok) throw new Error('TTS API Failed');
+
+            const data = await res.json();
+            if (!data.audioContent) throw new Error('No audio content');
+
+            // Decode Base64
+            const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
+            audio.src = audioSrc;
+            audio.playbackRate = rate;
+
+            // Setup Listeners BEFORE playing
+            audio.onended = () => {
+                const next = index + 1;
+                setCurrentIndex(next);
+                // Tiny delay to prevent blocking
+                setTimeout(() => playSentence(next), 50);
+            };
+
+            audio.onerror = (e) => {
+                console.error("Audio Playback Error", e);
+                setHasError(true);
+                // Try skip?
+                const next = index + 1;
+                setCurrentIndex(next);
+                playSentence(next);
+            };
+
+            await audio.play();
+            setIsLoadingAudio(false);
+
         } catch (err) {
-            console.error("Speak Exception", err);
+            console.error("TTS Fetch Error", err);
             setHasError(true);
+            setIsLoadingAudio(false);
+            setIsPlaying(false);
         }
     };
 
     const handlePlay = () => {
-        if (!isReady) return;
-        setHasError(false);
-
-        // 1. Resume
-        if (isPaused) {
-            window.speechSynthesis.resume();
+        // Resume if paused
+        if (isPaused && audioRef.current) {
+            audioRef.current.play();
             setIsPlaying(true);
             setIsPaused(false);
             return;
         }
 
-        // 2. Pause
-        if (isPlaying) {
-            window.speechSynthesis.pause();
+        // Pause if playing
+        if (isPlaying && audioRef.current) {
+            audioRef.current.pause();
             setIsPlaying(false);
             setIsPaused(true);
             return;
         }
 
-        // 3. Start New
+        // New Play
         setIsPlaying(true);
-
-        // Refresh voices just in case (Android fix)
-        // If voicesRef is empty, try to get them
-        if (voicesRef.current.length === 0) {
-            const vs = window.speechSynthesis.getVoices();
-            if (vs.length > 0) {
-                setVoices(vs);
-                voicesRef.current = vs;
-            }
-        }
-
-        speakSentence(currentIndex);
+        playSentence(currentIndex);
     };
 
     const handleStop = () => {
-        window.speechSynthesis.cancel(); // Effectively stops the onend chain
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
         setIsPlaying(false);
         setIsPaused(false);
         setCurrentIndex(0);
     };
 
+    const handleRateChange = (newRate: number) => {
+        setRate(newRate);
+        if (audioRef.current) {
+            audioRef.current.playbackRate = newRate;
+        }
+    };
+
+    const handleVoiceChange = (newVoice: string) => {
+        setSelectedVoiceId(newVoice);
+        // Restart current sentence with new voice if playing
+        if (isPlaying) {
+            if (audioRef.current) audioRef.current.pause();
+            setTimeout(() => playSentence(currentIndex), 200);
+        }
+    };
+
     return (
-        <div className="flex flex-col gap-2 p-3 bg-secondary/30 rounded-lg border border-border/50 mb-6">
+        <div className="flex flex-col gap-3 p-4 bg-secondary/30 rounded-lg border border-border/50 mb-6 transition-all hover:bg-secondary/40">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className={cn("p-2 rounded-full transition-colors", isPlaying ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
-                        <Volume2 className={cn("h-4 w-4", isPlaying && "animate-pulse")} />
+                <div className="flex items-center gap-3">
+                    <div className={cn(
+                        "p-2.5 rounded-full transition-all duration-300",
+                        isPlaying ? "bg-primary text-primary-foreground shadow-lg scale-105" : "bg-muted text-muted-foreground"
+                    )}>
+                        {isLoadingAudio ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                            <Volume2 className={cn("h-5 w-5", isPlaying && "animate-pulse")} />
+                        )}
                     </div>
                     <div>
-                        <span className="text-sm font-medium block">Read Aloud</span>
-                        {hasError && <span className="text-[10px] text-destructive leading-tight">Playback Error - Try System Default force</span>}
+                        <span className="text-sm font-semibold block text-foreground">
+                            {isLoadingAudio ? "Generating Audio..." : "Read Aloud"}
+                        </span>
+                        {hasError && <span className="text-[10px] text-destructive font-medium">Network Error - Check connection</span>}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                     <Button
-                        variant="ghost"
+                        variant={isPlaying ? "default" : "secondary"}
                         size="sm"
                         onClick={handlePlay}
-                        className={cn("h-8 w-8 rounded-full", isPlaying && "text-primary")}
+                        disabled={isLoadingAudio}
+                        className={cn("h-10 w-10 rounded-full shadow-sm transition-all", isPlaying && "ring-2 ring-primary/20")}
                     >
-                        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+                        {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 ml-0.5 fill-current" />}
                     </Button>
 
                     {(isPlaying || isPaused) && (
@@ -253,69 +238,57 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                             variant="ghost"
                             size="sm"
                             onClick={handleStop}
-                            className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive"
+                            className="h-10 w-10 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         >
-                            <Square className="h-3 w-3 fill-current" />
+                            <Square className="h-4 w-4 fill-current" />
                         </Button>
                     )}
                 </div>
             </div>
 
-            {(isPlaying || isPaused || isReady) && (
-                <div className="flex flex-col gap-2 px-1 pt-2">
-                    {/* Voice Selection - Only show if we found voices */}
-                    {voices.length > 0 && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground w-12 flex-shrink-0">Voice</span>
-                            <select
-                                className="flex-1 h-7 text-xs rounded-md border border-input bg-background px-2 py-1 max-w-[200px]"
-                                value={selectedVoiceName}
-                                onChange={(e) => {
-                                    const newVal = e.target.value;
-                                    setSelectedVoiceName(newVal);
-
-                                    // RESTART Playback if currently playing
-                                    if (isPlaying) {
-                                        window.speechSynthesis.cancel();
-                                        setTimeout(() => speakSentence(currentIndex), 100);
-                                    }
-                                }}
-                            >
-                                <option value="">System Default</option>
-                                {voices
-                                    .filter(v => v.lang.startsWith('en'))
-                                    .map(v => (
-                                        <option key={v.name} value={v.name}>
-                                            {v.name.replace(/Google |Microsoft /, '')}
-                                        </option>
-                                    ))}
-                            </select>
-                        </div>
-                    )}
-
-                    {/* Speed Control */}
-                    {(isPlaying || isPaused) && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground w-12 flex-shrink-0">Speed</span>
-                            <Slider
-                                value={[rate]}
-                                min={0.5}
-                                max={2}
-                                step={0.1}
-                                onValueChange={(vals) => setRate(vals[0])}
-                                className="flex-1"
-                            />
-                            <span className="text-xs font-mono w-8 text-right">{rate}x</span>
-                        </div>
-                    )}
+            {/* Controls (Voice & Speed) */}
+            <div className={cn(
+                "grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 transition-all duration-500 ease-in-out",
+                (isPlaying || isPaused || isLoadingAudio) ? "opacity-100 max-h-[200px]" : "opacity-100 max-h-[200px]" // Always show controls now for discovery
+            )}>
+                {/* Voice Selector */}
+                <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold ml-1">AI Voice</label>
+                    <select
+                        className="w-full h-9 text-sm rounded-md border border-input bg-background/50 hover:bg-background transition-colors px-3 py-1 shadow-sm focus:ring-1 focus:ring-primary"
+                        value={selectedVoiceId}
+                        onChange={(e) => handleVoiceChange(e.target.value)}
+                    >
+                        {AI_VOICES.map(v => (
+                            <option key={v.id} value={v.id}>{v.name}</option>
+                        ))}
+                    </select>
                 </div>
-            )}
+
+                {/* Speed Control */}
+                {(isPlaying || isPaused) && (
+                    <div className="space-y-1.5">
+                        <div className="flex justify-between items-center ml-1">
+                            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Speed</label>
+                            <span className="text-[10px] font-mono text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded">{rate}x</span>
+                        </div>
+                        <Slider
+                            value={[rate]}
+                            min={0.5}
+                            max={2}
+                            step={0.1}
+                            onValueChange={(vals) => handleRateChange(vals[0])}
+                            className="py-1"
+                        />
+                    </div>
+                )}
+            </div>
 
             {/* Progress Bar */}
             {isPlaying && sentences.length > 0 && (
-                <div className="h-1 w-full bg-secondary mt-2 rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-secondary mt-1 rounded-full overflow-hidden shadow-inner">
                     <div
-                        className="h-full bg-primary/50 transition-all duration-300"
+                        className="h-full bg-primary transition-all duration-300 ease-linear shadow-[0_0_10px_rgba(var(--primary),0.5)]"
                         style={{ width: `${(currentIndex / sentences.length) * 100}%` }}
                     />
                 </div>
