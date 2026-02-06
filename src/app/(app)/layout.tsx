@@ -206,20 +206,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Check for Premium Status removed to allow cross-platform access for Android users.
-    // We implicitly trust that if a user has an account (logged in), they should have access.
-    /*
+    // Check for Premium Status
+    // Strict Guard: If isPremium is NOT true, redirect.
+    // This blocks 'false' (unpaid) AND 'undefined' (legacy/broken state).
     if (!isUserLoading && !isProfileLoading && user && userProfile) {
       const isPaymentPage = pathname === '/payment-required';
       const isAndroid = /android/i.test(navigator.userAgent);
 
-      // If NOT premium and NOT already on payment page, kick them out.
-      // EXCEPTION: Allow Android devices to bypass this check to comply with Play Store policies.
-      if (userProfile.isPremium !== true && !isPaymentPage && !isAndroid) {
+      // Grandfather Clause: Allow all accounts created before Feb 7, 2026
+      const creationTime = user.metadata.creationTime ? new Date(user.metadata.creationTime) : new Date();
+      const isLegacyUser = creationTime < new Date('2026-02-07T00:00:00Z');
+
+      // AUTO-SYNC: If user is on Android, "bless" them as Premium.
+      // This ensures that if they bought the app (or are just using the Android version),
+      // their account gets upgraded so they can also use the Web version later.
+      if (isAndroid && userProfile.isPremium !== true) {
+        setDocumentNonBlocking(doc(firestore, `users/${user.uid}/profile/main`), {
+          isPremium: true
+        }, { merge: true });
+      }
+
+      // Access Rules:
+      // 1. Premium User (Paid)
+      // 2. Android Device (Bypass for Store Policy)
+      // 3. Legacy User (Grandfathered)
+      // 4. Payment Page (Always allowed)
+      const hasAccess = userProfile.isPremium === true || isAndroid || isLegacyUser || isPaymentPage;
+
+      if (!hasAccess) {
         router.replace('/payment-required');
       }
     }
-    */
   }, [user, isUserLoading, userProfile, isProfileLoading, router, pathname]);
 
   return (

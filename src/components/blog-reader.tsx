@@ -95,7 +95,9 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         setIsPaused(false);
     };
 
-    if (!isReady) return null;
+    // Always render, but maybe disable if not ready? 
+    // Actually, on mobile, 'isReady' checks might fail initially. Let's show it anyway.
+    // if (!isReady) return null;
 
     return (
         <div className="flex flex-col gap-2 p-3 bg-secondary/30 rounded-lg border border-border/50 mb-6">
