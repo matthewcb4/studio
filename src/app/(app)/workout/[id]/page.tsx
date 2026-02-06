@@ -1419,13 +1419,33 @@ export default function WorkoutSessionPage() {
                       </div>
                     )}
                     {unit === 'bodyweight' && (
-                      <div className="space-y-2">
-                        <WeightStepper
-                          value={state.weight ? parseFloat(state.weight) : 0}
-                          onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
-                          className="mb-4"
-                        />
-                        <div className="flex justify-center">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <WeightStepper
+                            value={state.weight ? parseFloat(state.weight) : 0}
+                            onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
+                          />
+                          <div className="flex justify-center px-4">
+                            <div className="space-y-1 w-full max-w-[200px]">
+                              <Label className="text-xs text-muted-foreground text-center block">Bodyweight %</Label>
+                              <Select
+                                value={state.bodyweightPercentage.toString()}
+                                onValueChange={(val) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, bodyweightPercentage: parseFloat(val) } })}
+                              >
+                                <SelectTrigger className="w-full h-8 text-xs bg-secondary/20 border-0">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0">Don't Include</SelectItem>
+                                  <SelectItem value="0.65">Partial 65% ({Math.round(latestWeight * 0.65)} lbs)</SelectItem>
+                                  <SelectItem value="1">Full 100% ({Math.round(latestWeight)} lbs)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-center pt-2 border-t border-border/40">
                           <NumberStepper
                             value={state.reps ? parseInt(state.reps) : 0}
                             onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, reps: v.toString() } })}
@@ -1434,22 +1454,6 @@ export default function WorkoutSessionPage() {
                             step={1}
                             label="Reps"
                           />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Bodyweight</Label>
-                          <Select
-                            value={state.bodyweightPercentage.toString()}
-                            onValueChange={(val) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, bodyweightPercentage: parseFloat(val) } })}
-                          >
-                            <SelectTrigger className="w-full h-9 text-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0">Don't Include</SelectItem>
-                              <SelectItem value="0.65">Partial 65% ({Math.round(latestWeight * 0.65)} lbs)</SelectItem>
-                              <SelectItem value="1">Full 100% ({Math.round(latestWeight)} lbs)</SelectItem>
-                            </SelectContent>
-                          </Select>
                         </div>
                       </div>
                     )}

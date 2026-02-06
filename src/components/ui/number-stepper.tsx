@@ -10,6 +10,7 @@ interface NumberStepperProps {
     min?: number;
     max?: number;
     step?: number;
+    holdStep?: number;
     label?: string;
     suffix?: string;
     className?: string;
@@ -22,6 +23,7 @@ export function NumberStepper({
     min = 0,
     max = 500,
     step = 1,
+    holdStep,
     label,
     suffix,
     className,
@@ -44,9 +46,13 @@ export function NumberStepper({
         if (isHolding) {
             timeoutRef.current = setTimeout(() => {
                 intervalRef.current = setInterval(() => {
-                    if (isHolding === 'inc') increment();
-                    else decrement();
-                }, 80);
+                    const currentStep = holdStep || step;
+                    if (isHolding === 'inc') onChange(Math.min(max, value + currentStep));
+                    else onChange(Math.max(min, value - currentStep));
+                    // Haptic on repeat too? Maybe overkill, let's keep it silent or very light.
+                    // User said "vibrations not working", so likely want feedback.
+                    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(5);
+                }, 100); // Slower interval for larger jumps? 100ms is standard.
             }, 300);
         }
 
@@ -54,10 +60,10 @@ export function NumberStepper({
             if (intervalRef.current) clearInterval(intervalRef.current);
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
         };
-    }, [isHolding, increment, decrement]);
+    }, [isHolding, value, onChange, max, min, step, holdStep]);
 
     const handleStart = (direction: 'inc' | 'dec') => {
-        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(20);
         setIsHolding(direction);
         if (direction === 'inc') increment();
         else decrement();
@@ -129,7 +135,7 @@ export function NumberStepper({
 // Helper for haptics
 const vibrate = () => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(10); // Light tap
+        navigator.vibrate(20); // Stronger tap
     }
 };
 
@@ -158,6 +164,7 @@ export function WeightStepper({ value, onChange, className }: { value: number; o
                 min={0}
                 max={500}
                 step={1}
+                holdStep={5}
                 label="Weight"
                 suffix="lbs"
                 size="large"
@@ -190,5 +197,5 @@ export function RepsStepper({ value, onChange, className }: { value: number; onC
 }
 
 export function DurationStepper({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
-    return <NumberStepper value={value} onChange={onChange} min={0} max={300} step={5} label="Duration" suffix="s" className={className} size="large" />;
+    return <NumberStepper value={value} onChange={onChange} min={0} max={300} step={5} holdStep={10} label="Duration" suffix="s" className={className} size="large" />;
 }
