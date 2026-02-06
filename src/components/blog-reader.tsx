@@ -22,8 +22,9 @@ export function BlogReader({ content, title }: BlogReaderProps) {
     // State for UI
     const [selectedVoiceName, setSelectedVoiceName] = useState<string>("");
 
-    // Ref for Playback Loop (Fixes "Voice Not Changing" bug)
+    // Refs to track latest state during recursive callbacks (Stale Closure Fix)
     const selectedVoiceRef = useRef<string>("");
+    const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
     // Queue state
     const [sentences, setSentences] = useState<string[]>([]);
@@ -31,10 +32,14 @@ export function BlogReader({ content, title }: BlogReaderProps) {
 
     const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-    // Sync state to ref
+    // Sync state to refs
     useEffect(() => {
         selectedVoiceRef.current = selectedVoiceName;
     }, [selectedVoiceName]);
+
+    useEffect(() => {
+        voicesRef.current = voices;
+    }, [voices]);
 
     // 1. Voice Loading & Polling (Fixes Android empty list)
     useEffect(() => {
@@ -45,9 +50,10 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         const loadVoices = () => {
             const vs = window.speechSynthesis.getVoices();
             setVoices(vs);
+            voicesRef.current = vs;
 
             // Smart select default ONLY if user hasn't picked one
-            if (vs.length > 0 && !selectedVoiceName) {
+            if (vs.length > 0 && !selectedVoiceRef.current) {
                 const preferred =
                     vs.find(v => v.name.includes("Google US English")) ||
                     vs.find(v => v.name.includes("Natural") && v.lang.startsWith("en")) ||
@@ -70,7 +76,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                 // If we found voices and existing list was empty, update!
                 setVoices(prev => {
                     if (prev.length === 0) {
-                        loadVoices();
+                        loadVoices(); // Load and sets refs
                         return vs;
                     }
                     return prev;
@@ -134,26 +140,22 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         const text = sentences[index];
         const utterance = new SpeechSynthesisUtterance(text);
 
-        // Use REF for latest voice logic
+        // Use REF for latest voices list (FIX for Android stale objects)
+        const currentVoices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
+
         if (selectedVoiceRef.current) {
-            const v = voices.find(val => val.name === selectedVoiceRef.current);
+            const v = currentVoices.find(val => val.name === selectedVoiceRef.current);
             if (v) utterance.voice = v;
         }
 
         utterance.rate = rate;
 
         utterance.onend = () => {
-            // Check if component unmounted or stopped? 
-            // We can check isPlaying via ref if we wanted, but the loop is recursive.
-            // Actually, if user hits stop, we cancel.
-
             const next = index + 1;
             setCurrentIndex(next);
             // Small delay between sentences sounds more natural
             setTimeout(() => {
                 if (window.speechSynthesis.paused && !window.speechSynthesis.pending) return;
-                // If canceled, global paused/pending state might not be enough reliable indicator across browsers,
-                // but typically cancel() stops onend firing or clears the queue.
                 speakSentence(next);
             }, 50); // 50ms pause
         };
@@ -204,9 +206,13 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         setIsPlaying(true);
 
         // Refresh voices just in case (Android fix)
-        if (voices.length === 0) {
+        // If voicesRef is empty, try to get them
+        if (voicesRef.current.length === 0) {
             const vs = window.speechSynthesis.getVoices();
-            if (vs.length > 0) setVoices(vs);
+            if (vs.length > 0) {
+                setVoices(vs);
+                voicesRef.current = vs;
+            }
         }
 
         speakSentence(currentIndex);
@@ -227,7 +233,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                         <Volume2 className={cn("h-4 w-4", isPlaying && "animate-pulse")} />
                     </div>
                     <div>
-                        <span className="text-sm font-medium block">Read Aloud</span>
+                        <span className="text-sm font-medium block">Read Aloud {voices.length === 0 && "(Loading voices...)"}</span>
                         {hasError && <span className="text-[10px] text-destructive leading-tight">Playback Error - Try System Default force</span>}
                     </div>
                 </div>
