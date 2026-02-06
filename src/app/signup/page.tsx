@@ -71,7 +71,7 @@ export default function SignupPage() {
         id: user.uid,
         email: user.email,
         displayName: form.getValues('name') || user.displayName || user.email,
-        displayName: form.getValues('name') || user.displayName || user.email,
+
         isPremium: /android/i.test(navigator.userAgent) || window.matchMedia('(display-mode: standalone)').matches,
       }, { merge: true });
 
