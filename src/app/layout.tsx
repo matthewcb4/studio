@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { IosInstallPrompt } from "@/components/ios-install-prompt";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" }); // Initialize Outfit
@@ -86,6 +87,7 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           <FirebaseClientProvider>{children}</FirebaseClientProvider>
+          <IosInstallPrompt />
           <Toaster />
         </ThemeProvider>
       </body>

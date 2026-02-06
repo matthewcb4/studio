@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, ArrowLeft, Download, Share2, ChevronRight } from 'lucide-react';
+import { BlogReader } from '@/components/blog-reader';
 
 export const dynamic = 'force-dynamic';
 
@@ -242,12 +243,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight">
                                 {post.title}
                             </h1>
-                            <div className="flex items-center gap-4 text-muted-foreground">
+                            <div className="flex items-center gap-4 text-muted-foreground mb-6">
                                 <span className="flex items-center gap-2">
                                     <Calendar className="h-4 w-4" />
                                     {formatDate(post.publishedAt)}
                                 </span>
                             </div>
+
+                            <BlogReader content={post.content} title={post.title} />
                         </header>
 
                         {/* Tags */}
