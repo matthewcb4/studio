@@ -18,6 +18,10 @@ export async function POST(req: NextRequest) {
 
         const endpoint = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
 
+        // DEBUG: Log key prefix to help identify which key is being used
+        const keyPrefix = apiKey.substring(0, 10);
+        console.log(`TTS: Using API Key starting with: ${keyPrefix}...`);
+
         const requestBody = {
             input: { text },
             voice: {
@@ -43,8 +47,9 @@ export async function POST(req: NextRequest) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error("TTS API Error:", errorData);
-            return NextResponse.json({ error: errorData.error?.message || 'TTS API Failed' }, { status: response.status });
+            console.error("TTS API Error - Full Details:", JSON.stringify(errorData, null, 2));
+            console.error(`TTS: Failed with key prefix: ${keyPrefix}...`);
+            return NextResponse.json({ error: errorData.error?.message || 'TTS API Failed', details: errorData }, { status: response.status });
         }
 
         const data = await response.json();
