@@ -197,5 +197,5 @@ export function RepsStepper({ value, onChange, className }: { value: number; onC
 }
 
 export function DurationStepper({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
-    return <NumberStepper value={value} onChange={onChange} min={0} max={300} step={5} holdStep={10} label="Duration" suffix="s" className={className} size="large" />;
+    return <NumberStepper value={value} onChange={onChange} min={0} max={300} step={1} holdStep={5} label="Duration" suffix="s" className={className} size="large" />;
 }

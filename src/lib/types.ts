@@ -23,6 +23,7 @@ export type WorkoutExercise = {
   reps: string; // e.g., "8-12" or "30"
   unit: 'reps' | 'seconds' | 'bodyweight' | 'reps-only'; // The unit for the 'reps' field value
   supersetId: string; // Used to group exercises into supersets
+  restTime?: number; // Rest duration in seconds
 };
 
 export type CustomWorkout = {

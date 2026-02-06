@@ -584,7 +584,7 @@ export default function WorkoutSessionPage() {
     // Auto-Rest Timer
     // Start timer if not the very last set of the workout (simplified: if not skipped)
     if (!skipped && state.currentSet < exercise.sets) {
-      const REST_DURATION = 90; // Default 90s, could be preference
+      const REST_DURATION = exercise.restTime || 90;
       setRestTimer({
         endTime: Date.now() + REST_DURATION * 1000,
         originalDuration: REST_DURATION
@@ -669,7 +669,7 @@ export default function WorkoutSessionPage() {
 
     // Auto-Rest Timer
     if (state.currentSet < exercise.sets) {
-      const REST_DURATION = 90;
+      const REST_DURATION = exercise.restTime || 90;
       setRestTimer({
         endTime: Date.now() + REST_DURATION * 1000,
         originalDuration: REST_DURATION

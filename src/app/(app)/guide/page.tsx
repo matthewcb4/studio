@@ -625,6 +625,7 @@ export default function GuidePage() {
             reps: ex.reps,
             unit: unit,
             supersetId: ex.supersetId,
+            restTime: parseInt(ex.rest) || 90,
           };
         })
       );
