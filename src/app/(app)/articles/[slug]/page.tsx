@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, ArrowLeft, Loader2, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { BlogReader } from '@/components/blog-reader';
 
 // Helper to render markdown (same as public blog)
 function renderMarkdown(content: string): string {
@@ -117,10 +118,15 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ slug: 
                         {typeof post.title === 'string' ? post.title : 'Untitled Article'}
                     </h1>
 
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
                         <Calendar className="h-4 w-4" />
                         <span>{formatDate(post.publishedAt)}</span>
                     </div>
+
+                    <BlogReader
+                        content={typeof post.content === 'string' ? post.content : ''}
+                        title={typeof post.title === 'string' ? post.title : ''}
+                    />
                 </header>
 
                 <div className="prose dark:prose-invert max-w-none">
