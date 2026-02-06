@@ -85,7 +85,7 @@ import { ShareWorkoutDialog } from '@/components/share-workout-dialog';
 import { checkPersonalRecord } from '@/lib/analytics';
 import { PlateCalculator } from '@/components/plate-calculator';
 import { VoiceLogModal } from '@/components/voice-log-modal';
-import { NumberStepper, HorizontalDial } from '@/components/ui/number-stepper';
+import { NumberStepper, WeightStepper, DurationStepper } from '@/components/ui/number-stepper';
 import { Combobox } from '@/components/ui/combobox';
 import {
   Accordion,
@@ -1389,14 +1389,10 @@ export default function WorkoutSessionPage() {
                   <>
                     {unit === 'reps' && (
                       <div className="space-y-2">
-                        <HorizontalDial
+                        <WeightStepper
                           value={state.weight ? parseFloat(state.weight) : 0}
                           onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
-                          min={0}
-                          max={500}
-                          step={2.5}
-                          label="Weight"
-                          suffix="lbs"
+                          className="mb-4"
                         />
                         <div className="flex justify-center">
                           <NumberStepper
@@ -1424,14 +1420,10 @@ export default function WorkoutSessionPage() {
                     )}
                     {unit === 'bodyweight' && (
                       <div className="space-y-2">
-                        <HorizontalDial
+                        <WeightStepper
                           value={state.weight ? parseFloat(state.weight) : 0}
                           onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, weight: v.toString() } })}
-                          min={0}
-                          max={100}
-                          step={2.5}
-                          label="+ Weight"
-                          suffix="lbs"
+                          className="mb-4"
                         />
                         <div className="flex justify-center">
                           <NumberStepper
@@ -1462,14 +1454,10 @@ export default function WorkoutSessionPage() {
                       </div>
                     )}
                     {unit === 'seconds' && (
-                      <HorizontalDial
+                      <DurationStepper
                         value={state.duration ? parseInt(state.duration) : 0}
                         onChange={(v) => setExerciseStates({ ...exerciseStates, [exercise.id]: { ...state, duration: v.toString() } })}
-                        min={0}
-                        max={300}
-                        step={5}
-                        label="Duration"
-                        suffix="s"
+                        className="mb-4"
                       />
                     )}
                   </>
