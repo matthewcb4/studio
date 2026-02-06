@@ -211,9 +211,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // This blocks 'false' (unpaid) AND 'undefined' (legacy/broken state).
     if (!isUserLoading && !isProfileLoading && user && userProfile) {
       const isPaymentPage = pathname === '/payment-required';
+      const isAndroid = /android/i.test(navigator.userAgent);
 
       // If NOT premium and NOT already on payment page, kick them out.
-      if (userProfile.isPremium !== true && !isPaymentPage) {
+      // EXCEPTION: Allow Android devices to bypass this check to comply with Play Store policies.
+      if (userProfile.isPremium !== true && !isPaymentPage && !isAndroid) {
         router.replace('/payment-required');
       }
     }
