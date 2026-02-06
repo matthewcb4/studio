@@ -26,6 +26,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
     const [isLoadingAudio, setIsLoadingAudio] = useState(false);
     const [hasError, setHasError] = useState(false);
     const [rate, setRate] = useState(1);
+    const rateRef = useRef(1);
 
     // Default to the first high-quality voice
     const [selectedVoiceId, setSelectedVoiceId] = useState<string>(AI_VOICES[0].id);
@@ -43,7 +44,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         selectedVoiceRef.current = selectedVoiceId;
     }, [selectedVoiceId]);
 
-    // 1. Prepare Text Chunks
+    // 1. Prepare Text Chunks (Paragraph-based)
     useEffect(() => {
         if (!content) return;
 
@@ -53,20 +54,16 @@ export function BlogReader({ content, title }: BlogReaderProps) {
             .replace(/(\*|_)(.*?)\1/g, '$2')
             .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
             .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
-            .replace(/> /g, '')
-            .replace(/\n\n/g, '. ')
-            .replace(/\n/g, ' ');
+            .replace(/> /g, '');
 
-        const chunkRaw = clean.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g);
+        // Split by double newlines (paragraphs) instead of sentences
+        const paragraphs = clean.split(/\n\n+/);
 
-        if (chunkRaw) {
-            const chunks = [title, ...chunkRaw]
-                .map(s => s.trim())
-                .filter(s => s.length > 0);
-            setSentences(chunks);
-        } else {
-            setSentences([title, clean]);
-        }
+        const chunks = [title, ...paragraphs]
+            .map(s => s.trim().replace(/\n/g, ' ')) // Remove single newlines within paragraphs
+            .filter(s => s.length > 0);
+
+        setSentences(chunks);
 
         // Initialize Audio Element
         if (!audioRef.current) {
@@ -103,7 +100,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
 
             const text = sentences[index];
 
-            // Call our new API
+            // Call our filtered API
             const res = await fetch('/api/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -122,7 +119,9 @@ export function BlogReader({ content, title }: BlogReaderProps) {
             // Decode Base64
             const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
             audio.src = audioSrc;
-            audio.playbackRate = rate;
+
+            // CRITICAL FIX: Use ref for rate to ensure latest value is used during recursion
+            audio.playbackRate = rateRef.current;
 
             // Setup Listeners BEFORE playing
             audio.onended = () => {
@@ -156,6 +155,8 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         // Resume if paused
         if (isPaused && audioRef.current) {
             audioRef.current.play();
+            // Ensure rate is reapplied on resume
+            audioRef.current.playbackRate = rateRef.current;
             setIsPlaying(true);
             setIsPaused(false);
             return;
@@ -186,6 +187,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
 
     const handleRateChange = (newRate: number) => {
         setRate(newRate);
+        rateRef.current = newRate; // Update ref!
         if (audioRef.current) {
             audioRef.current.playbackRate = newRate;
         }
