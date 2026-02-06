@@ -206,9 +206,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Check for Premium Status
-    // Strict Guard: If isPremium is NOT true, redirect.
-    // This blocks 'false' (unpaid) AND 'undefined' (legacy/broken state).
+    // Check for Premium Status removed to allow cross-platform access for Android users.
+    // We implicitly trust that if a user has an account (logged in), they should have access.
+    /*
     if (!isUserLoading && !isProfileLoading && user && userProfile) {
       const isPaymentPage = pathname === '/payment-required';
       const isAndroid = /android/i.test(navigator.userAgent);
@@ -219,6 +219,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         router.replace('/payment-required');
       }
     }
+    */
   }, [user, isUserLoading, userProfile, isProfileLoading, router, pathname]);
 
   return (
