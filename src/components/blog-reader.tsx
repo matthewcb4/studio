@@ -18,13 +18,23 @@ export function BlogReader({ content, title }: BlogReaderProps) {
     const [hasError, setHasError] = useState(false);
     const [rate, setRate] = useState(1);
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+    // State for UI
     const [selectedVoiceName, setSelectedVoiceName] = useState<string>("");
+
+    // Ref for Playback Loop (Fixes "Voice Not Changing" bug)
+    const selectedVoiceRef = useRef<string>("");
 
     // Queue state
     const [sentences, setSentences] = useState<string[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+    // Sync state to ref
+    useEffect(() => {
+        selectedVoiceRef.current = selectedVoiceName;
+    }, [selectedVoiceName]);
 
     // 1. Voice Loading & Polling (Fixes Android empty list)
     useEffect(() => {
@@ -44,10 +54,6 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                     vs.find(v => v.lang === "en-US" && !v.name.includes("Microsoft")) ||
                     vs.find(v => v.lang.startsWith("en"));
 
-                // Don't force set if we want "System Default" to be an option, 
-                // but setting a 'good' default is usually better than a robotic system default.
-                // We'll leave it empty to start (System Default) unless we find a really good one?
-                // Actually, user complained about robotic voice. Let's try to pick a good one.
                 if (preferred) setSelectedVoiceName(preferred.name);
             }
         };
@@ -100,7 +106,6 @@ export function BlogReader({ content, title }: BlogReaderProps) {
             .replace(/\n/g, ' ');
 
         // Split by simple sentence delimiters. 
-        // This isn't perfect NLP but good enough to keep chunks small.
         const chunkRaw = clean.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g);
 
         if (chunkRaw) {
@@ -129,22 +134,26 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         const text = sentences[index];
         const utterance = new SpeechSynthesisUtterance(text);
 
-        // Voice selection
-        if (selectedVoiceName) {
-            const v = voices.find(val => val.name === selectedVoiceName);
+        // Use REF for latest voice logic
+        if (selectedVoiceRef.current) {
+            const v = voices.find(val => val.name === selectedVoiceRef.current);
             if (v) utterance.voice = v;
         }
 
         utterance.rate = rate;
 
         utterance.onend = () => {
-            // Move to next
+            // Check if component unmounted or stopped? 
+            // We can check isPlaying via ref if we wanted, but the loop is recursive.
+            // Actually, if user hits stop, we cancel.
+
             const next = index + 1;
             setCurrentIndex(next);
             // Small delay between sentences sounds more natural
             setTimeout(() => {
-                if (window.speechSynthesis.paused) return; // Don't continue if paused
-                // Check if still playing logic holds (we can't easily check state in timeout closure effectively without ref, but play loop handles it)
+                if (window.speechSynthesis.paused && !window.speechSynthesis.pending) return;
+                // If canceled, global paused/pending state might not be enough reliable indicator across browsers,
+                // but typically cancel() stops onend firing or clears the queue.
                 speakSentence(next);
             }, 50); // 50ms pause
         };
@@ -153,8 +162,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
             console.error("TTS Error", e);
             setHasError(true);
             // Try to skip to next even on error?
-            // Often 'interrupted' error happens on specific cancel, which is fine.
-            if (e.error !== 'interrupted') {
+            if (e.error !== 'interrupted' && e.error !== 'canceled') {
                 // skip
                 const next = index + 1;
                 setCurrentIndex(next);
@@ -205,7 +213,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
     };
 
     const handleStop = () => {
-        window.speechSynthesis.cancel(); // Effectively stops the onend chain too (mostly)
+        window.speechSynthesis.cancel(); // Effectively stops the onend chain
         setIsPlaying(false);
         setIsPaused(false);
         setCurrentIndex(0);
@@ -257,8 +265,10 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                                 className="flex-1 h-7 text-xs rounded-md border border-input bg-background px-2 py-1 max-w-[200px]"
                                 value={selectedVoiceName}
                                 onChange={(e) => {
-                                    setSelectedVoiceName(e.target.value);
-                                    // If playing, we should restart current sentence to apply effective change
+                                    const newVal = e.target.value;
+                                    setSelectedVoiceName(newVal);
+
+                                    // RESTART Playback if currently playing
                                     if (isPlaying) {
                                         window.speechSynthesis.cancel();
                                         setTimeout(() => speakSentence(currentIndex), 100);
@@ -295,7 +305,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                 </div>
             )}
 
-            {/* Progress Bar (Optional but nice for debugging/visuals) */}
+            {/* Progress Bar */}
             {isPlaying && sentences.length > 0 && (
                 <div className="h-1 w-full bg-secondary mt-2 rounded-full overflow-hidden">
                     <div
