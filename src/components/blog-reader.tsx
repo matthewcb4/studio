@@ -233,7 +233,7 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                         <Volume2 className={cn("h-4 w-4", isPlaying && "animate-pulse")} />
                     </div>
                     <div>
-                        <span className="text-sm font-medium block">Read Aloud {voices.length === 0 && "(Loading voices...)"}</span>
+                        <span className="text-sm font-medium block">Read Aloud</span>
                         {hasError && <span className="text-[10px] text-destructive leading-tight">Playback Error - Try System Default force</span>}
                     </div>
                 </div>
@@ -263,32 +263,35 @@ export function BlogReader({ content, title }: BlogReaderProps) {
 
             {(isPlaying || isPaused || isReady) && (
                 <div className="flex flex-col gap-2 px-1 pt-2">
-                    {/* Voice Selection - Show even if empty (fallback) */}
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground w-12 flex-shrink-0">Voice</span>
-                        <select
-                            className="flex-1 h-7 text-xs rounded-md border border-input bg-background px-2 py-1 max-w-[200px]"
-                            value={selectedVoiceName}
-                            disabled={voices.length === 0}
-                            onChange={(e) => {
-                                const newVal = e.target.value;
-                                setSelectedVoiceName(newVal);
-                                if (isPlaying) {
-                                    window.speechSynthesis.cancel();
-                                    setTimeout(() => speakSentence(currentIndex), 100);
-                                }
-                            }}
-                        >
-                            <option value="">{voices.length === 0 ? "System Default (No voices detected)" : "System Default"}</option>
-                            {voices
-                                .filter(v => v.lang.startsWith('en'))
-                                .map(v => (
-                                    <option key={v.name} value={v.name}>
-                                        {v.name.replace(/Google |Microsoft /, '')}
-                                    </option>
-                                ))}
-                        </select>
-                    </div>
+                    {/* Voice Selection - Only show if we found voices */}
+                    {voices.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-12 flex-shrink-0">Voice</span>
+                            <select
+                                className="flex-1 h-7 text-xs rounded-md border border-input bg-background px-2 py-1 max-w-[200px]"
+                                value={selectedVoiceName}
+                                onChange={(e) => {
+                                    const newVal = e.target.value;
+                                    setSelectedVoiceName(newVal);
+
+                                    // RESTART Playback if currently playing
+                                    if (isPlaying) {
+                                        window.speechSynthesis.cancel();
+                                        setTimeout(() => speakSentence(currentIndex), 100);
+                                    }
+                                }}
+                            >
+                                <option value="">System Default</option>
+                                {voices
+                                    .filter(v => v.lang.startsWith('en'))
+                                    .map(v => (
+                                        <option key={v.name} value={v.name}>
+                                            {v.name.replace(/Google |Microsoft /, '')}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                    )}
 
                     {/* Speed Control */}
                     {(isPlaying || isPaused) && (
