@@ -28,6 +28,10 @@ export function BlogReader({ content, title }: BlogReaderProps) {
     const [rate, setRate] = useState(1);
     const rateRef = useRef(1);
 
+    // Track mount status and timeouts
+    const isMounted = useRef(true);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     // Default to the first high-quality voice
     const [selectedVoiceId, setSelectedVoiceId] = useState<string>(AI_VOICES[0].id);
     const selectedVoiceRef = useRef<string>(AI_VOICES[0].id);
@@ -73,20 +77,33 @@ export function BlogReader({ content, title }: BlogReaderProps) {
 
     // Cleanup
     useEffect(() => {
+        isMounted.current = true;
         return () => {
+            isMounted.current = false;
+            // Clear any pending timeout
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            // Stop audio immediately
             if (audioRef.current) {
                 audioRef.current.pause();
+                audioRef.current.currentTime = 0;
                 audioRef.current.src = "";
+                audioRef.current.onended = null;
+                audioRef.current.onerror = null;
             }
         };
     }, []);
 
     // 2. Playback Logic (Buffer & Play)
     const playSentence = async (index: number) => {
+        // Stop if unmounted
+        if (!isMounted.current) return;
+
         if (index >= sentences.length) {
-            setIsPlaying(false);
-            setIsPaused(false);
-            setCurrentIndex(0);
+            if (isMounted.current) {
+                setIsPlaying(false);
+                setIsPaused(false);
+                setCurrentIndex(0);
+            }
             return;
         }
 
@@ -95,8 +112,10 @@ export function BlogReader({ content, title }: BlogReaderProps) {
         const audio = audioRef.current;
 
         try {
-            setIsLoadingAudio(true);
-            setHasError(false);
+            if (isMounted.current) {
+                setIsLoadingAudio(true);
+                setHasError(false);
+            }
 
             const text = sentences[index];
 
@@ -111,10 +130,16 @@ export function BlogReader({ content, title }: BlogReaderProps) {
                 })
             });
 
+            // Guard after async
+            if (!isMounted.current) return;
+
             if (!res.ok) throw new Error('TTS API Failed');
 
             const data = await res.json();
             if (!data.audioContent) throw new Error('No audio content');
+
+            // Guard after async
+            if (!isMounted.current) return;
 
             // Decode Base64
             const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
@@ -125,13 +150,15 @@ export function BlogReader({ content, title }: BlogReaderProps) {
 
             // Setup Listeners BEFORE playing
             audio.onended = () => {
+                if (!isMounted.current) return;
                 const next = index + 1;
                 setCurrentIndex(next);
-                // Tiny delay to prevent blocking
-                setTimeout(() => playSentence(next), 50);
+                // Tiny delay to prevent blocking - store in ref for cleanup
+                timeoutRef.current = setTimeout(() => playSentence(next), 50);
             };
 
             audio.onerror = (e) => {
+                if (!isMounted.current) return;
                 console.error("Audio Playback Error", e);
                 setHasError(true);
                 // Try skip?
@@ -141,13 +168,17 @@ export function BlogReader({ content, title }: BlogReaderProps) {
             };
 
             await audio.play();
-            setIsLoadingAudio(false);
+            if (isMounted.current) {
+                setIsLoadingAudio(false);
+            }
 
         } catch (err) {
-            console.error("TTS Fetch Error", err);
-            setHasError(true);
-            setIsLoadingAudio(false);
-            setIsPlaying(false);
+            if (isMounted.current) {
+                console.error("TTS Fetch Error", err);
+                setHasError(true);
+                setIsLoadingAudio(false);
+                setIsPlaying(false);
+            }
         }
     };
 
