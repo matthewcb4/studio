@@ -475,6 +475,17 @@ export default function WorkoutSessionPage() {
         ex.id === exerciseId ? { ...ex, unit: newUnit } : ex
       )
     );
+
+    // If switching to bodyweight, auto-set additional weight to 0 for convenience
+    if (newUnit === 'bodyweight') {
+      setExerciseStates(prev => ({
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          weight: '0'
+        }
+      }));
+    }
   };
 
   if (isLoadingWorkout || isLoadingPreferences) {
