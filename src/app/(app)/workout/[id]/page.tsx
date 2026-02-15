@@ -404,10 +404,13 @@ export default function WorkoutSessionPage() {
           // Only initialize exercises that don't have state yet
           if (!newStates[ex.id]) {
             const lastValues = lastExerciseValues[ex.exerciseId || ''] || { weight: '', reps: '' };
+            // Default bodyweight exercises to 0 (additional weight), others to last logged weight
+            const initialWeight = ex.unit === 'bodyweight' ? '0' : lastValues.weight;
+
             newStates[ex.id] = {
               currentSet: 1,
               logs: [],
-              weight: lastValues.weight,
+              weight: initialWeight,
               reps: lastValues.reps,
               duration: '',
               bodyweightPercentage: 0,
