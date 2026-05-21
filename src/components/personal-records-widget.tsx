@@ -136,35 +136,43 @@ export function PersonalRecordsWidget() {
           {prList.map((pr) => (
             <div 
               key={pr.exerciseName}
-              className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-all border border-border/50 shadow-sm"
+              className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-all border border-border/50 shadow-sm gap-3 sm:gap-2"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20">
+              {/* Left Side: Icon & Exercise Details */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 shrink-0">
                   <Award className="w-5 h-5 text-amber-500" />
                 </div>
-                <div className="flex flex-col max-w-[150px] sm:max-w-[200px]">
-                  <span className="text-sm font-semibold truncate">{pr.exerciseName}</span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-semibold truncate leading-snug">{pr.exerciseName}</span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                     <Calendar className="w-3 h-3 shrink-0" />
                     {format(pr.maxWeightDate, 'MMM d, yyyy')}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 text-right">
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-foreground">
+              {/* Right Side: PR Stats */}
+              <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 pt-2 sm:pt-0 border-border/30 shrink-0">
+                <div className="flex flex-col sm:text-right">
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider sm:hidden">
+                    Max Weight
+                  </span>
+                  <span className="text-sm font-bold text-foreground mt-0.5 sm:mt-0">
                     {pr.maxWeight} <span className="text-xs font-normal text-muted-foreground">lbs</span>
                   </span>
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider hidden sm:block">
                     Max Weight
                   </span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-primary">
+                <div className="flex flex-col sm:text-right">
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider sm:hidden">
+                    Best 1RM
+                  </span>
+                  <span className="text-sm font-bold text-primary mt-0.5 sm:mt-0">
                     {pr.max1RM} <span className="text-xs font-normal text-muted-foreground">lbs</span>
                   </span>
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider hidden sm:block">
                     Best 1RM
                   </span>
                 </div>
