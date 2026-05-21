@@ -41,7 +41,7 @@ const SuggestWorkoutSetupInputSchema = z.object({
 
 const SuggestWorkoutSetupOutputSchema = z.object({
   summary: z.string().describe("A short (2-3 sentences), encouraging summary with personality. Mix up your tone - sometimes be motivational, sometimes analytical, sometimes playful. Mention cardio if relevant."),
-  focusArea: z.array(z.string()).describe("The suggested primary muscle group(s) to focus on for the next workout. Use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'."),
+  focusArea: z.array(z.string()).describe("The suggested primary muscle group(s) to focus on for the next workout. Use top-level groups ('Upper Body', 'Lower Body', 'Full Body', 'Core') or more specific groups ('Chest', 'Back', 'Shoulders', 'Arms', 'Legs') depending on the split and goals."),
   supersetStrategy: z.enum(['focused', 'mixed']).describe("The suggested superset strategy."),
   workoutDuration: z.number().describe("The suggested workout duration in minutes."),
   intensityLevel: z.enum(['standard', 'high', 'brutal']).describe("The suggested intensity level based on recent training and recovery."),
@@ -114,26 +114,31 @@ const prompt = ai.definePrompt({
   - **2 days/week:** Full Body both days. Always suggest "Full Body".
   
   - **3 days/week (Push/Pull/Legs):**
-    - Day 1: Upper Body (Push focus - Chest, Shoulders, Triceps)
-    - Day 2: Upper Body (Pull focus - Back, Biceps) 
-    - Day 3: Lower Body (Legs, Glutes)
+    - Day 1: Push focus - suggest Chest, Shoulders, and Arms: ["Chest", "Shoulders", "Arms"]
+    - Day 2: Pull focus - suggest Back and Arms: ["Back", "Arms"]
+    - Day 3: Legs focus - suggest Legs: ["Legs"]
   
   - **4 days/week (Upper/Lower):**
-    - Day 1: Upper Body
-    - Day 2: Lower Body
-    - Day 3: Upper Body
-    - Day 4: Lower Body
+    - Day 1: Upper Body: ["Upper Body"]
+    - Day 2: Lower Body: ["Lower Body"]
+    - Day 3: Upper Body: ["Upper Body"]
+    - Day 4: Lower Body: ["Lower Body"]
   
   - **5 days/week:**
-    - Day 1: Upper Body (Push)
-    - Day 2: Lower Body
-    - Day 3: Upper Body (Pull)
-    - Day 4: Lower Body
-    - Day 5: Upper Body or Full Body
+    - Day 1: Push focus - suggest Chest, Shoulders, and Arms: ["Chest", "Shoulders", "Arms"]
+    - Day 2: Legs focus - suggest Legs: ["Legs"]
+    - Day 3: Pull focus - suggest Back and Arms: ["Back", "Arms"]
+    - Day 4: Legs focus - suggest Legs: ["Legs"]
+    - Day 5: Core or Full Body: ["Core"] or ["Full Body"]
   
   - **6+ days/week (Bro Split):**
-    - Rotate through: Chest, Back, Shoulders, Arms, Legs, Core
-    - Be more granular with focus areas
+    - Rotate through specific groups: Chest, Back, Shoulders, Arms, Legs, Core.
+    - Day 1: ["Chest"]
+    - Day 2: ["Back"]
+    - Day 3: ["Shoulders"]
+    - Day 4: ["Legs"]
+    - Day 5: ["Arms"]
+    - Day 6: ["Core"]
 
   **INTENSITY LEVEL SELECTION:**
   {{#if activeProgram}}
@@ -205,7 +210,7 @@ const prompt = ai.definePrompt({
   5.  **Select Intensity Level:** {{#if activeProgram}}Start with {{activeProgram.intensityModifier}} and adjust based on recovery.{{else}}Based on their recent training load, rest, and where they are in the week.{{/if}}
   6.  **Consider Cardio:** Look at recent cardio sessions and provide a cardioRecommendation if appropriate.
   7.  **Create a Suggestion:**
-      *   **Focus Area:** {{#if activeProgram}}Emphasize program's primary muscles ({{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}).{{else}}CRITICAL: Only use top-level groups like 'Upper Body', 'Lower Body', 'Full Body', or 'Core'.{{/if}}
+      *   **Focus Area:** {{#if activeProgram}}Emphasize program's primary muscles ({{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}).{{else}}Use appropriate groups from: 'Upper Body', 'Lower Body', 'Full Body', 'Core', 'Chest', 'Back', 'Shoulders', 'Arms', or 'Legs'. Choose granular focuses like 'Back', 'Chest', 'Shoulders', 'Arms', or 'Legs' if doing a 3-day split (Push/Pull/Legs) or a 5-day/6-day split (Bro split) to target muscles precisely!{{/if}}
       *   **Duration:** 45-60 minutes standard. Longer for mass goals, shorter for fat loss.
       *   **Superset Strategy:** Use 'mixed' for full-body or Upper Body days. Use 'focused' for Lower Body days.
       *   **Intensity Level:** Choose 'standard', 'high', or 'brutal' based on the guidelines above.

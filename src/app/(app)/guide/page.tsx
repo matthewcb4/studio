@@ -494,25 +494,27 @@ export default function GuidePage() {
     const newFocusArea: string[] = [];
     const suggestedAreas = suggestion.focusArea.map(area => area === 'Legs' ? 'Lower Body' : area);
 
-    suggestedAreas.forEach(area => {
-      if (topLevelGroups.includes(area)) {
-        newFocusArea.push(area);
-        const getChildrenAndGrandchildren = (parent: string): string[] => {
-          let allChildren: string[] = [];
-          const directChildren = muscleGroupHierarchy[parent as keyof typeof muscleGroupHierarchy];
-          if (directChildren) {
-            allChildren.push(...directChildren);
-            directChildren.forEach(child => {
-              allChildren.push(...getChildrenAndGrandchildren(child));
-            });
-          }
-          return allChildren;
-        };
-        newFocusArea.push(...getChildrenAndGrandchildren(area));
+    const getChildrenAndGrandchildren = (parent: string): string[] => {
+      let allChildren: string[] = [];
+      const directChildren = muscleGroupHierarchy[parent as keyof typeof muscleGroupHierarchy];
+      if (directChildren) {
+        allChildren.push(...directChildren);
+        directChildren.forEach(child => {
+          allChildren.push(...getChildrenAndGrandchildren(child));
+        });
       }
+      return allChildren;
+    };
+
+    suggestedAreas.forEach(area => {
+      newFocusArea.push(area);
+      newFocusArea.push(...getChildrenAndGrandchildren(area));
     });
 
-    form.setValue('focusArea', [...new Set(newFocusArea)]);
+    const allValidCheckboxMuscles = [...workoutTypes, ...muscleGroups, ...specificMuscles];
+    const filteredFocusArea = newFocusArea.filter(area => allValidCheckboxMuscles.includes(area));
+
+    form.setValue('focusArea', [...new Set(filteredFocusArea)]);
     form.setValue('supersetStrategy', suggestion.supersetStrategy);
     form.setValue('workoutDuration', suggestion.workoutDuration);
 
@@ -524,7 +526,7 @@ export default function GuidePage() {
     toast({
       title: "Suggestions Applied!",
       description: `Workout preferences updated. Intensity: ${suggestion.intensityLevel?.toUpperCase() || 'STANDARD'}`
-    })
+    });
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
