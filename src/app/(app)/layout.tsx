@@ -16,6 +16,7 @@ import {
   List,
   Bookmark,
   Trophy,
+  MessageSquare,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -47,6 +48,7 @@ import type { UserProfile } from "@/lib/types";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/coach-chat", icon: MessageSquare, label: "Coach Chat" },
   { href: "/guide", icon: Bot, label: "AI Guide" },
   { href: "/programs", icon: Bookmark, label: "Programs" },
   { href: "/workouts", icon: Dumbbell, label: "Workouts" },

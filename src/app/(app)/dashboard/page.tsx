@@ -52,6 +52,7 @@ import { QuickLogForm } from "@/components/quick-log-form";
 import { CardioLogForm } from "@/components/cardio-log-form";
 import { CardioStatsCard } from "@/components/cardio-stats-card";
 import { LiftingStatsCard } from "@/components/lifting-stats-card";
+import { PersonalRecordsWidget } from "@/components/personal-records-widget";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox } from "@/components/ui/combobox";
 import { Progress } from "@/components/ui/progress";
@@ -756,6 +757,8 @@ export default function DashboardPage() {
                     )}
 
                     <UserStatsCard userProfile={userProfile} />
+
+                    <PersonalRecordsWidget />
 
                     {/* Active Program Card */}
                     {activeProgram && (

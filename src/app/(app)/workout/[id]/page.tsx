@@ -87,6 +87,34 @@ import { PlateCalculator } from '@/components/plate-calculator';
 import { VoiceLogModal } from '@/components/voice-log-modal';
 import { NumberStepper, WeightStepper, DurationStepper } from '@/components/ui/number-stepper';
 import { Combobox } from '@/components/ui/combobox';
+import confetti from 'canvas-confetti';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+
+const triggerTimerFinishedAlerts = async (nextExerciseName?: string) => {
+  try {
+    await Haptics.impact({ style: ImpactStyle.Heavy });
+    setTimeout(async () => {
+      await Haptics.impact({ style: ImpactStyle.Heavy });
+    }, 150);
+  } catch (e) {
+    console.warn("Haptics not supported in this environment:", e);
+  }
+
+  try {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const message = nextExerciseName
+        ? `Rest is finished. Get ready for your next set of ${nextExerciseName}.`
+        : `Rest is finished. Time to get back to work.`;
+      const utterance = new SpeechSynthesisUtterance(message);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (e) {
+    console.warn("Speech synthesis error:", e);
+  }
+};
 import {
   Accordion,
   AccordionContent,
@@ -271,7 +299,7 @@ export default function WorkoutSessionPage() {
   }, [sessionLog, exerciseStates, elapsedTime, currentGroupIndex, isFinished, sessionStartTime, saveSession]);
 
   // Auto-Rest Timer State
-  const [restTimer, setRestTimer] = useState<{ endTime: number; originalDuration: number } | null>(null);
+  const [restTimer, setRestTimer] = useState<{ endTime: number; originalDuration: number; nextExerciseName?: string } | null>(null);
   const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
 
   // Exit Dialog State
@@ -326,7 +354,6 @@ export default function WorkoutSessionPage() {
     };
   }, [isFinished]);
 
-  // Timer Effect
   useEffect(() => {
     if (!restTimer) return;
 
@@ -335,7 +362,7 @@ export default function WorkoutSessionPage() {
       if (remaining <= 0) {
         setRestTimer(null);
         setRestTimeRemaining(0);
-        // Optional: Play a sound?
+        triggerTimerFinishedAlerts(restTimer.nextExerciseName);
         toast({ title: "Rest Finished!", description: "Time to get back to work." });
       } else {
         setRestTimeRemaining(remaining);
@@ -573,6 +600,15 @@ export default function WorkoutSessionPage() {
     if (!skipped && workoutHistory) {
       const prs = checkPersonalRecord(exercise.exerciseId, newLog, workoutHistory);
       if (prs) {
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        } catch (e) {
+          console.warn("Confetti animation failed", e);
+        }
         prs.forEach(pr => {
           // Add unique PRs to session tracking
           setSessionPRs(prev => {
@@ -601,7 +637,8 @@ export default function WorkoutSessionPage() {
       const REST_DURATION = exercise.restTime || 90;
       setRestTimer({
         endTime: Date.now() + REST_DURATION * 1000,
-        originalDuration: REST_DURATION
+        originalDuration: REST_DURATION,
+        nextExerciseName: exercise.exerciseName
       });
       setRestTimeRemaining(REST_DURATION);
     }
@@ -662,6 +699,15 @@ export default function WorkoutSessionPage() {
     if (workoutHistory) {
       const prs = checkPersonalRecord(exercise.exerciseId, newLog, workoutHistory);
       if (prs) {
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        } catch (e) {
+          console.warn("Confetti animation failed", e);
+        }
         prs.forEach(pr => {
           setSessionPRs(prev => {
             const exists = prev.some(p => p.type === pr.type && p.newValue === pr.newValue && p.exerciseId === exercise.exerciseId);
@@ -686,7 +732,8 @@ export default function WorkoutSessionPage() {
       const REST_DURATION = exercise.restTime || 90;
       setRestTimer({
         endTime: Date.now() + REST_DURATION * 1000,
-        originalDuration: REST_DURATION
+        originalDuration: REST_DURATION,
+        nextExerciseName: exercise.exerciseName
       });
       setRestTimeRemaining(REST_DURATION);
     }

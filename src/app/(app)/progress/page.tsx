@@ -63,6 +63,10 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { MuscleGroupVolumeChart } from '@/components/muscle-group-chart';
+import { calculate1RM } from '@/lib/analytics';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
 
 
 const weightLogSchema = z.object({
@@ -83,6 +87,7 @@ export default function ProgressPage() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | undefined>(undefined);
   const [isSubmittingWeight, setIsSubmittingWeight] = useState(false);
   const [dateRange, setDateRange] = useState('30');
+  const [metric, setMetric] = useState<'maxWeight' | 'estimated1RM'>('maxWeight');
 
   const workoutLogsQuery = useMemoFirebase(
     () => {
@@ -191,22 +196,85 @@ export default function ProgressPage() {
     // Find the exercise name for the selected ID (which is now the name itself)
     const selectedName = selectedExerciseId;
 
-    const data: { date: Date; maxWeight: number }[] = [];
+    const data: { date: Date; maxWeight: number; estimated1RM: number }[] = [];
     workoutLogs.forEach((log) => {
       const exerciseLog = (log.exercises || []).find(
         (e) => e.exerciseName === selectedName
       );
       if (exerciseLog) {
         const maxWeight = Math.max(0, ...exerciseLog.sets.map((s) => s.weight ?? 0));
+        const estimated1RM = Math.max(0, ...exerciseLog.sets.map((s) => calculate1RM(s.weight ?? 0, s.reps ?? 0)));
         data.push({
           date: new Date(log.date),
           maxWeight,
+          estimated1RM,
         });
       }
     });
 
     return data.sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [selectedExerciseId, workoutLogs]);
+
+  const allExercisesPRs = useMemo(() => {
+    if (!workoutLogs) return [];
+
+    const prMap = new Map<string, {
+      exerciseName: string;
+      maxWeight: number;
+      maxWeightDate: Date;
+      max1RM: number;
+      max1RMDate: Date;
+    }>();
+
+    workoutLogs.forEach(log => {
+      const logDate = new Date(log.date);
+      (log.exercises || []).forEach(ex => {
+        const name = ex.exerciseName;
+        ex.sets.forEach(set => {
+          if (set.type === 'warmup') return;
+          const weight = set.weight || 0;
+          const reps = set.reps || 0;
+          if (weight === 0 || reps === 0) return;
+
+          const est1RM = calculate1RM(weight, reps);
+          const existing = prMap.get(name);
+
+          if (!existing) {
+            prMap.set(name, {
+              exerciseName: name,
+              maxWeight: weight,
+              maxWeightDate: logDate,
+              max1RM: est1RM,
+              max1RMDate: logDate,
+            });
+          } else {
+            let updated = false;
+            const updates: any = {};
+
+            if (weight > existing.maxWeight) {
+              updates.maxWeight = weight;
+              updates.maxWeightDate = logDate;
+              updated = true;
+            }
+            if (est1RM > existing.max1RM) {
+              updates.max1RM = est1RM;
+              updates.max1RMDate = logDate;
+              updated = true;
+            }
+
+            if (updated) {
+              prMap.set(name, {
+                ...existing,
+                ...updates,
+              });
+            }
+          }
+        });
+      });
+    });
+
+    return Array.from(prMap.values()).sort((a, b) => a.exerciseName.localeCompare(b.exerciseName));
+  }, [workoutLogs]);
 
   const weightChartData = useMemo(() => {
     if (!progressLogs) return [];
@@ -223,6 +291,10 @@ export default function ProgressPage() {
     maxWeight: {
       label: 'Max Weight (lbs)',
       color: 'hsl(var(--primary))',
+    },
+    estimated1RM: {
+      label: 'Estimated 1RM (lbs)',
+      color: 'hsl(262.5 83.3% 57.8%)',
     },
   } satisfies ChartConfig;
 
@@ -404,26 +476,35 @@ export default function ProgressPage() {
             </AccordionTrigger>
             <AccordionContent>
               <CardContent className="space-y-4">
-                <div className="max-w-xs">
-                  <label className="text-sm font-medium">
-                    Select Exercise
-                  </label>
-                  <Select
-                    value={selectedExerciseId}
-                    onValueChange={setSelectedExerciseId}
-                    disabled={isLoadingExercises || !loggedExercises}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an exercise" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {loggedExercises?.map((exercise) => (
-                        <SelectItem key={exercise.name} value={exercise.name}>
-                          {exercise.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                  <div className="max-w-xs w-full">
+                    <label className="text-sm font-medium">
+                      Select Exercise
+                    </label>
+                    <Select
+                      value={selectedExerciseId}
+                      onValueChange={setSelectedExerciseId}
+                      disabled={isLoadingExercises || !loggedExercises}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an exercise" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {loggedExercises?.map((exercise) => (
+                          <SelectItem key={exercise.name} value={exercise.name}>
+                            {exercise.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <Tabs value={metric} onValueChange={(val) => setMetric(val as any)} className="w-full sm:w-auto">
+                    <TabsList className="grid w-full grid-cols-2 sm:w-[300px]">
+                      <TabsTrigger value="maxWeight">Max Weight</TabsTrigger>
+                      <TabsTrigger value="estimated1RM">Estimated 1RM</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
                 {isLoading && (
                   <div className="flex flex-col items-center justify-center p-12">
@@ -452,7 +533,7 @@ export default function ProgressPage() {
                           axisLine={false}
                         />
                         <YAxis
-                          dataKey="maxWeight"
+                          dataKey={metric}
                           domain={['dataMin - 10', 'dataMax + 10']}
                           axisLine={false}
                           tickLine={false}
@@ -463,10 +544,10 @@ export default function ProgressPage() {
                         />
                         <Line
                           type="monotone"
-                          dataKey="maxWeight"
-                          stroke="hsl(var(--primary))"
+                          dataKey={metric}
+                          stroke={metric === 'maxWeight' ? 'hsl(var(--primary))' : 'hsl(262.5 83.3% 57.8%)'}
                           strokeWidth={2}
-                          dot={{ r: 4, fill: 'hsl(var(--primary))' }}
+                          dot={{ r: 4, fill: metric === 'maxWeight' ? 'hsl(var(--primary))' : 'hsl(262.5 83.3% 57.8%)' }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -484,6 +565,72 @@ export default function ProgressPage() {
                         </CardDescription>
                       </CardHeader>
                     </div>
+                  )
+                )}
+              </CardContent>
+            </AccordionContent>
+          </Card>
+        </AccordionItem>
+
+        <AccordionItem value="pr-achievements" className="border-none">
+          <Card className="bg-gradient-to-br from-card to-amber-500/5 border border-amber-500/10">
+            <AccordionTrigger className="p-6 text-left">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  All-Time PR Achievements
+                </CardTitle>
+                <CardDescription className="mt-1.5 text-left">
+                  Your absolute personal bests across all logged lifts.
+                </CardDescription>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <CardContent>
+                {isLoading && <p>Loading achievements...</p>}
+                {!isLoading && allExercisesPRs.length > 0 ? (
+                  <div className="rounded-md border border-border/60 bg-card overflow-hidden shadow-sm">
+                    <Table>
+                      <TableHeader className="bg-muted/40">
+                        <TableRow>
+                          <TableHead className="font-semibold text-foreground">Exercise</TableHead>
+                          <TableHead className="text-right font-semibold text-foreground">Max Weight</TableHead>
+                          <TableHead className="text-right font-semibold text-foreground">Best Est. 1RM</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {allExercisesPRs.map((pr) => (
+                          <TableRow key={pr.exerciseName} className="hover:bg-muted/30 transition-colors">
+                            <TableCell className="font-medium">{pr.exerciseName}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex flex-col items-end">
+                                <span className="font-bold text-foreground">
+                                  {pr.maxWeight} <span className="text-xs font-normal text-muted-foreground">lbs</span>
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {format(pr.maxWeightDate, 'MMM d, yyyy')}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex flex-col items-end">
+                                <span className="font-bold text-primary">
+                                  {pr.max1RM} <span className="text-xs font-normal text-muted-foreground">lbs</span>
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {format(pr.max1RMDate, 'MMM d, yyyy')}
+                                </span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  !isLoading && (
+                    <p className="text-sm text-muted-foreground p-4 text-center border border-dashed rounded-md">
+                      No personal records achieved yet. Keep lifting heavy!
+                    </p>
                   )
                 )}
               </CardContent>

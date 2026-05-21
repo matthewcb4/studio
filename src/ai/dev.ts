@@ -3,4 +3,5 @@
 import "./flows/workout-guide-flow";
 import "./flows/find-exercise-video-flow";
 import "./flows/suggest-workout-flow";
+import "./flows/coach-chat-flow";
     
