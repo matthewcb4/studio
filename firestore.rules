@@ -143,6 +143,14 @@ service cloud.firestore {
         // OR allow the friend themselves to add/remove their own entry (reciprocal actions for friend requests/removals)
         allow create, update, delete: if isOwner(userId) || (isSignedIn() && friendId == request.auth.uid);
       }
+
+      /**
+       * @description Manages the user's persistent AI fitness coach chat history.
+       * @path /users/{userId}/coachChatMessages/{messageId}
+       */
+      match /coachChatMessages/{messageId} {
+        allow get, list, create, update, delete: if isOwner(userId);
+      }
     }
     
     /**
