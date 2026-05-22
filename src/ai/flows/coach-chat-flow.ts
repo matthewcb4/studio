@@ -56,7 +56,7 @@ const prompt = ai.definePrompt({
   **Coach**:`,
 });
 
-export const coachChatFlow = ai.defineFlow(
+const coachChatFlow = ai.defineFlow(
   {
     name: 'coachChatFlow',
     inputSchema: CoachChatInputSchema,
