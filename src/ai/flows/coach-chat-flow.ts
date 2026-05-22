@@ -72,7 +72,7 @@ const coachChatFlow = ai.defineFlow(
       history: enrichedHistory
     });
     if (!response.text) {
-      const reason = response.candidates?.[0]?.finishReason || 'unknown';
+      const reason = (response as any).candidates?.[0]?.finishReason || 'unknown';
       throw new Error(`AI Coach failed to generate a response (finish reason: ${reason}).`);
     }
     return response.text;
