@@ -9,6 +9,15 @@ const pwaConfig = {
   // By creating a static manifest.webmanifest, we can disable the dynamic generation.
   // This gives us full control and avoids pathing issues.
   manifest: undefined,
+  extendDefaultRuntimeCaching: true,
+  workboxOptions: {
+    runtimeCaching: [
+      {
+        urlPattern: /^https:\/\/.*\.googleapis\.com\/.*/i,
+        handler: 'NetworkOnly' as const,
+      },
+    ],
+  },
 };
 
 const nextConfig: NextConfig = {

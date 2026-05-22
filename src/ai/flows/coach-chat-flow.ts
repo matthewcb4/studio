@@ -8,7 +8,8 @@ import { z } from 'zod';
 
 const CoachChatMessageSchema = z.object({
   role: z.enum(['user', 'model']),
-  text: z.string()
+  text: z.string(),
+  senderName: z.string().optional()
 });
 
 const CoachChatInputSchema = z.object({
@@ -47,7 +48,7 @@ const prompt = ai.definePrompt({
 
   Here is the conversation history so far:
   {{#each history}}
-  - **{{#if (eq role "user")}}User{{else}}Coach{{/if}}**: {{{text}}}
+  - **{{{senderName}}}**: {{{text}}}
   {{/each}}
 
   Now, answer the user's latest message. Give highly helpful and coaching-oriented guidance. Do not use generic placeholders. Answer as 'fRepo Coach'.
@@ -63,7 +64,14 @@ const coachChatFlow = ai.defineFlow(
     outputSchema: z.string(),
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const enrichedHistory = input.history.map(m => ({
+      ...m,
+      senderName: m.role === 'user' ? 'User' : 'Coach'
+    }));
+    const { output } = await prompt({
+      ...input,
+      history: enrichedHistory
+    });
     return output!;
   }
 );
