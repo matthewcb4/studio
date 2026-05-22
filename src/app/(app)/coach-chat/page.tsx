@@ -2,15 +2,27 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, useDoc } from '@/firebase';
-import { collection, query, orderBy, doc, where } from 'firebase/firestore';
+import { collection, query, orderBy, doc, where, deleteDoc } from 'firebase/firestore';
 import { format, subDays } from 'date-fns';
-import { Bot, Send, Sparkles, MessageSquare, Loader2, Dumbbell, Calendar, Target, ArrowRight } from 'lucide-react';
+import { Bot, Send, Sparkles, MessageSquare, Loader2, Dumbbell, Calendar, Target, ArrowRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { askCoach } from '@/ai/flows/coach-chat-flow';
 import type { WorkoutLog, UserProfile, UserProgramEnrollment } from '@/lib/types';
 import { getProgramById } from '@/lib/program-data';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const SUGGESTIONS = [
   "How can I improve my Bench Press PR?",
@@ -67,7 +79,10 @@ export default function CoachChatPage() {
   const firestore = useFirestore();
   const [inputText, setInputText] = useState('');
   const [isCoachTyping, setIsCoachTyping] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   // 1. Fetch user profile
   const userProfileRef = useMemoFirebase(() =>
@@ -129,6 +144,39 @@ export default function CoachChatPage() {
     scrollToBottom();
   }, [persistentMessages, isCoachTyping]);
 
+  const handleInputFocus = () => {
+    // Wait for mobile virtual keyboard animation to complete (usually 150-300ms)
+    setTimeout(() => {
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      scrollToBottom();
+    }, 150);
+  };
+
+  const handleClearHistory = async () => {
+    if (!user || !persistentMessages || persistentMessages.length === 0) return;
+    setIsClearing(true);
+    try {
+      const deletePromises = persistentMessages.map(async (msg: any) => {
+        const msgRef = doc(firestore, `users/${user.uid}/coachChatMessages`, msg.id);
+        await deleteDoc(msgRef);
+      });
+      await Promise.all(deletePromises);
+      toast({
+        title: "Chat history cleared",
+        description: "Your conversation with the coach has been reset.",
+      });
+    } catch (error) {
+      console.error("Error clearing chat history: ", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to clear chat history. Please try again.",
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const handleSendMessage = async (textToSend: string) => {
     if (!user || !textToSend.trim() || isCoachTyping) return;
     
@@ -182,7 +230,7 @@ export default function CoachChatPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto h-[calc(100vh-8rem)]">
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto h-[calc(100dvh-7.5rem)] sm:h-[calc(100dvh-8rem)] md:h-[calc(100vh-8rem)]">
       {/* Header Panel */}
       <div className="flex items-center justify-between p-4 rounded-xl bg-card/45 border border-border/40 backdrop-blur-md shadow-md shrink-0">
         <div className="flex items-center gap-3">
@@ -201,19 +249,66 @@ export default function CoachChatPage() {
           </div>
         </div>
 
-        {/* Desktop Context badges */}
-        <div className="hidden sm:flex items-center gap-3">
-          {activeProgram?.program?.name && (
-            <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-full">
-              <Dumbbell className="w-3.5 h-3.5 shrink-0" />
-              <span className="font-medium truncate max-w-[120px]">{activeProgram.program.name}</span>
-            </div>
-          )}
-          {fitnessGoals.length > 0 && (
-            <div className="flex items-center gap-1 text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full">
-              <Target className="w-3.5 h-3.5 shrink-0" />
-              <span className="font-medium">{fitnessGoals[0]}</span>
-            </div>
+        <div className="flex items-center gap-3">
+          {/* Desktop Context badges */}
+          <div className="hidden sm:flex items-center gap-3">
+            {activeProgram?.program?.name && (
+              <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-full">
+                <Dumbbell className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-medium truncate max-w-[120px]">{activeProgram.program.name}</span>
+              </div>
+            )}
+            {fitnessGoals.length > 0 && (
+              <div className="flex items-center gap-1 text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full">
+                <Target className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-medium">{fitnessGoals[0]}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Clear Chat Action */}
+          {persistentMessages && persistentMessages.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-9 h-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors shrink-0"
+                  title="Clear chat history"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-background/95 border-border/60 backdrop-blur-md rounded-2xl max-w-[90vw] sm:max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-lg font-bold flex items-center gap-2 text-destructive">
+                    <Trash2 className="w-5 h-5" />
+                    Clear Chat History?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-muted-foreground text-sm pt-2">
+                    Are you sure you want to clear your entire conversation with **fRepo Coach**?
+                    This will permanently delete all messages from this window. You cannot undo this.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="mt-4 gap-2">
+                  <AlertDialogCancel className="rounded-xl border-border/60 hover:bg-muted/80">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearHistory}
+                    disabled={isClearing}
+                    className="rounded-xl bg-destructive hover:bg-destructive/90 text-white font-medium"
+                  >
+                    {isClearing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Clearing...
+                      </>
+                    ) : (
+                      "Clear Chat"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
@@ -345,6 +440,8 @@ export default function CoachChatPage() {
           className="flex items-center gap-2 pt-3 shrink-0"
         >
           <Input
+            ref={inputRef}
+            onFocus={handleInputFocus}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={isCoachTyping ? "Coach is thinking..." : "Message your coach..."}
