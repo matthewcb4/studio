@@ -48,6 +48,7 @@ import { HeatmapDetailModal } from "@/components/heatmap-detail-modal";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { FeatureDiscoveryCard } from "@/components/feature-discovery-card";
 import { MuscleGroupVolumeChart } from "@/components/muscle-group-chart";
+import { detectPlateaus } from "@/lib/plateau-detector";
 import { QuickLogForm } from "@/components/quick-log-form";
 import { CardioLogForm } from "@/components/cardio-log-form";
 import { CardioStatsCard } from "@/components/cardio-stats-card";
@@ -431,6 +432,10 @@ export default function DashboardPage() {
         });
     }, [allLogs, dateRange]);
 
+    const plateaus = useMemo(() => {
+        return allLogs ? detectPlateaus(allLogs) : [];
+    }, [allLogs]);
+
 
     const exercisesQuery = useMemoFirebase(() =>
         firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null,
@@ -755,6 +760,54 @@ export default function DashboardPage() {
                             />
                         </div>
                     )}
+
+                    {/* Strength Plateau Alert Cards */}
+                    {plateaus.map((plat, idx) => (
+                        <div key={idx} className="col-span-1 sm:col-span-2 lg:col-span-3">
+                            <Card className="relative overflow-hidden border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-yellow-600/5 to-background shadow-md">
+                                <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-amber-500/5 blur-xl pointer-events-none" />
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                            <TrendingDown className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-md sm:text-lg font-bold text-foreground">
+                                                Strength Plateau Detected: {plat.exerciseName}
+                                            </CardTitle>
+                                            <CardDescription className="text-xs text-amber-500/80 font-medium">
+                                                Your Epley 1RM has stagnated for 3 consecutive logged sessions
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="pb-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="space-y-1">
+                                            <p className="text-sm text-muted-foreground max-w-xl">
+                                                Stagnating on primary lifts indicates it's time for a strategic deload. Let our AI Coach design a custom breakthrough cycle for you.
+                                            </p>
+                                            <div className="flex items-center gap-1.5 pt-1">
+                                                <span className="text-3xs font-semibold text-muted-foreground uppercase tracking-wide">Historical 1RM:</span>
+                                                <span className="font-mono text-xs font-semibold text-muted-foreground line-through decoration-muted-foreground/60">{plat.recent1RMs[0]} lb</span>
+                                                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                                                <span className="font-mono text-xs font-semibold text-muted-foreground line-through decoration-muted-foreground/60">{plat.recent1RMs[1]} lb</span>
+                                                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                                                <span className="font-mono text-xs font-bold text-amber-500">{plat.recent1RMs[2]} lb</span>
+                                            </div>
+                                        </div>
+                                        <Button 
+                                            onClick={() => router.push(`/coach-chat?message=${encodeURIComponent(`Help me break through my ${plat.exerciseName} plateau with a deload cycle.`)}`)}
+                                            className="bg-amber-500 hover:bg-amber-600 text-black font-semibold text-xs h-9 px-4 rounded-lg shadow-sm shrink-0 flex items-center gap-1.5"
+                                        >
+                                            Unlock Lift
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    ))}
 
                     <UserStatsCard userProfile={userProfile} />
 

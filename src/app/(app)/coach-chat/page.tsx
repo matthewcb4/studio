@@ -83,6 +83,20 @@ export default function CoachChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  
+  // Load pre-seeded messages from query parameters (e.g. for plateaus)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const message = params.get('message');
+      if (message) {
+        setInputText(message);
+        // Clean the browser URL bar history to keep it tidy
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+    }
+  }, []);
 
   // 1. Fetch user profile
   const userProfileRef = useMemoFirebase(() =>

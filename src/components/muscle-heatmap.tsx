@@ -1,227 +1,62 @@
-
 'use client';
 
-import React, { useMemo, useEffect } from 'react';
-import Image from 'next/image';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import type { UserProfile, WorkoutLog, Exercise } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { differenceInDays } from 'date-fns';
-
 import { categoryToMuscleGroup } from '@/lib/muscle-mapping';
+import { SVGBody, muscleDisplayNames } from './svg-body';
 
-// Simplified coordinate system for heatmap points on the body outline
-// Values are percentages for top and left positioning.
-export const heatmapCoordinates: Record<'Male' | 'Female', Record<string, { top: string; left: string }>> = {
-  Male: {
-    // Front
-    shoulders_front: { top: '25.5%', left: '40%' },
-    chest: { top: '28%', left: '48%' },
-    abs: { top: '42%', left: '50%' },
-    biceps: { top: '25%', left: '33%' },
-    quads: { top: '58%', left: '43%' },
-    // Back
-    traps: { top: '24%', left: '48%' },
-    shoulders_back: { top: '25.5%', left: '40%' },
-    lats: { top: '35%', left: '45%' },
-    triceps: { top: '26%', left: '33%' },
-    glutes: { top: '50%', left: '50%' },
-    hamstrings: { top: '60%', left: '45%' },
-    calves: { top: '76%', left: '45%' },
-    back_lower: { top: '42%', left: '50%' },
-  },
-  Female: {
-    // Front - Refined coordinates
-    shoulders_front: { top: '25.5%', left: '41%' },
-    chest: { top: '29%', left: '50%' },
-    abs: { top: '41%', left: '50%' },
-    biceps: { top: '27%', left: '31%' },
-    quads: { top: '60%', left: '46%' },
-    // Back
-    traps: { top: '25%', left: '50%' },
-    shoulders_back: { top: '25.5%', left: '40%' },
-    lats: { top: '34%', left: '50%' },
-    triceps: { top: '30%', left: '35%' },
-    glutes: { top: '51%', left: '50%' },
-    hamstrings: { top: '68%', left: '50%' },
-    calves: { top: '78%', left: '45%' },
-    back_lower: { top: '42%', left: '50%' },
-  },
-};
-
-// Color scheme definitions for heatmap gradients
-// Each scheme defines colors at 0% (low), 50% (medium), and 100% (high) intensity
+// Keep standard definitions for type-safety and backward compatibility
 export type HeatmapColorScheme = 'classic' | 'sunset' | 'ocean' | 'monochrome' | 'neon';
 
 export const colorSchemes: Record<HeatmapColorScheme, { low: string; mid: string; high: string; label: string }> = {
   classic: {
-    low: 'hsl(240, 100%, 40%)',   // Blue
-    mid: 'hsl(100, 100%, 40%)',   // Green
-    high: 'hsl(0, 100%, 40%)',    // Red
+    low: 'hsl(240, 100%, 40%)',
+    mid: 'hsl(100, 100%, 40%)',
+    high: 'hsl(0, 100%, 40%)',
     label: '🔵 Classic (Blue → Green → Red)',
   },
   sunset: {
-    low: 'hsl(280, 80%, 45%)',    // Purple
-    mid: 'hsl(35, 100%, 50%)',    // Orange
-    high: 'hsl(350, 100%, 50%)',  // Pink-Red
+    low: 'hsl(280, 80%, 45%)',
+    mid: 'hsl(35, 100%, 50%)',
+    high: 'hsl(350, 100%, 50%)',
     label: '🌅 Sunset (Purple → Orange → Red)',
   },
   ocean: {
-    low: 'hsl(200, 80%, 35%)',    // Deep blue
-    mid: 'hsl(180, 70%, 45%)',    // Teal
-    high: 'hsl(160, 80%, 50%)',   // Aqua
+    low: 'hsl(200, 80%, 35%)',
+    mid: 'hsl(180, 70%, 45%)',
+    high: 'hsl(160, 80%, 50%)',
     label: '🌊 Ocean (Deep Blue → Teal → Aqua)',
   },
   monochrome: {
-    low: 'hsl(0, 0%, 40%)',       // Dark gray
-    mid: 'hsl(0, 0%, 55%)',       // Medium gray
-    high: 'hsl(0, 0%, 95%)',      // Near white
+    low: 'hsl(0, 0%, 40%)',
+    mid: 'hsl(0, 0%, 55%)',
+    high: 'hsl(0, 0%, 95%)',
     label: '⚪ Monochrome (Gray Scale)',
   },
   neon: {
-    low: 'hsl(180, 100%, 50%)',   // Cyan
-    mid: 'hsl(280, 100%, 60%)',   // Magenta
-    high: 'hsl(60, 100%, 50%)',   // Yellow
+    low: 'hsl(180, 100%, 50%)',
+    mid: 'hsl(280, 100%, 60%)',
+    high: 'hsl(60, 100%, 50%)',
     label: '💜 Neon (Cyan → Magenta → Yellow)',
   },
 };
 
-// Helper function to interpolate between three colors based on intensity
-function getColorForScheme(intensity: number, scheme: HeatmapColorScheme): string {
-  const colors = colorSchemes[scheme];
+// HeatPoint is kept as a legacy export to satisfy imports, but rendered as empty / no-op
+export const HeatPoint = () => null;
 
-  // Parse HSL values
-  const parseHSL = (hsl: string) => {
-    const match = hsl.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-    if (!match) return { h: 0, s: 0, l: 0 };
-    return { h: parseInt(match[1]), s: parseInt(match[2]), l: parseInt(match[3]) };
-  };
-
-  const low = parseHSL(colors.low);
-  const mid = parseHSL(colors.mid);
-  const high = parseHSL(colors.high);
-
-  let h: number, s: number, l: number;
-
-  if (intensity <= 0.5) {
-    // Interpolate between low and mid
-    const t = intensity * 2;
-    h = low.h + (mid.h - low.h) * t;
-    s = low.s + (mid.s - low.s) * t;
-    l = low.l + (mid.l - low.l) * t;
-  } else {
-    // Interpolate between mid and high
-    const t = (intensity - 0.5) * 2;
-    h = mid.h + (high.h - mid.h) * t;
-    s = mid.s + (high.s - mid.s) * t;
-    l = mid.l + (high.l - mid.l) * t;
-  }
-
-  return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
-}
-
-export const HeatPoint = ({ intensity, size, coords, bodyType, view, colorScheme = 'classic' }: {
-  intensity: number;
-  size: string;
-  coords: { top: string, left: string };
-  bodyType: 'Male' | 'Female';
-  view: 'front' | 'back';
-  colorScheme?: HeatmapColorScheme;
-}) => {
-  const muscle = Object.keys(heatmapCoordinates[bodyType]).find(key => heatmapCoordinates[bodyType][key] === coords);
-
-  const frontMirrored = ['chest', 'shoulders_front', 'biceps', 'quads'];
-  const backMirrored = ['traps', 'shoulders_back', 'lats', 'triceps', 'glutes', 'hamstrings', 'calves'];
-
-  let isMirrored = false;
-  if (view === 'front' && muscle && frontMirrored.includes(muscle)) {
-    isMirrored = true;
-  } else if (view === 'back' && muscle && backMirrored.includes(muscle)) {
-    isMirrored = true;
-  }
-
-  // Get color based on scheme and intensity
-  const color = getColorForScheme(intensity, colorScheme);
-
-  const renderPoints = () => {
-    const mainPoint = (
-      <div
-        className="absolute rounded-full"
-        style={{
-          top: coords.top,
-          left: coords.left,
-          width: size,
-          height: size,
-          background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-          transform: 'translate(-50%, -50%)',
-          opacity: Math.max(0.8, intensity * 0.9),
-          filter: `blur(6px)`,
-        }}
-      />
-    );
-
-    const mirroredPoint = isMirrored ? (
-      <div
-        className="absolute rounded-full"
-        style={{
-          top: coords.top,
-          left: `calc(100% - ${coords.left})`,
-          width: size,
-          height: size,
-          background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-          transform: 'translate(-50%, -50%)',
-          opacity: Math.max(0.8, intensity * 0.9),
-          filter: `blur(6px)`,
-        }}
-      />
-    ) : null;
-
-    if (view === 'front') {
-      // Double the layer for the front view to increase vibrancy
-      return (
-        <>
-          {mainPoint}
-          {mirroredPoint}
-          <div
-            className="absolute rounded-full"
-            style={{
-              top: coords.top,
-              left: coords.left,
-              width: `calc(${size} * 1.2)`, // Larger ambient glow
-              height: `calc(${size} * 1.2)`,
-              background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-              transform: 'translate(-50%, -50%)',
-              opacity: Math.max(0.6, intensity * 0.7),
-              filter: `blur(10px)`,
-            }}
-          />
-          {isMirrored && (
-            <div
-              className="absolute rounded-full"
-              style={{
-                top: coords.top,
-                left: `calc(100% - ${coords.left})`,
-                width: `calc(${size} * 1.2)`,
-                height: `calc(${size} * 1.2)`,
-                background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-                transform: 'translate(-50%, -50%)',
-                opacity: Math.max(0.6, intensity * 0.7),
-                filter: `blur(10px)`,
-              }}
-            />
-          )}
-        </>
-      );
-    }
-
-    return <>{mainPoint}{mirroredPoint}</>;
-  };
-
-  return <>{renderPoints()}</>;
-};
+// Kept for backward compatibility imports
+export const heatmapCoordinates: any = { Male: {}, Female: {} };
 
 export type MuscleGroupIntensities = Record<string, number>;
+
+export interface ExerciseContribution {
+  name: string;
+  volume: number;
+}
 
 interface MuscleHeatmapProps {
   userProfile?: UserProfile | null;
@@ -254,12 +89,13 @@ export function MuscleHeatmap({
   );
   const { data: masterExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesQuery);
 
-  const muscleGroupIntensities = useMemo(() => {
-    // If pre-calculated intensities are provided, use them directly
-    if (preCalculatedIntensities) {
-      return preCalculatedIntensities;
-    }
+  // Tooltip tracking states
+  const [hoveredMuscle, setHoveredMuscle] = useState<string | null>(null);
+  const [tooltipCoords, setTooltipCoords] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  // Compute intensities and exercise contributions
+  const heatmapData = useMemo(() => {
     const muscleGroupEffort: Record<string, number> = {
       chest: 0, back: 0, shoulders: 0, legs: 0, arms: 0, core: 0,
       quads: 0, hamstrings: 0, glutes: 0, calves: 0,
@@ -267,19 +103,21 @@ export function MuscleHeatmap({
       biceps: 0, triceps: 0, abs: 0, shoulders_front: 0, shoulders_back: 0,
     };
 
-    if (!thisWeeksLogs || !masterExercises) return muscleGroupEffort;
+    const contributionsMap: Record<string, Record<string, number>> = {};
+
+    if (!thisWeeksLogs || !masterExercises) {
+      return { intensities: {}, contributions: {} };
+    }
 
     const now = new Date();
 
     thisWeeksLogs.forEach(log => {
       const logDate = new Date(log.date);
       const daysSince = differenceInDays(now, logDate);
-      // Decay factor: fresher workouts have higher impact. 1 for today, 0.5 for yesterday, etc.
       const decayFactor = isSingleWorkout ? 1 : 1 / (daysSince + 1);
 
-      // Process cardio workouts with pre-calculated musclesWorked
+      // 1. Process Cardio Workouts
       if (log.musclesWorked) {
-        // Parse duration for cardio intensity scaling
         let minutes = 0;
         if (log.duration) {
           const durationStr = log.duration;
@@ -291,25 +129,26 @@ export function MuscleHeatmap({
           }
         }
 
-        // Scale cardio effort: 30 min session = ~5000 volume equivalent per target muscle
         const cardioBaseEffort = (minutes / 30) * 5000;
 
         for (const [muscle, multiplier] of Object.entries(log.musclesWorked)) {
           const effort = cardioBaseEffort * (multiplier as number) * decayFactor;
           muscleGroupEffort[muscle] = (muscleGroupEffort[muscle] || 0) + effort;
+
+          if (!contributionsMap[muscle]) contributionsMap[muscle] = {};
+          const cardioName = log.workoutName || 'Cardio Workout';
+          contributionsMap[muscle][cardioName] = (contributionsMap[muscle][cardioName] || 0) + effort;
         }
       }
 
-      // Process resistance training exercises
+      // 2. Process Resistance Exercises
       (log.exercises || []).forEach(loggedEx => {
         const masterEx = masterExercises.find(me => me.id === loggedEx.exerciseId);
+        if (!masterEx) return;
 
-        // Determine which muscle groups to credit for this exercise
         let muscleGroups: string[] = [];
 
-        // Priority 1: Use specific targetMuscles if available
-        if (masterEx?.targetMuscles && masterEx.targetMuscles.length > 0) {
-          // Map target muscle names to heatmap keys
+        if (masterEx.targetMuscles && masterEx.targetMuscles.length > 0) {
           const targetToHeatmap: Record<string, string[]> = {
             'Chest': ['chest'],
             'Upper Chest': ['chest'],
@@ -327,7 +166,7 @@ export function MuscleHeatmap({
             'Arms': ['biceps', 'triceps'],
             'Biceps': ['biceps'],
             'Triceps': ['triceps'],
-            'Forearms': ['biceps'], // Map to biceps for visualization
+            'Forearms': ['biceps'],
             'Legs': ['quads', 'hamstrings', 'glutes', 'calves'],
             'Quads': ['quads'],
             'Hamstrings': ['hamstrings'],
@@ -341,35 +180,21 @@ export function MuscleHeatmap({
 
           masterEx.targetMuscles.forEach(muscle => {
             const mapped = targetToHeatmap[muscle];
-            if (mapped) {
-              muscleGroups.push(...mapped);
-            }
+            if (mapped) muscleGroups.push(...mapped);
           });
-          // Remove duplicates
           muscleGroups = [...new Set(muscleGroups)];
-        }
-        // Priority 2: Fall back to category mapping
-        else if (masterEx?.category) {
+        } else if (masterEx.category) {
           muscleGroups = categoryToMuscleGroup[masterEx.category] || [];
         }
 
         if (muscleGroups.length > 0) {
-          // Volume calculation (Weight * Reps)
           const totalEffort = loggedEx.sets.reduce((sum, set) => {
-            // If weight is present, use Volume Load
             if (set.weight && set.weight > 0) {
               return sum + (set.weight * (set.reps || 0));
             }
-            // If duration (cardio/static), estimate volume:
-            // 10 seconds ~ 1 rep. Assume 'bodyweight' equivalent or light load (e.g. 50lbs/rep equivalent for intensity)
             if (set.duration) {
-              const repEquivalent = Math.floor(set.duration / 10);
-              return sum + (repEquivalent * 30); // Arbitrary 30lbs "intensity" per rep-duration
+              return sum + (Math.floor(set.duration / 10) * 30);
             }
-
-            // Bodyweight reps (no weight logged)
-            // Assume a baseline weight for bodyweight exercises to make them show up compared to weighted ones.
-            // e.g. 50 lbs effective resistance
             return sum + ((set.reps || 0) * 40);
           }, 0);
 
@@ -377,6 +202,9 @@ export function MuscleHeatmap({
 
           muscleGroups.forEach(group => {
             muscleGroupEffort[group] = (muscleGroupEffort[group] || 0) + decayedEffort;
+
+            if (!contributionsMap[group]) contributionsMap[group] = {};
+            contributionsMap[group][masterEx.name] = (contributionsMap[group][masterEx.name] || 0) + decayedEffort;
           });
         }
       });
@@ -384,11 +212,8 @@ export function MuscleHeatmap({
 
     let target = 0;
     if (isSingleWorkout) {
-      // For a single workout, the target is the max effort of any single muscle group in that workout.
-      target = Math.max(...Object.values(muscleGroupEffort));
+      target = Math.max(...Object.values(muscleGroupEffort), 1);
     } else {
-      // For multiple workouts (dashboard), use the weekly volume target.
-      // Approx: 3 workouts * 10k lbs volume = 30k
       const baselineWeeklyVolume = 10000;
       target = baselineWeeklyVolume;
       if (userProfile?.fatLossGoal === 'reduce_body_fat' || userProfile?.strengthGoal === 'improve_endurance') {
@@ -398,118 +223,155 @@ export function MuscleHeatmap({
       }
     }
 
-
-
     const intensities: MuscleGroupIntensities = {};
     for (const group in muscleGroupEffort) {
-      intensities[group] = target > 0
-        ? Math.min(muscleGroupEffort[group] / target, 1)
-        : 0;
+      intensities[group] = target > 0 ? Math.min(muscleGroupEffort[group] / target, 1) : 0;
     }
 
-    return intensities;
-  }, [thisWeeksLogs, masterExercises, userProfile, isSingleWorkout, preCalculatedIntensities]);
+    // Map contributions to a sorted list
+    const contributions: Record<string, ExerciseContribution[]> = {};
+    for (const group in contributionsMap) {
+      contributions[group] = Object.entries(contributionsMap[group])
+        .map(([name, volume]) => ({ name, volume: Math.round(volume) }))
+        .sort((a, b) => b.volume - a.volume);
+    }
+
+    return { intensities, contributions };
+  }, [thisWeeksLogs, masterExercises, userProfile, isSingleWorkout]);
+
+  // Merge pre-calculated values if applicable
+  const activeIntensities = preCalculatedIntensities || heatmapData.intensities;
 
   useEffect(() => {
     if (onIntensitiesChange) {
-      onIntensitiesChange(muscleGroupIntensities);
+      onIntensitiesChange(activeIntensities);
     }
-  }, [muscleGroupIntensities, onIntensitiesChange]);
+  }, [activeIntensities, onIntensitiesChange]);
 
   const bodyType = userProfile?.biologicalSex || 'Male';
-  const frontViewImages = {
-    Male: "/Male_Front.png",
-    Female: "/Female_Front.png"
+  const colorScheme = userProfile?.heatmapColorScheme || 'classic';
+
+  // Handle SVG muscle hovering to trigger tooltips
+  const handleMuscleHover = (muscleKey: string | null, e?: React.MouseEvent) => {
+    if (!muscleKey || !e || !containerRef.current) {
+      setHoveredMuscle(null);
+      setTooltipCoords(null);
+      return;
+    }
+
+    const bounds = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - bounds.left;
+    const y = e.clientY - bounds.top;
+
+    setHoveredMuscle(muscleKey);
+    setTooltipCoords({ x, y });
   };
-  const backViewImages = {
-    Male: "/Male_Back.png",
-    Female: "/Female_Back.png"
+
+  const handleMuscleClick = (muscleKey: string) => {
+    // If onViewClick is available, propagate to open the modal
+    if (onViewClick) {
+      const isFront = ['chest', 'abs', 'biceps', 'quads', 'shoulders_front'].includes(muscleKey);
+      onViewClick(isFront ? 'front' : 'back');
+    }
   };
 
   if (isLoading) {
-    return <div className="text-center p-8">Loading heatmap...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-slate-500">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+        <p className="text-sm">Generating vector heatmap...</p>
+      </div>
+    );
   }
 
-  // Reordered to render largest areas first
-  const frontMuscleGroups = ['abs', 'quads', 'chest', 'shoulders_front', 'biceps'];
-  const backMuscleGroups = ['lats', 'glutes', 'hamstrings', 'traps', 'back_lower', 'shoulders_back', 'triceps', 'calves'];
-
-
+  // Render front/back silhouettes
   const renderBodyView = (view: 'front' | 'back') => {
-    const bodyImageUrl = view === 'front' ? frontViewImages[bodyType] : backViewImages[bodyType];
-    const muscleGroupsToShow = view === 'front' ? frontMuscleGroups : backMuscleGroups;
-    const isClickable = !!onViewClick;
-    const viewContainer = (
-      <div className="relative w-full mx-auto">
-        {/* Layer 1: Background Color */}
-        <div className="absolute inset-0 bg-white z-0"></div>
-
-        {/* Layer 2: Heatmap Glows (shows through transparent body cutout) */}
-        <div className="absolute inset-0 z-10">
-          {muscleGroupsToShow.map((group) => {
-            const coords = heatmapCoordinates[bodyType]?.[group];
-            if (!coords) return null;
-
-            const intensity = muscleGroupIntensities[group] || 0;
-            if (intensity === 0) return null;
-
-            let size = '18%';
-            if (group === 'glutes' || group === 'quads') {
-              size = '25%';
-            } else if (group === 'lats' || group === 'abs') {
-              size = '45%';
-            } else if (group === 'chest') {
-              size = '20%';
-            } else if (group === 'shoulders_front' || group === 'shoulders_back') {
-              size = '10%';
-            }
-
-            return <HeatPoint key={`${view}-${group}`} intensity={intensity} size={size} coords={coords} bodyType={bodyType} view={view} colorScheme={userProfile?.heatmapColorScheme || 'classic'} />;
-          })}
-        </div>
-
-        {/* Layer 3: Main body outline PNG (on top, with transparent body cutout) */}
-        <Image
-          src={bodyImageUrl}
-          alt={`${bodyType} body ${view} view`}
-          width={200}
-          height={355}
-          className="relative object-contain z-20 w-full h-auto"
-          unoptimized
+    return (
+      <div className="w-1/2 max-w-[170px] relative transition-transform duration-300 hover:scale-[1.02]">
+        <h4 className="text-xs font-semibold text-center text-muted-foreground uppercase tracking-wider mb-2">
+          {view}
+        </h4>
+        <SVGBody
+          view={view}
+          biologicalSex={bodyType}
+          intensities={activeIntensities}
+          colorScheme={colorScheme}
+          onMuscleHover={handleMuscleHover}
+          onMuscleClick={handleMuscleClick}
+          selectedMuscle={hoveredMuscle}
         />
       </div>
     );
-    if (isClickable) {
-      return (
-        <button
-          onClick={() => onViewClick(view)}
-          className="transition-transform hover:scale-105"
-        >
-          {viewContainer}
-        </button>
-      );
-    }
-    return viewContainer;
-  }
+  };
 
   const content = (
-    <div className="flex justify-center items-start gap-2">
+    <div className="flex justify-center items-start gap-8 relative py-4">
       {renderBodyView('front')}
       {renderBodyView('back')}
+
+      {/* Floating Glassmorphic Tooltip */}
+      {hoveredMuscle && tooltipCoords && (
+        <div
+          className="absolute z-50 pointer-events-none p-3 bg-card/85 backdrop-blur-md border border-border/60 rounded-lg shadow-xl max-w-[200px] transition-all duration-150 animate-in fade-in zoom-in-95"
+          style={{
+            left: `${tooltipCoords.x + 15}px`,
+            top: `${tooltipCoords.y - 40}px`,
+          }}
+        >
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="font-bold text-xs text-foreground">
+              {muscleDisplayNames[hoveredMuscle] || hoveredMuscle}
+            </span>
+            <span className="font-semibold text-2xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+              {((activeIntensities[hoveredMuscle] || 0) * 100).toFixed(0)}%
+            </span>
+          </div>
+
+          {/* List of exercises contributing */}
+          <div className="space-y-1 mt-2 pt-1.5 border-t border-border/40">
+            <p className="text-3xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Top Exercises
+            </p>
+            {heatmapData.contributions[hoveredMuscle] && heatmapData.contributions[hoveredMuscle].length > 0 ? (
+              heatmapData.contributions[hoveredMuscle].slice(0, 3).map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center gap-2">
+                  <span className="text-2xs text-muted-foreground truncate max-w-[110px]">
+                    {item.name}
+                  </span>
+                  <span className="text-3xs font-mono text-foreground/80 font-medium">
+                    {item.volume.toLocaleString()} lb
+                  </span>
+                </div>
+              ))
+            ) : (
+              <span className="text-2xs text-muted-foreground italic">No sets logged</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 
   if (!isCard) {
-    return content;
+    return <div ref={containerRef} className="relative">{content}</div>;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Muscle Heatmap</CardTitle>
-        <CardDescription>Muscles worked in the {dateRangeLabel.toLowerCase()}. Click a view for details.</CardDescription>
+    <Card className="overflow-hidden border border-border/50 bg-gradient-to-br from-card to-background shadow-md">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-md sm:text-lg font-bold tracking-tight">Anatomical Fatigue Heatmap</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Interactive vector-shaded volume fatigue for the {dateRangeLabel.toLowerCase()}
+            </CardDescription>
+          </div>
+          <div className="text-2xs font-bold font-mono px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+            {bodyType}
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent ref={containerRef} className="relative pt-0 pb-4">
         {content}
       </CardContent>
     </Card>

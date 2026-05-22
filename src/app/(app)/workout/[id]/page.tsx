@@ -22,9 +22,11 @@ import {
   Plus,
   Undo2,
   Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import Image from 'next/image';
 import { syncWorkoutToHealthConnect } from '@/lib/health-connect';
+import { suggestExerciseSwaps } from '@/ai/flows/swap-exercise-flow';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -320,6 +322,12 @@ export default function WorkoutSessionPage() {
   // Remove Exercise Confirmation State
   const [exerciseToRemove, setExerciseToRemove] = useState<WorkoutExercise | null>(null);
 
+  // Swap Exercise States
+  const [swappingExercise, setSwappingExercise] = useState<WorkoutExercise | null>(null);
+  const [swapRecommendations, setSwapRecommendations] = useState<any[]>([]);
+  const [isSwappingLoading, setIsSwappingLoading] = useState(false);
+  const [swapError, setSwapError] = useState<string | null>(null);
+
   // Master exercises for quick add
   const masterExercisesQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'exercises'), orderBy('name', 'asc')) : null
@@ -494,6 +502,70 @@ export default function WorkoutSessionPage() {
     });
     setVideoResults({ exerciseId: '', videos: [] }); // Close dialog
     setSelectedVideo(null);
+  };
+
+  const handleInitiateSwap = async (exercise: WorkoutExercise) => {
+    setSwappingExercise(exercise);
+    setIsSwappingLoading(true);
+    setSwapError(null);
+    setSwapRecommendations([]);
+
+    try {
+      const masterEx = masterExercises?.find(me => me.id === exercise.exerciseId);
+      const targetMuscle = masterEx?.targetMuscles?.[0] || masterEx?.category || 'Chest';
+      
+      const goals = [
+        userProfile?.strengthGoal,
+        userProfile?.muscleGoal,
+        userProfile?.fatLossGoal
+      ].filter(Boolean) as string[];
+
+      const result = await suggestExerciseSwaps({
+        activeExercise: exercise.exerciseName,
+        targetMuscleGroup: targetMuscle,
+        availableEquipment: userProfile?.availableEquipment || [],
+        fitnessGoals: goals,
+      });
+
+      if (result.success && result.recommendations) {
+        setSwapRecommendations(result.recommendations);
+      } else {
+        setSwapError(result.error || "Failed to fetch swaps.");
+      }
+    } catch (err: any) {
+      setSwapError(err.message || err.toString());
+    } finally {
+      setIsSwappingLoading(false);
+    }
+  };
+
+  const handleConfirmSwap = (rec: any) => {
+    if (!swappingExercise) return;
+
+    const matchedMasterEx = masterExercises?.find(
+      me => me.name.toLowerCase() === rec.exerciseName.toLowerCase()
+    );
+
+    setSessionExercises(prev =>
+      prev.map(ex => {
+        if (ex.id === swappingExercise.id) {
+          return {
+            ...ex,
+            exerciseId: matchedMasterEx?.id || ex.exerciseId,
+            exerciseName: rec.exerciseName,
+          };
+        }
+        return ex;
+      })
+    );
+
+    toast({
+      title: "Exercise Swapped!",
+      description: `Replaced ${swappingExercise.exerciseName} with ${rec.exerciseName}.`,
+    });
+
+    setSwappingExercise(null);
+    setSwapRecommendations([]);
   };
 
   const handleUnitChange = (exerciseId: string, newUnit: WorkoutExercise['unit']) => {
@@ -1265,6 +1337,65 @@ export default function WorkoutSessionPage() {
         </DialogContent>
       </Dialog>
 
+      {/* AI Exercise Swap Dialog */}
+      <Dialog open={!!swappingExercise} onOpenChange={(open) => !open && setSwappingExercise(null)}>
+        <DialogContent className="sm:max-w-md w-full max-w-[95vw] p-6 border border-border/50 bg-gradient-to-br from-card to-background shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold tracking-tight">AI Coach Swaps</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {swappingExercise && `Finding premium biomechanically compatible swaps for: ${swappingExercise.exerciseName}`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isSwappingLoading ? (
+            <div className="flex flex-col items-center justify-center py-10 space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="text-sm text-slate-500 animate-pulse text-center">Analyzing biomechanical loading patterns...</p>
+            </div>
+          ) : swapError ? (
+            <div className="py-4 space-y-2">
+              <p className="text-sm text-destructive font-medium text-center">Error fetching recommendations</p>
+              <p className="text-xs text-muted-foreground text-center bg-destructive/10 border border-destructive/20 rounded-md p-3 font-mono">{swapError}</p>
+              <div className="flex justify-center pt-2">
+                <Button variant="outline" size="sm" onClick={() => swappingExercise && handleInitiateSwap(swappingExercise)}>
+                  Retry
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 my-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Coach Recommendations
+              </p>
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                {swapRecommendations.map((rec, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleConfirmSwap(rec)}
+                    className="w-full text-left p-4 rounded-xl border border-border/50 bg-secondary/20 hover:bg-secondary/40 hover:border-primary/40 active:scale-[0.99] transition-all duration-200 group flex flex-col space-y-2 shadow-sm"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                        {rec.exerciseName}
+                      </h4>
+                      <span className="text-3xs font-bold font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                        {rec.necessaryEquipment}
+                      </span>
+                    </div>
+                    <p className="text-2xs text-muted-foreground leading-relaxed">
+                      <span className="font-medium text-foreground">Loading:</span> {rec.muscleLoadComparison}
+                    </p>
+                    <p className="text-2xs italic text-muted-foreground/80 leading-relaxed pt-1 border-t border-border/20">
+                      💡 {rec.biomechanicalRationale}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <div className="space-y-6 max-w-2xl mx-auto">
         <div className="flex justify-between items-center">
           <AlertDialog open={isExitDialogOpen} onOpenChange={setIsExitDialogOpen}>
@@ -1421,6 +1552,9 @@ export default function WorkoutSessionPage() {
                     </CardDescription>
                   </div>
                   <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => handleInitiateSwap(exercise)} title="Swap Exercise" className="text-muted-foreground hover:text-primary">
+                      <RefreshCw className="h-5 w-5" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => setEditingExerciseId(isEditing ? null : exercise.id)}>
                       {isEditing ? <Save className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
                     </Button>
