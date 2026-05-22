@@ -76,6 +76,19 @@ const coachChatFlow = ai.defineFlow(
   }
 );
 
-export async function askCoach(input: z.infer<typeof CoachChatInputSchema>): Promise<string> {
-  return coachChatFlow(input);
+export async function askCoach(input: z.infer<typeof CoachChatInputSchema>): Promise<{
+  success: boolean;
+  reply?: string;
+  error?: string;
+}> {
+  try {
+    const reply = await coachChatFlow(input);
+    return { success: true, reply };
+  } catch (err: any) {
+    console.error("askCoach Server Action error:", err);
+    return {
+      success: false,
+      error: err.message || err.toString()
+    };
+  }
 }

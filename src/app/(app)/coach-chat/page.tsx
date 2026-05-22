@@ -200,7 +200,7 @@ export default function CoachChatPage() {
       }));
 
       // Call Genkit flow server action
-      const reply = await askCoach({
+      const result = await askCoach({
         history: chatHistory,
         latestMessage: textToSend,
         fitnessGoals,
@@ -208,20 +208,24 @@ export default function CoachChatPage() {
         recentWorkoutsSummary
       });
 
+      if (!result.success) {
+        throw new Error(result.error || "Failed to get response from AI coach.");
+      }
+
       // Save Coach Message to Firestore
       await addDocumentNonBlocking(messagesCollection, {
         role: 'model',
-        text: reply,
+        text: result.reply!,
         createdAt: new Date().toISOString()
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Coach Chat Error: ", error);
       // Fallback message inside Firestore
       const messagesCollection = collection(firestore, `users/${user.uid}/coachChatMessages`);
       await addDocumentNonBlocking(messagesCollection, {
         role: 'model',
-        text: "I apologize, but I ran into a connection issue while coaching. Let's try again! Keep your focus and stay hydrated.",
+        text: `I apologize, but I ran into an issue while coaching: ${error.message || error}`,
         createdAt: new Date().toISOString()
       });
     } finally {
