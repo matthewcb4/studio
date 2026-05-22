@@ -23,7 +23,6 @@ const CoachChatInputSchema = z.object({
 const prompt = ai.definePrompt({
   name: 'coachChatPrompt',
   input: { schema: CoachChatInputSchema },
-  output: { schema: z.string() },
   prompt: `You are an elite fitness coach AI named 'fRepo Coach'. You have a highly supportive, knowledgeable, and elite trainer personality. Your tone is motivational, professional, and empathetic. You write concisely, focusing on actionable advice, specific cues, and clear formatting.
 
   You are chatting with a user who uses your gym app daily. Use their goals and program context (if provided) to tailor your advice.
@@ -68,11 +67,15 @@ const coachChatFlow = ai.defineFlow(
       ...m,
       senderName: m.role === 'user' ? 'User' : 'Coach'
     }));
-    const { output } = await prompt({
+    const response = await prompt({
       ...input,
       history: enrichedHistory
     });
-    return output!;
+    if (!response.text) {
+      const reason = response.candidates?.[0]?.finishReason || 'unknown';
+      throw new Error(`AI Coach failed to generate a response (finish reason: ${reason}).`);
+    }
+    return response.text;
   }
 );
 
