@@ -234,22 +234,22 @@ export default function CoachChatPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto h-[calc(100dvh-7.5rem)] sm:h-[calc(100dvh-8rem)] md:h-[calc(100vh-8rem)]">
+    <div className="flex flex-col gap-2 sm:gap-6 max-w-4xl mx-auto h-[calc(100dvh-4.5rem)] sm:h-[calc(100dvh-8rem)] md:h-[calc(100vh-8rem)]">
       {/* Header Panel */}
-      <div className="flex items-center justify-between p-4 rounded-xl bg-card/45 border border-border/40 backdrop-blur-md shadow-md shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between p-2 sm:p-4 rounded-xl bg-card/45 border border-border/40 backdrop-blur-md shadow-md shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="relative">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center border border-amber-500/30">
-              <Bot className="w-6 h-6 text-white" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center border border-amber-500/30">
+              <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background animate-pulse" />
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full bg-emerald-500 border-2 border-background animate-pulse" />
           </div>
           <div>
-            <h1 className="text-xl font-bold flex items-center gap-1.5">
+            <h1 className="text-base sm:text-xl font-bold flex items-center gap-1 sm:gap-1.5">
               <span>fRepo Coach</span>
-              <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
             </h1>
-            <p className="text-xs text-muted-foreground">Your Elite Strength & Fitness Advisor</p>
+            <p className="text-[9px] sm:text-xs text-muted-foreground">Your Elite Strength & Fitness Advisor</p>
           </div>
         </div>
 
@@ -318,8 +318,8 @@ export default function CoachChatPage() {
       </div>
 
       {/* Chat History Viewport */}
-      <div className="flex-1 min-h-0 bg-card/30 rounded-2xl border border-border/40 backdrop-blur-md shadow-inner flex flex-col p-4">
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+      <div className="flex-1 min-h-0 bg-card/30 rounded-xl sm:rounded-2xl border border-border/40 backdrop-blur-md shadow-inner flex flex-col p-2 sm:p-4">
+        <div className="flex-1 overflow-y-auto space-y-2.5 sm:space-y-4 pr-1.5">
           {isLoadingMessages ? (
             <div className="flex h-full items-center justify-center gap-2">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -353,9 +353,9 @@ export default function CoachChatPage() {
             </div>
           ) : (
             /* Messages List */
-            <div className="space-y-4">
-              <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl flex items-start gap-2.5 max-w-2xl text-xs text-amber-600 dark:text-amber-400">
-                <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="space-y-2.5 sm:space-y-4">
+              <div className="p-2 sm:p-3 bg-amber-500/5 border border-amber-500/10 rounded-lg sm:rounded-xl flex items-start gap-1.5 sm:gap-2.5 max-w-full sm:max-w-2xl text-xs text-amber-600 dark:text-amber-400">
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold">Coaching Mode Active</p>
                   <p className="text-muted-foreground mt-0.5">
@@ -368,18 +368,18 @@ export default function CoachChatPage() {
                 const isUser = msg.role === 'user';
                 return (
                   <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`flex items-start gap-2.5 max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`flex items-start gap-1.5 sm:gap-2.5 max-w-[95%] sm:max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
                       {/* Avatar */}
-                      <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center font-bold text-xs ${
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full shrink-0 flex items-center justify-center font-bold text-xs ${
                         isUser 
                           ? 'bg-primary/20 border border-primary/20 text-primary' 
                           : 'bg-gradient-to-br from-amber-500 to-orange-600 text-white'
                       }`}>
-                        {isUser ? 'U' : <Bot className="w-4 h-4" />}
+                        {isUser ? 'U' : <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                       </div>
 
                       {/* Bubble */}
-                      <div className={`p-3.5 rounded-2xl shadow-sm ${
+                      <div className={`px-2.5 py-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl shadow-sm ${
                         isUser
                           ? 'bg-primary text-primary-foreground rounded-tr-none'
                           : 'bg-muted/70 text-foreground border border-border/40 rounded-tl-none'
@@ -403,11 +403,11 @@ export default function CoachChatPage() {
               {/* Typing Indicator */}
               {isCoachTyping && (
                 <div className="flex justify-start">
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-sm">
-                      <Bot className="w-4 h-4" />
+                  <div className="flex items-start gap-1.5 sm:gap-2.5">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full shrink-0 flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-sm">
+                      <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
-                    <div className="p-4 bg-muted/70 text-foreground border border-border/40 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1.5">
+                    <div className="px-3 py-2 sm:p-4 bg-muted/70 text-foreground border border-border/40 rounded-xl sm:rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1 sm:gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -422,7 +422,7 @@ export default function CoachChatPage() {
 
         {/* Quick suggestions above input if we already have messages */}
         {persistentMessages && persistentMessages.length > 0 && !isCoachTyping && (
-          <div className="flex items-center gap-2 overflow-x-auto py-2 shrink-0 border-t border-border/20 mt-2 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto py-1.5 sm:py-2 shrink-0 border-t border-border/20 mt-1 sm:mt-2 scrollbar-none">
             {SUGGESTIONS.slice(0, 3).map((topic) => (
               <button
                 key={topic}
@@ -441,7 +441,7 @@ export default function CoachChatPage() {
             e.preventDefault();
             handleSendMessage(inputText);
           }}
-          className="flex items-center gap-2 pt-3 shrink-0"
+          className="flex items-center gap-2 pt-2 sm:pt-3 shrink-0"
         >
           <Input
             ref={inputRef}
@@ -450,13 +450,13 @@ export default function CoachChatPage() {
             onChange={(e) => setInputText(e.target.value)}
             placeholder={isCoachTyping ? "Coach is thinking..." : "Message your coach..."}
             disabled={isCoachTyping}
-            className="flex-1 bg-background/50 border-border/60 hover:border-border transition-colors text-sm rounded-xl py-5"
+            className="flex-1 bg-background/50 border-border/60 hover:border-border transition-colors text-sm rounded-xl py-2 sm:py-4 h-10 sm:h-12"
           />
           <Button
             type="submit"
             size="icon"
             disabled={!inputText.trim() || isCoachTyping}
-            className="w-10 h-10 rounded-xl bg-amber-500 hover:bg-amber-600 shadow-md transition-all shrink-0 text-white"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-500 hover:bg-amber-600 shadow-md transition-all shrink-0 text-white"
           >
             <Send className="w-4 h-4" />
           </Button>
