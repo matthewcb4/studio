@@ -47,7 +47,9 @@ const getHue = (intensity: number) => {
 
 export function HeatmapDetailModal({ isOpen, onOpenChange, view, intensities, userProfile }: HeatmapDetailModalProps) {
   const bodyType = userProfile?.biologicalSex || 'Male';
-  const imageUrl = view === 'front' ? `/Male_Front.png` : `/Male_Back.png`;
+  const imageUrl = view === 'front' 
+    ? (bodyType === 'Female' ? '/Female_Front.png' : '/Male_Front.png')
+    : (bodyType === 'Female' ? '/Female_Back.png' : '/Male_Back.png');
   
   if (!isOpen) return null;
 
