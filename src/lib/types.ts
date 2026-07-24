@@ -7,6 +7,7 @@ export type Exercise = {
   activityType?: ActivityType;        // Defaults to 'resistance'
   isCardioActivity?: boolean;         // For run, walk, cycle pseudo-exercises
   defaultUnit?: 'reps' | 'seconds' | 'bodyweight' | 'reps-only';
+  equipment?: string[];               // Equipment needed for this exercise (e.g. ['Dumbbells', 'Adjustable Bench'])
 };
 
 export type UserExercisePreference = {

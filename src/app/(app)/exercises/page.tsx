@@ -253,6 +253,7 @@ export default function ExercisesPage() {
     const searchParams = useSearchParams();
 
     const [isSeeding, setIsSeeding] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
     const [exerciseFilter, setExerciseFilter] = useState('');
     const [videoResults, setVideoResults] = useState<{ exerciseId: string; videos: FindExerciseVideoOutput['videos'] }>({ exerciseId: '', videos: [] });
     const [findingVideoFor, setFindingVideoFor] = useState<string | null>(null);
@@ -391,6 +392,29 @@ export default function ExercisesPage() {
         }
     }
 
+    const handleClearDatabase = async () => {
+        if (!firestore) return;
+        setIsClearing(true);
+        try {
+            const exercisesRef = collection(firestore, 'exercises');
+            const snapshot = await getDocs(exercisesRef);
+            const batch = writeBatch(firestore);
+            snapshot.docs.forEach(docSnap => {
+                batch.delete(docSnap.ref);
+            });
+            await batch.commit();
+            toast({
+                title: 'Library Cleared',
+                description: 'All exercises have been removed from your library.',
+            });
+        } catch (error) {
+            console.error("Error clearing database:", error);
+            toast({ title: 'Error', description: 'Failed to clear the database.', variant: 'destructive' });
+        } finally {
+            setIsClearing(false);
+        }
+    }
+
     const handleDeleteExercise = (exerciseId: string) => {
         if (!firestore) return;
         const exerciseDoc = doc(firestore, 'exercises', exerciseId);
@@ -441,14 +465,41 @@ export default function ExercisesPage() {
                         <p className="text-muted-foreground">Manage your exercise library and perform quick logs.</p>
                     </div>
                 </div>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={() => setIsAddDialogOpen(true)}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Add New
-                        </Button>
-                    </DialogTrigger>
-                    <ExerciseForm exercise={null} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setIsAddDialogOpen(false)} />
-                </Dialog>
+                <div className="flex gap-2">
+                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button onClick={() => setIsAddDialogOpen(true)}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add New
+                            </Button>
+                        </DialogTrigger>
+                        <ExerciseForm exercise={null} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setIsAddDialogOpen(false)} />
+                    </Dialog>
+
+                    {!showSeedButton && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={isClearing}>
+                                    {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                    Clear Library
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action will permanently delete all exercises from your library. You can re-seed it with the default exercises at any time.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleClearDatabase} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                        Delete All
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+                </div>
             </div>
             <Dialog open={!!editingExercise} onOpenChange={(isOpen) => { if (!isOpen) setEditingExercise(null) }}>
                 <ExerciseForm exercise={editingExercise} categories={exerciseCategories} onSave={handleExerciseSave} onCancel={() => setEditingExercise(null)} />

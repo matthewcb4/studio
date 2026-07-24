@@ -22,6 +22,7 @@ const AvailableExerciseSchema = z.object({
   name: z.string().describe("Name of the exercise."),
   category: z.string().describe("Broad category (e.g., Back, Chest, Legs)."),
   targetMuscles: z.array(z.string()).optional().describe("Specific muscles targeted (e.g., Lats, Traps, Quads)."),
+  equipment: z.array(z.string()).optional().describe("Equipment required for this exercise (e.g., ['Dumbbells'])."),
 });
 
 // Active program context schema
@@ -61,6 +62,7 @@ const ExerciseSchema = z.object({
   supersetId: z.string().describe("Identifier to group exercises. Exercises with the same supersetId are performed back-to-back. Use 'superset_X', 'triset_X', or 'giant_X' for multi-exercise groups."),
   technique: z.string().optional().describe("Optional advanced technique like 'drop_set', 'pyramid', 'rest_pause', 'tempo_3-1-2', 'amrap', or 'mechanical_drop'."),
   notes: z.string().optional().describe("Optional coaching notes for the exercise, especially for advanced techniques."),
+  equipment: z.array(z.string()).optional().describe("The equipment required for this exercise (e.g., ['Dumbbells']). Must be from the user's available equipment list."),
 });
 
 const GenerateWorkoutOutputSchema = z.object({
@@ -81,21 +83,56 @@ const prompt = ai.definePrompt({
   output: { schema: GenerateWorkoutOutputSchema },
   prompt: `You are an expert fitness coach with a creative personality. Your task is to create a personalized workout routine that keeps training fresh, challenging, and engaging. You're known for creating workouts that break plateaus and keep athletes motivated.
 
-  User's available equipment: {{#each availableEquipment}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
-  User's fitness goals: {{#each fitnessGoals}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
-  User's fitness level: {{{fitnessLevel}}}
-  Desired workout duration: {{{workoutDuration}}} minutes
-  Focus area(s): {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
-  Superset Strategy: {{{supersetStrategy}}}
-  {{#if intensityLevel}}Intensity Level: {{{intensityLevel}}}{{/if}}
-  Workout Type: {{#if workoutType}}{{{workoutType}}}{{else}}resistance{{/if}}
-  Allow Supersets: {{#if allowSupersets}}true{{else}}{{#unless allowSupersets}}false{{else}}true{{/unless}}{{/if}}
+  **USER'S AVAILABLE EQUIPMENT (MANDATORY CONSTRAINT):**
+  The user has access to ONLY these pieces of equipment:
+  {{#each availableEquipment}}
+  - {{{this}}}
+  {{/each}}
+  
+  **CRITICAL EQUIPMENT CONSTRAINT:**
+  Every exercise you include in the workout MUST be performable using only the equipment listed above.
+  - If the user does not have access to "Barbell", you MUST NOT include any barbell exercises.
+  - If the user does not have access to "Dumbbells", you MUST NOT include any dumbbell exercises.
+  - If the user does not have access to "Cable Machine", you MUST NOT include any cable exercises.
+  - If the user only has access to "Bodyweight", you MUST generate a pure bodyweight/calisthenics workout.
+
+  **USER'S EXERCISE DATABASE (PREFER BUT CAN DYNAMICALLY EXTEND):**
+  Here are the exercises currently in the user's database that match their selected focus area and equipment:
+  {{#if availableExercises}}
+    {{#each availableExercises}}
+    - **{{name}}** ({{category}}){{#if targetMuscles}} → Targets: {{#each targetMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}
+    {{/each}}
+  {{else}}
+    The user has no matching exercises stored in their database.
+  {{/if}}
+  
+  **EXERCISE SELECTION RULES:**
+  1. PREFER selecting exercises from the database list above when they match your target muscles and training strategy.
+  2. You are FREE to dynamically generate new, biomechanically correct exercises not on the list if needed to add variety, keep the workout fresh, or target muscles in a unique way.
+  3. Any dynamically generated exercise MUST strictly utilize ONLY the available equipment (e.g., if "Dumbbells" are available, you can generate "Dumbbell Incline Fly" or "Dumbbell Row" even if they are not in the database).
+  4. For every exercise (whether from the database or dynamically generated), you must return the required equipment in the output \`equipment\` array.
+
+  **WORKOUT SPECIFICATION:**
+  - User's fitness goals: {{#each fitnessGoals}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  - User's fitness level: {{{fitnessLevel}}}
+  - Desired workout duration: {{{workoutDuration}}} minutes
+  - Focus area(s): {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  - Superset Strategy: {{{supersetStrategy}}}
+  - {{#if intensityLevel}}Intensity Level: {{{intensityLevel}}}{{/if}}
+  - Workout Type: {{#if workoutType}}{{{workoutType}}}{{else}}resistance{{/if}}
+  - Allow Supersets: {{#if allowSupersets}}true{{else}}{{#unless allowSupersets}}false{{else}}true{{/unless}}{{/if}}
 
   {{#if workoutHistory}}
-  Here is the user's recent workout history. CRITICALLY analyze this to avoid repeating the same exercises or workout styles. Create something FRESH and DIFFERENT:
+  **RECENT WORKOUT HISTORY (AVOID REPETITION):**
+  Analyze this history to avoid repeating the same exercises or workout structures. Create something fresh and different:
   {{#each workoutHistory}}
   - On {{date}}, they did "{{name}}" which included: {{exercises}}
   {{/each}}
+  
+  **VARIETY AND ANTI-REPETITION (CRITICAL):**
+  - Do NOT select exercises that the user performed in their recent workout history unless there are no other viable options for that muscle group and equipment setup.
+  - If they did "Dumbbell Bench Press" recently, choose "Incline Dumbbell Press", "Dumbbell Floor Press", "Chest Fly", or "Push-up" instead.
+  - Vary the structure (straight sets vs supersets vs tri-sets) to make the routine feel brand new.
   {{/if}}
   
   {{#if activeProgram}}
@@ -109,167 +146,42 @@ const prompt = ai.definePrompt({
   - **Program's Target Muscles:** {{#each activeProgram.primaryMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
   - **Coach Notes for This Week:** {{activeProgram.focusNotes}}
   
-  **PROGRAM CONTEXT RULES (IMPORTANT):**
-  1. **RESPECT THE USER'S SELECTED FOCUS AREA** - They chose: {{#each focusArea}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}. Generate a workout for THIS focus!
-  2. **Use the program's intensity modifier** - Apply {{activeProgram.intensityModifier}} intensity level
-  3. **Reference the program in naming** - E.g., "Week {{activeProgram.currentWeek}} Leg Builder ({{activeProgram.name}})" or "Recovery Legs - {{activeProgram.name}}"
-  4. **If focus matches program muscles** - This is a "program day"! Go hard on those muscles with the phase-specific techniques
-  5. **If focus is DIFFERENT from program muscles** - This is a "supporting workout" to maintain balance. Still apply program intensity but focus on the SELECTED muscles
-  {{/if}}
-
-  {{#if availableExercises}}
-  **📋 AVAILABLE EXERCISES (PREFER THESE!):**
-  The user has the following exercises in their database with specific target muscles. 
-  STRONGLY PREFER selecting from this list to ensure accurate muscle tracking:
-  
-  {{#each availableExercises}}
-  - **{{name}}** ({{category}}){{#if targetMuscles}} → Targets: {{#each targetMuscles}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}
-  {{/each}}
-  
-  **EXERCISE SELECTION PRIORITY:**
-  1. FIRST: Choose exercises from the available list above that match the focus/program muscles
-  2. SECOND: If you need an exercise not on the list, use standard exercise names
-  3. For each exercise, include 'targetMuscles' array with specific muscles (e.g., ['Lats', 'Traps'] not just ['Back'])
+  **PROGRAM CONTEXT RULES:**
+  1. RESPECT THE USER'S SELECTED FOCUS AREA: Generate a workout for the selected focus!
+  2. Use the program's intensity modifier ({{activeProgram.intensityModifier}}).
+  3. Reference the program in the workout name.
   {{/if}}
 
   Generate a complete workout routine including a workout name, a short description, and a list of exercises.
   
   **GRANULAR MUSCLE TARGETING (CRITICAL):**
   For EVERY exercise, you MUST include a 'targetMuscles' array with SPECIFIC muscles:
-  - Back exercises: Use ['Lats'], ['Traps'], ['Lower Back'], ['Rhomboids'] - NOT just ['Back']
-  - Leg exercises: Use ['Quads'], ['Hamstrings'], ['Glutes'], ['Calves'] - NOT just ['Legs']
-  - Shoulder exercises: Use ['Front Delts'], ['Side Delts'], ['Rear Delts'] - NOT just ['Shoulders']
-  - Arm exercises: Use ['Biceps'], ['Triceps'], ['Forearms'] - NOT just ['Arms']
-  - Core exercises: Use ['Abs'], ['Obliques'] - NOT just ['Core']
-  - Chest exercises: Use ['Chest'] (no subdivision needed)
-  
-  **WORKOUT VARIETY & PERSONALITY:**
-  To keep workouts engaging and prevent staleness, YOU MUST:
-  1. Vary the workout structure between sessions (don't always use the same superset patterns)
-  2. Give workouts creative, memorable names that reflect their character
-  3. Include different training styles across workouts
+  - Back: ['Lats'], ['Traps'], ['Lower Back'], ['Rhomboids']
+  - Legs: ['Quads'], ['Hamstrings'], ['Glutes'], ['Calves']
+  - Shoulders: ['Front Delts'], ['Side Delts'], ['Rear Delts']
+  - Arms: ['Biceps'], ['Triceps'], ['Forearms']
+  - Core: ['Abs'], ['Obliques']
+  - Chest: ['Chest']
 
-  **ADVANCED TRAINING TECHNIQUES (USE THESE TO ADD VARIETY!):**
+  **ADVANCED TRAINING TECHNIQUES (USE FOR VARIETY):**
+  - 🔥 **TRIPLE SETS (Tri-Sets):** 3 exercises targeting ONE muscle group, back-to-back (supersetId: "triset_X").
+  - 💧 **DROP SETS:** Set technique to 'drop_set'. Add notes explaining drop.
+  - 🏔️ **PYRAMID SETS:** Set technique to 'pyramid'. E.g. reps "15-12-10-8".
+  - ⚡ **GIANT SETS:** 4+ exercises for the same muscle group (supersetId: "giant_X").
+  - ⏱️ **REST-PAUSE SETS:** Set technique to 'rest_pause'.
+  - 🎯 **TEMPO TRAINING:** Set technique to 'tempo_3-1-2' (3s eccentric, 1s pause, 2s concentric).
+  - 💪 **AMRAP FINISHERS:** Set technique to 'amrap' as finisher.
   
-  🔥 **TRIPLE SETS (Tri-Sets):**
-  - Group 3 exercises targeting ONE muscle group, performed back-to-back
-  - Use supersetId like "triset_1" to group them
-  - Example: Incline Press → Flat Fly → Push-ups (all chest)
-  - Great for hypertrophy and pump
-  
-  💧 **DROP SETS:**
-  - Set 'technique' to 'drop_set'
-  - Add notes like "Drop weight 20-30% after failure, continue for 8-10 more reps"
-  - Best used on isolation or machine exercises
-  - Example: Lateral Raise with drop_set technique
-  
-  🏔️ **PYRAMID SETS:**
-  - Set 'technique' to 'pyramid'
-  - Reps should indicate the pattern like "15-12-10-8" or "8-10-12-10-8"
-  - Add notes explaining weight progression
-  
-  ⚡ **GIANT SETS:**
-  - Group 4+ exercises for the same muscle group
-  - Use supersetId like "giant_1"
-  - Maximum muscle fatigue and time efficiency
-  
-  ⏱️ **REST-PAUSE SETS:**
-  - Set 'technique' to 'rest_pause'
-  - Add notes like "After failure, rest 15s, continue for 3-4 more reps, repeat"
-  
-  🎯 **TEMPO TRAINING:**
-  - Set 'technique' to 'tempo_3-1-2' (3s eccentric, 1s pause, 2s concentric)
-  - Great for building mind-muscle connection and hypertrophy
-  
-  💪 **AMRAP FINISHERS:**
-  - Set 'technique' to 'amrap'
-  - Use as workout finishers with notes like "As many reps as possible in 60 seconds"
-  
-  🔄 **MECHANICAL DROP SETS:**
-  - Set 'technique' to 'mechanical_drop'
-  - Same weight, change angle/grip when fatigued
-  - Example: Close-grip bench → wide grip bench → push-ups (all same weight or bodyweight)
-
   **INTENSITY LEVEL GUIDELINES:**
-  {{#if intensityLevel}}
-  {{#ifEquals intensityLevel "standard"}}
-  - Use mostly straight sets and basic supersets
-  - Include 1-2 exercises with advanced techniques for variety
-  {{/ifEquals}}
-  {{#ifEquals intensityLevel "high"}}
-  - Include 2-3 advanced techniques throughout
-  - Use at least one tri-set or giant set
-  - Add a drop set finisher for the primary muscle group
-  {{/ifEquals}}
-  {{#ifEquals intensityLevel "brutal"}}
-  - EVERY major muscle group should have an advanced technique
-  - Use multiple drop sets, giant sets, and rest-pause sets
-  - Include tempo work and AMRAP finishers
-  - This should feel like a true challenge
-  {{/ifEquals}}
-  {{else}}
-  - Default to mixing 30% advanced techniques with 70% standard training
-  - Always include at least ONE tri-set or drop set to keep things interesting
-  {{/if}}
+  - **standard**: Mostly straight sets and basic supersets.
+  - **high**: 2-3 advanced techniques, at least one tri-set or giant set, drop set finisher.
+  - **brutal**: Every major muscle group has an advanced technique (giant sets, drop sets, AMRAP).
 
-  IMPORTANT: Do NOT generate duplicate exercises. For example, do not include both "Pull-up" and "Pull ups" in the same workout. Ensure every exercise name is unique.
+  For timed exercises (e.g. Planks), 'reps' should represent duration (e.g. "45s" or "30-60s"). For others, a rep range (e.g. "8-12").
+  Every exercise MUST have a unique \`supersetId\` (e.g. "superset_1" to group 2 exercises, "triset_1" for 3, or "group_1" for individual).
 
-  For each exercise, you MUST provide a 'category' from this specific list: Chest, Back, Shoulders, Legs, Arms, Core, Biceps, Triceps, Obliques.
-  
-  For timed exercises like Planks or Holds, the 'reps' field should represent the duration in seconds (e.g., "45s" or "30-60s"). For all other exercises, it should be a rep range (e.g., "8-12").
-
-  **GROUPING EXERCISES:**
-  - **Superset (2 exercises):** Use supersetId like "superset_1"
-  - **Tri-set (3 exercises):** Use supersetId like "triset_1"
-  - **Giant set (4+ exercises):** Use supersetId like "giant_1"
-  - **Individual exercises:** Use unique IDs like "group_1", "group_2"
-  - EVERY exercise MUST have a supersetId
-  
-  SUPERSET STRATEGY GUIDELINES:
-  - If Superset Strategy is 'focused': Create supersets/trisets where exercises target the SAME muscle group. This is great for pump and hypertrophy.
-  - If Superset Strategy is 'mixed': Pair exercises from DIFFERENT muscle groups (antagonist pairing). This is great for efficiency and active recovery.
-  
-  **SUPERSET TOGGLE RULES:**
-  - If "Allow Supersets" is FALSE: You MUST generate each exercise as a STANDALONE group. Do NOT combine exercises into supersets, tri-sets, or giant sets. Each exercise should have its own unique supersetId like "group_1", "group_2", "group_3", etc.
-  - If "Allow Supersets" is TRUE (default): You may group exercises as normal using supersets, tri-sets, and giant sets.
-  
-  **WORKOUT TYPE RULES (CRITICAL):**
-  - If "Workout Type" is 'calisthenics': Generate a 100% BODYWEIGHT workout. Use only calisthenics exercises:
-    * Push-ups (standard, diamond, archer, decline, wide)
-    * Pull-ups, Chin-ups, Inverted Rows
-    * Dips (parallel bars or bench)
-    * Squats (bodyweight, pistol, Bulgarian split squat)
-    * Lunges (forward, reverse, walking)
-    * Planks, L-Sits, Hollow Body Holds
-    * Burpees, Mountain Climbers
-    * Handstand Push-ups, Pike Push-ups
-    * Muscle-ups (for advanced)
-  - If "Workout Type" is 'resistance' (default): Use WEIGHTED exercises as the primary focus. You MAY include a few bodyweight exercises as warmups, finishers, or accessory work, but the majority of the workout should use weights/machines.
-  - IMPORTANT: "Bodyweight" as equipment does NOT mean generate an all-calisthenics workout. It means bodyweight exercises are AVAILABLE as an option alongside weighted exercises.
-
-  **CRITICAL - EXERCISE NAMING RULES:**
-  You MUST use EXACTLY these exercise names (case-sensitive, exact spelling). Do NOT create variations or add extra words:
-  
-  CHEST: Barbell Bench Press, Dumbbell Bench Press, Incline Dumbbell Press, Chest Fly, Push-up, Dip, Diamond Push-up, Archer Push-up, Decline Push-up, Wide Push-up
-  BACK: Pull-up, Lat Pulldown, Bent-over Row, Seated Cable Row, Deadlift, T-Bar Row, Chin-up, Inverted Row, Australian Pull-up, Negative Pull-up
-  LEGS: Barbell Squat, Goblet Squat, Lunge, Leg Press, Leg Extension, Hamstring Curl, Calf Raise, Pistol Squat, Bulgarian Split Squat, Nordic Curl, Box Jump, Jump Squat, Wall Sit
-  SHOULDERS: Overhead Press, Arnold Press, Lateral Raise, Front Raise, Face Pull, Shrug, Handstand Push-up, Handstand Hold, Pike Push-up
-  ARMS: Bicep Curl, Hammer Curl, Triceps Pushdown, Skull Crusher, Overhead Triceps Extension, Preacher Curl
-  CORE: Crunch, Plank, Leg Raise, Russian Twist, Ab Rollout, L-Sit, Hollow Body Hold, Dragon Flag, Hanging Leg Raise, Dead Bug, Bird Dog
-  FULL BODY: Muscle-up, Burpee, Mountain Climber
-  
-  If you need an exercise not on this list, use the closest match. NEVER create variations like "Close Grip Push-up" when "Diamond Push-up" exists.
-
-  The workout should be effective and safe. Only use the equipment specified by the user. The total workout time should be close to the desired duration.
-  
-  **WORKOUTSTYLE OPTIONS:** Choose one that best describes this workout: 'Strength Focus', 'Hypertrophy Pump', 'Intensity Techniques', 'Endurance Circuit', 'Power Building', 'Metabolic Conditioning', 'Classic Volume'.
-  
-  Give the workout a CREATIVE, MEMORABLE name that reflects its personality and style. Avoid generic names like "Upper Body Workout". Examples of good names:
-  - "The Shoulder Shredder"
-  - "Back Attack: Drop Set Devastation"
-  - "Chest Day Chaos"
-  - "Leg Day: Pyramid of Pain"
-  - "Arms Annihilation"
+  **WORKOUTSTYLE OPTIONS:** 'Strength Focus', 'Hypertrophy Pump', 'Intensity Techniques', 'Endurance Circuit', 'Power Building', 'Metabolic Conditioning', 'Classic Volume'.
+  Give the workout a CREATIVE, MEMORABLE name.
   `,
 });
 

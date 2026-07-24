@@ -28,6 +28,7 @@ import { collection, query, where, getDocs, doc, orderBy } from 'firebase/firest
 import { useToast } from '@/hooks/use-toast';
 import { MuscleHeatmap } from '@/components/muscle-heatmap';
 import type { UserEquipment, Exercise, WorkoutLog, UserProfile, WorkoutExercise, WorkoutLocation, UserProgramEnrollment } from '@/lib/types';
+import { seedExercises } from '@/lib/seed-data';
 import { getProgramById, getWeekProgression } from '@/lib/program-data';
 import { format, subDays, startOfWeek, parseISO as parseISODateFns } from 'date-fns';
 import {
@@ -257,7 +258,6 @@ export default function GuidePage() {
     "Abs", "Obliques",                        // Core muscles
   ];
 
-
   useEffect(() => {
     // This effect's sole job is to decide whether to fetch a new suggestion or use an existing one.
     const runSuggestionLogic = async () => {
@@ -341,11 +341,11 @@ export default function GuidePage() {
             name: activeProgram.program.name,
             currentWeek: activeProgram.currentWeek,
             totalWeeks: activeProgram.program.durationWeeks,
-            phase: activeProgram.weekProgression.phase,
-            primaryMuscles: activeProgram.program.primaryMuscles,
-            muscleEmphasis: activeProgram.program.muscleEmphasis,
-            intensityModifier: activeProgram.weekProgression.intensityModifier,
-            focusNotes: activeProgram.weekProgression.focusNotes,
+            phase: activeProgram.weekProgression?.phase || 'Training',
+            primaryMuscles: activeProgram.program.primaryMuscles || [],
+            muscleEmphasis: activeProgram.program.muscleEmphasis || {},
+            intensityModifier: (activeProgram.weekProgression?.intensityModifier || 'standard') as 'standard' | 'high' | 'brutal',
+            focusNotes: activeProgram.weekProgression?.focusNotes || '',
           } : undefined;
 
           const suggestion = await suggestWorkoutSetup({
@@ -360,7 +360,6 @@ export default function GuidePage() {
             await setDocumentNonBlocking(userProfileRef, {
               todaysSuggestion: suggestion,
               lastAiSuggestionDate: format(new Date(), 'yyyy-MM-dd'),
-              // Do NOT clear todaysAiWorkout here, as they are independent
             }, { merge: true });
           }
 
@@ -394,7 +393,6 @@ export default function GuidePage() {
     }
   }, [locations, isLoadingLocations, userProfile?.activeLocationId, selectedLocationId]);
 
-  // Get the currently selected location
   const selectedLocation = useMemo(() => {
     if (!locations || !selectedLocationId) return null;
     return locations.find(l => l.id === selectedLocationId) || null;
@@ -405,13 +403,11 @@ export default function GuidePage() {
     if (selectedLocation && selectedLocation.equipment.length > 0) {
       form.setValue('availableEquipment', selectedLocation.equipment);
     } else if (userEquipment && userEquipment.length > 0 && form.getValues('availableEquipment').length === 0) {
-      // Fallback to old equipment collection if no locations exist
       const defaultEquipment = userEquipment.map(e => e.name);
       form.setValue('availableEquipment', defaultEquipment);
     }
   }, [selectedLocation, userEquipment, form]);
 
-  // Handle location change
   const handleLocationChange = (locationId: string) => {
     setSelectedLocationId(locationId);
     const newLocation = locations?.find(l => l.id === locationId);
@@ -542,12 +538,48 @@ export default function GuidePage() {
     const goals = [userProfile?.strengthGoal, userProfile?.muscleGoal, userProfile?.fatLossGoal].filter(Boolean) as string[];
 
     try {
-      // Prepare available exercises with their targetMuscles for the AI
-      const exercisesWithMuscles = masterExercises?.map(ex => ({
-        name: ex.name,
-        category: ex.category || 'Other',
-        targetMuscles: ex.targetMuscles,
-      })) || [];
+      // Normalization utility to match equipment names reliably (casing, pluralization)
+      const normalizeEquipment = (name: string): string => {
+        let norm = name.toLowerCase().trim();
+        if (norm.endsWith('s') && norm !== 'bench press') {
+          norm = norm.slice(0, -1);
+        }
+        return norm.replace(/[-_ ]/g, '');
+      };
+
+      // Filter master exercises (or fallback to seedExercises) based on equipment compatibility
+      const sourceExercises = (masterExercises && masterExercises.length > 0)
+        ? masterExercises
+        : seedExercises;
+
+      const userEquipLower = (values.availableEquipment || []).map(e => normalizeEquipment(e));
+
+      const exercisesWithMuscles = sourceExercises
+        .filter(ex => {
+          // If the exercise has no equipment specified, assume it is compatible
+          if (!ex.equipment || ex.equipment.length === 0) return true;
+
+          return ex.equipment.every(req => {
+            const reqNorm = normalizeEquipment(req);
+            
+            // Handle Lat Pulldown / Cable Machine OR mapping
+            if (reqNorm === 'latpulldown') {
+              return userEquipLower.includes('latpulldown') || userEquipLower.includes('cablemachine');
+            }
+            // Handle Bench Press / Squat Rack OR mapping
+            if (reqNorm === 'benchpress') {
+              return userEquipLower.includes('benchpress') || userEquipLower.includes('squatrack');
+            }
+            
+            return userEquipLower.includes(reqNorm);
+          });
+        })
+        .map(ex => ({
+          name: ex.name,
+          category: ex.category || 'Other',
+          targetMuscles: ex.targetMuscles || [],
+          equipment: ex.equipment || [],
+        }));
 
       // Build active program context if user is enrolled
       const activeProgramContext = activeProgram ? {
@@ -569,6 +601,7 @@ export default function GuidePage() {
         activeProgram: activeProgramContext,
       });
       setGeneratedWorkout(result);
+
       if (userProfileRef) {
         setDocumentNonBlocking(userProfileRef, {
           todaysAiWorkout: result,
@@ -606,7 +639,8 @@ export default function GuidePage() {
             const newExercise: Omit<Exercise, 'id'> = {
               name: ex.name,
               category: ex.category,
-              targetMuscles: ex.targetMuscles || [], // Use AI's targetMuscles
+              targetMuscles: ex.targetMuscles || [],
+              equipment: ex.equipment || [], // Save equipment from the AI
             };
             await setDocumentNonBlocking(newExerciseDocRef, newExercise, { merge: false });
             masterExerciseId = newExerciseDocRef.id;
