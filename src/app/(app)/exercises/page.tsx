@@ -457,7 +457,7 @@ export default function ExercisesPage() {
 
     return (
         <div className="flex flex-col gap-8">
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <List className="w-8 h-8 text-primary" />
                     <div>
@@ -465,10 +465,10 @@ export default function ExercisesPage() {
                         <p className="text-muted-foreground">Manage your exercise library and perform quick logs.</p>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button onClick={() => setIsAddDialogOpen(true)}>
+                            <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add New
                             </Button>
                         </DialogTrigger>
@@ -478,7 +478,7 @@ export default function ExercisesPage() {
                     {!showSeedButton && (
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="destructive" disabled={isClearing}>
+                                <Button className="w-full sm:w-auto" variant="destructive" disabled={isClearing}>
                                     {isClearing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
                                     Clear Library
                                 </Button>
