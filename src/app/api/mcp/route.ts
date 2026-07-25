@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
   const urlUserId = req.nextUrl.searchParams.get('userId') || '';
   const sessionId = Math.random().toString(36).substring(7);
   
-  const host = req.headers.get('host') || 'frepo.app';
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'frepo.app';
   const protocol = req.headers.get('x-forwarded-proto') || 'https';
   // Define the POST messages url containing the sessionId and userId
   const postUrl = `${protocol}://${host}/api/mcp?sessionId=${sessionId}&userId=${urlUserId}`;
