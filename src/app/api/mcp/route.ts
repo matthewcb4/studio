@@ -3,6 +3,29 @@ import { getAuth } from 'firebase-admin/auth';
 import { getServerFirestore } from '@/firebase/server';
 import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
 
+// CORS headers to allow cross-origin requests (necessary for web MCP clients like Gemini Spark)
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id',
+};
+
+// Helper function to return JSON responses with correct CORS headers
+function corsResponse(data: any, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: CORS_HEADERS,
+  });
+}
+
+// Handle OPTIONS preflight requests
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: CORS_HEADERS,
+  });
+}
+
 // Helper to authenticate the user and get their uid securely
 async function getAuthenticatedUserId(req: NextRequest, isToolCall: boolean): Promise<string> {
   const authHeader = req.headers.get('Authorization');
@@ -151,6 +174,15 @@ const MCP_TOOLS = [
   }
 ];
 
+// Handle GET requests (helps with connection testing and simple HTTP discovery)
+export async function GET() {
+  return corsResponse({
+    jsonrpc: '2.0',
+    result: { tools: MCP_TOOLS }
+  });
+}
+
+// Handle POST requests
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -158,7 +190,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Handle MCP discovery (Publicly accessible for link connection probe)
     if (method === 'tools/list') {
-      return NextResponse.json({
+      return corsResponse({
         jsonrpc: '2.0',
         id,
         result: { tools: MCP_TOOLS }
@@ -171,11 +203,11 @@ export async function POST(req: NextRequest) {
       try {
         userId = await getAuthenticatedUserId(req, true);
       } catch (authErr: any) {
-        return NextResponse.json({
+        return corsResponse({
           jsonrpc: '2.0',
           id,
           error: { code: -32001, message: authErr.message }
-        }, { status: 401 });
+        }, 401);
       }
 
       const { name, arguments: args } = params || {};
@@ -197,7 +229,7 @@ export async function POST(req: NextRequest) {
           ...doc.data()
         }));
 
-        return NextResponse.json({
+        return corsResponse({
           jsonrpc: '2.0',
           id,
           result: {
@@ -216,7 +248,7 @@ export async function POST(req: NextRequest) {
         const docSnap = await docRef.get();
 
         if (!docSnap.exists) {
-          return NextResponse.json({
+          return corsResponse({
             jsonrpc: '2.0',
             id,
             result: {
@@ -231,7 +263,7 @@ export async function POST(req: NextRequest) {
         }
 
         const data = docSnap.data();
-        return NextResponse.json({
+        return corsResponse({
           jsonrpc: '2.0',
           id,
           result: {
@@ -275,7 +307,7 @@ export async function POST(req: NextRequest) {
           workoutsThisWeek: args.workoutsThisWeek,
         });
 
-        return NextResponse.json({
+        return corsResponse({
           jsonrpc: '2.0',
           id,
           result: {
@@ -321,7 +353,7 @@ export async function POST(req: NextRequest) {
           .collection('workoutLogs')
           .add(logDoc);
 
-        return NextResponse.json({
+        return corsResponse({
           jsonrpc: '2.0',
           id,
           result: {
@@ -335,24 +367,24 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      return NextResponse.json({
+      return corsResponse({
         jsonrpc: '2.0',
         id,
         error: { code: -32601, message: `Method not found: ${name}` }
-      }, { status: 404 });
+      }, 404);
     }
 
-    return NextResponse.json({
+    return corsResponse({
       jsonrpc: '2.0',
       id,
       error: { code: -32600, message: 'Invalid Request' }
-    }, { status: 400 });
+    }, 400);
 
   } catch (error: any) {
     console.error('MCP Server Route Error:', error);
-    return NextResponse.json({
+    return corsResponse({
       jsonrpc: '2.0',
       error: { code: -32603, message: error.message || 'Internal error' }
-    }, { status: 500 });
+    }, 500);
   }
 }
