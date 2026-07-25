@@ -4,7 +4,7 @@ import { getServerFirestore } from '@/firebase/server';
 import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
 
 // Helper to authenticate the user and get their uid securely
-async function getAuthenticatedUserId(req: NextRequest): Promise<string> {
+async function getAuthenticatedUserId(req: NextRequest, isToolCall: boolean): Promise<string> {
   const authHeader = req.headers.get('Authorization');
   
   if (authHeader?.startsWith('Bearer ')) {
@@ -16,21 +16,23 @@ async function getAuthenticatedUserId(req: NextRequest): Promise<string> {
       }
     } catch (err) {
       console.error('Error verifying Firebase ID token:', err);
-      throw new Error('Unauthorized: Invalid bearer token');
     }
   }
 
-  // Fallback for local development or testing only
-  if (process.env.NODE_ENV !== 'production') {
-    const urlUserId = req.nextUrl.searchParams.get('userId');
-    const headerUserId = req.headers.get('x-user-id');
-    const resolvedId = urlUserId || headerUserId;
-    if (resolvedId) {
-      return resolvedId;
-    }
+  // Get userId from custom headers or query params (essential for Gemini Spark URL binding)
+  const urlUserId = req.nextUrl.searchParams.get('userId');
+  const headerUserId = req.headers.get('x-user-id');
+  const resolvedId = urlUserId || headerUserId;
+
+  if (resolvedId) {
+    return resolvedId;
   }
 
-  throw new Error('Unauthorized: Missing valid user authentication');
+  if (isToolCall) {
+    throw new Error('Unauthorized: Missing valid user ID. Please provide userId in the query parameter (e.g. ?userId=YOUR_USER_ID) or Authorization header.');
+  }
+
+  return '';
 }
 
 // Define the exposed tools matching the MCP standard
@@ -151,21 +153,10 @@ const MCP_TOOLS = [
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Authenticate user securely (always resolves to the current user's UID)
-    let userId: string;
-    try {
-      userId = await getAuthenticatedUserId(req);
-    } catch (authErr: any) {
-      return NextResponse.json({
-        jsonrpc: '2.0',
-        error: { code: -32001, message: authErr.message }
-      }, { status: 401 });
-    }
-
     const body = await req.json();
     const { method, params, id } = body;
 
-    // 2. Handle MCP discovery
+    // 1. Handle MCP discovery (Publicly accessible for link connection probe)
     if (method === 'tools/list') {
       return NextResponse.json({
         jsonrpc: '2.0',
@@ -174,8 +165,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. Handle MCP tool executions
+    // 2. Handle MCP tool executions (Requires authentication check)
     if (method === 'tools/call') {
+      let userId: string;
+      try {
+        userId = await getAuthenticatedUserId(req, true);
+      } catch (authErr: any) {
+        return NextResponse.json({
+          jsonrpc: '2.0',
+          id,
+          error: { code: -32001, message: authErr.message }
+        }, { status: 401 });
+      }
+
       const { name, arguments: args } = params || {};
       const firestore = getServerFirestore();
 
