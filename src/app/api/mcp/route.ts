@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
   const host = req.headers.get('host') || 'frepo.app';
   const protocol = req.headers.get('x-forwarded-proto') || 'https';
   // Define the POST messages url containing the sessionId and userId
-  const postUrl = `${protocol}://${host}/req/api/mcp?sessionId=${sessionId}&userId=${urlUserId}`;
+  const postUrl = `${protocol}://${host}/api/mcp?sessionId=${sessionId}&userId=${urlUserId}`;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
