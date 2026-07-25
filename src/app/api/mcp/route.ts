@@ -26,6 +26,10 @@ export async function OPTIONS() {
   });
 }
 
+// Global in-memory map of active SSE clients
+// Note: In Cloud Run, instances run concurrently and share this map.
+const sseClients = new Map<string, ReadableStreamDefaultController>();
+
 // Helper to authenticate the user and get their uid securely
 async function getAuthenticatedUserId(req: NextRequest, isToolCall: boolean): Promise<string> {
   const authHeader = req.headers.get('Authorization');
@@ -174,217 +178,245 @@ const MCP_TOOLS = [
   }
 ];
 
-// Handle GET requests (helps with connection testing and simple HTTP discovery)
-export async function GET() {
-  return corsResponse({
-    jsonrpc: '2.0',
-    result: { tools: MCP_TOOLS }
+// Handle GET requests (establishes the Server-Sent Events stream for MCP)
+export async function GET(req: NextRequest) {
+  const urlUserId = req.nextUrl.searchParams.get('userId') || '';
+  const sessionId = Math.random().toString(36).substring(7);
+  
+  const host = req.headers.get('host') || 'frepo.app';
+  const protocol = req.headers.get('x-forwarded-proto') || 'https';
+  // Define the POST messages url containing the sessionId and userId
+  const postUrl = `${protocol}://${host}/req/api/mcp?sessionId=${sessionId}&userId=${urlUserId}`;
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      sseClients.set(sessionId, controller);
+      // Immediately send the endpoint mapping event
+      controller.enqueue(encoder.encode(`event: endpoint\ndata: ${postUrl}\n\n`));
+    },
+    cancel() {
+      sseClients.delete(sessionId);
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      ...CORS_HEADERS
+    }
   });
 }
 
-// Handle POST requests
+// Handle POST requests (receives JSON-RPC messages and routes responses back via the GET stream)
 export async function POST(req: NextRequest) {
   try {
+    const sessionId = req.nextUrl.searchParams.get('sessionId');
     const body = await req.json();
     const { method, params, id } = body;
 
-    // 1. Handle MCP discovery (Publicly accessible for link connection probe)
+    let jsonRpcResponse: any = null;
+
+    // 1. Handle MCP discovery
     if (method === 'tools/list') {
-      return corsResponse({
+      jsonRpcResponse = {
         jsonrpc: '2.0',
         id,
         result: { tools: MCP_TOOLS }
-      });
+      };
     }
 
-    // 2. Handle MCP tool executions (Requires authentication check)
-    if (method === 'tools/call') {
-      let userId: string;
+    // 2. Handle MCP tool executions
+    else if (method === 'tools/call') {
+      let userId = '';
       try {
         userId = await getAuthenticatedUserId(req, true);
       } catch (authErr: any) {
-        return corsResponse({
+        jsonRpcResponse = {
           jsonrpc: '2.0',
           id,
           error: { code: -32001, message: authErr.message }
-        }, 401);
+        };
       }
 
-      const { name, arguments: args } = params || {};
-      const firestore = getServerFirestore();
+      if (!jsonRpcResponse) {
+        const { name, arguments: args } = params || {};
+        const firestore = getServerFirestore();
 
-      if (name === 'get_workout_history') {
-        const limitVal = Math.min(args?.limit || 10, 50);
+        if (name === 'get_workout_history') {
+          const limitVal = Math.min(args?.limit || 10, 50);
+          const snapshot = await firestore
+            .collection('users')
+            .doc(userId)
+            .collection('workoutLogs')
+            .orderBy('date', 'desc')
+            .limit(limitVal)
+            .get();
 
-        const snapshot = await firestore
-          .collection('users')
-          .doc(userId)
-          .collection('workoutLogs')
-          .orderBy('date', 'desc')
-          .limit(limitVal)
-          .get();
+          const logs = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
 
-        const logs = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-
-        return corsResponse({
-          jsonrpc: '2.0',
-          id,
-          result: {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(logs, null, 2)
-              }
-            ]
-          }
-        });
-      }
-
-      if (name === 'get_user_stats') {
-        const docRef = firestore.doc(`users/${userId}/profile/main`);
-        const docSnap = await docRef.get();
-
-        if (!docSnap.exists) {
-          return corsResponse({
+          jsonRpcResponse = {
             jsonrpc: '2.0',
             id,
             result: {
-              content: [
-                {
-                  type: 'text',
-                  text: `No profile statistics found for user ID: ${userId}`
-                }
-              ]
+              content: [{ type: 'text', text: JSON.stringify(logs, null, 2) }]
             }
-          });
-        }
-
-        const data = docSnap.data();
-        return corsResponse({
-          jsonrpc: '2.0',
-          id,
-          result: {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(data, null, 2)
-              }
-            ]
-          }
-        });
-      }
-
-      if (name === 'suggest_workout') {
-        // Query recent history to populate suggestWorkoutSetup accurately
-        const historySnapshot = await firestore
-          .collection('users')
-          .doc(userId)
-          .collection('workoutLogs')
-          .orderBy('date', 'desc')
-          .limit(7)
-          .get();
-
-        const recentHistory = historySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            date: data.date,
-            name: data.workoutName,
-            volume: data.volume || 0,
-            muscleGroups: data.exercises?.flatMap((e: any) => e.targetMuscles || []) || [],
-            activityType: data.activityType || 'resistance',
-            duration: data.duration
           };
-        });
-
-        // Run the imported suggestion flow logic
-        const suggestion = await suggestWorkoutSetup({
-          fitnessGoals: args.fitnessGoals || [],
-          workoutHistory: recentHistory,
-          weeklyWorkoutGoal: args.weeklyWorkoutGoal,
-          workoutsThisWeek: args.workoutsThisWeek,
-        });
-
-        return corsResponse({
-          jsonrpc: '2.0',
-          id,
-          result: {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(suggestion, null, 2)
-              }
-            ]
-          }
-        });
-      }
-
-      if (name === 'log_workout') {
-        const { workoutName, duration, activityType, rating, exercises, volume, cardioMetrics } = args;
-
-        // Calculate volume if not explicitly provided for resistance training
-        let calculatedVolume = volume || 0;
-        if (!volume && exercises && Array.isArray(exercises)) {
-          calculatedVolume = exercises.reduce((total: number, ex: any) => {
-            return total + (ex.sets || []).reduce((sum: number, set: any) => {
-              if (set.type === 'warmup') return sum;
-              return sum + (set.weight || 0) * (set.reps || 0);
-            }, 0);
-          }, 0);
         }
 
-        const logDoc = {
-          userId,
-          workoutName,
-          date: new Date().toISOString(),
-          duration,
-          activityType: activityType || 'resistance',
-          volume: calculatedVolume,
-          rating: rating || null,
-          ...(exercises ? { exercises } : {}),
-          ...(cardioMetrics ? { cardioMetrics } : {})
-        };
+        else if (name === 'get_user_stats') {
+          const docRef = firestore.doc(`users/${userId}/profile/main`);
+          const docSnap = await docRef.get();
 
-        const docRef = await firestore
-          .collection('users')
-          .doc(userId)
-          .collection('workoutLogs')
-          .add(logDoc);
+          if (!docSnap.exists) {
+            jsonRpcResponse = {
+              jsonrpc: '2.0',
+              id,
+              result: {
+                content: [{ type: 'text', text: `No profile statistics found for user ID: ${userId}` }]
+              }
+            };
+          } else {
+            jsonRpcResponse = {
+              jsonrpc: '2.0',
+              id,
+              result: {
+                content: [{ type: 'text', text: JSON.stringify(docSnap.data(), null, 2) }]
+              }
+            };
+          }
+        }
 
-        return corsResponse({
-          jsonrpc: '2.0',
-          id,
-          result: {
-            content: [
-              {
+        else if (name === 'suggest_workout') {
+          const historySnapshot = await firestore
+            .collection('users')
+            .doc(userId)
+            .collection('workoutLogs')
+            .orderBy('date', 'desc')
+            .limit(7)
+            .get();
+
+          const recentHistory = historySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              date: data.date,
+              name: data.workoutName,
+              volume: data.volume || 0,
+              muscleGroups: data.exercises?.flatMap((e: any) => e.targetMuscles || []) || [],
+              activityType: data.activityType || 'resistance',
+              duration: data.duration
+            };
+          });
+
+          const suggestion = await suggestWorkoutSetup({
+            fitnessGoals: args.fitnessGoals || [],
+            workoutHistory: recentHistory,
+            weeklyWorkoutGoal: args.weeklyWorkoutGoal,
+            workoutsThisWeek: args.workoutsThisWeek,
+          });
+
+          jsonRpcResponse = {
+            jsonrpc: '2.0',
+            id,
+            result: {
+              content: [{ type: 'text', text: JSON.stringify(suggestion, null, 2) }]
+            }
+          };
+        }
+
+        else if (name === 'log_workout') {
+          const { workoutName, duration, activityType, rating, exercises, volume, cardioMetrics } = args;
+
+          let calculatedVolume = volume || 0;
+          if (!volume && exercises && Array.isArray(exercises)) {
+            calculatedVolume = exercises.reduce((total: number, ex: any) => {
+              return total + (ex.sets || []).reduce((sum: number, set: any) => {
+                if (set.type === 'warmup') return sum;
+                return sum + (set.weight || 0) * (set.reps || 0);
+              }, 0);
+            }, 0);
+          }
+
+          const logDoc = {
+            userId,
+            workoutName,
+            date: new Date().toISOString(),
+            duration,
+            activityType: activityType || 'resistance',
+            volume: calculatedVolume,
+            rating: rating || null,
+            ...(exercises ? { exercises } : {}),
+            ...(cardioMetrics ? { cardioMetrics } : {})
+          };
+
+          const docRef = await firestore
+            .collection('users')
+            .doc(userId)
+            .collection('workoutLogs')
+            .add(logDoc);
+
+          jsonRpcResponse = {
+            jsonrpc: '2.0',
+            id,
+            result: {
+              content: [{
                 type: 'text',
                 text: `Successfully logged workout "${workoutName}" with ID ${docRef.id} and volume ${calculatedVolume} lbs.`
-              }
-            ]
-          }
-        });
-      }
+              }]
+            }
+          };
+        }
 
-      return corsResponse({
-        jsonrpc: '2.0',
-        id,
-        error: { code: -32601, message: `Method not found: ${name}` }
-      }, 404);
+        else {
+          jsonRpcResponse = {
+            jsonrpc: '2.0',
+            id,
+            error: { code: -32601, message: `Method not found: ${name}` }
+          };
+        }
+      }
     }
 
-    return corsResponse({
-      jsonrpc: '2.0',
-      id,
-      error: { code: -32600, message: 'Invalid Request' }
-    }, 400);
+    if (!jsonRpcResponse) {
+      jsonRpcResponse = {
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32600, message: 'Invalid Request' }
+      };
+    }
+
+    // Standard SSE transport flow: Send response over the active GET SSE stream
+    if (sessionId && sseClients.has(sessionId)) {
+      const controller = sseClients.get(sessionId);
+      if (controller) {
+        try {
+          const encoder = new TextEncoder();
+          controller.enqueue(encoder.encode(`event: message\ndata: ${JSON.stringify(jsonRpcResponse)}\n\n`));
+          
+          return new Response(null, {
+            status: 202,
+            headers: CORS_HEADERS
+          });
+        } catch (err) {
+          console.error('Failed to push SSE message:', err);
+        }
+      }
+    }
+
+    // Direct HTTP JSON-RPC fallback response
+    return corsResponse(jsonRpcResponse);
 
   } catch (error: any) {
     console.error('MCP Server Route Error:', error);
-    return corsResponse({
+    const errResp = {
       jsonrpc: '2.0',
       error: { code: -32603, message: error.message || 'Internal error' }
-    }, 500);
+    };
+    return corsResponse(errResp, 500);
   }
 }
