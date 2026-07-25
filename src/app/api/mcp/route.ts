@@ -2,23 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getServerFirestore } from '@/firebase/server';
 import { suggestWorkoutSetup } from '@/ai/flows/suggest-workout-flow';
+import { randomUUID } from 'crypto';
 
-// CORS headers to allow cross-origin requests (necessary for web MCP clients like Gemini Spark)
-const CORS_HEADERS = {
+// ─── MCP Streamable HTTP Transport ───────────────────────────────────────────
+// Gemini Spark requires the "Streamable HTTP" transport (MCP spec 2025-03-26).
+// This is a single-endpoint, stateless JSON-RPC protocol over POST.
+// The old SSE dual-channel transport is deprecated and rejected by Gemini.
+//
+// Protocol flow:
+//   1. Client POSTs { method: "initialize", ... } → server returns capabilities + Mcp-Session-Id header
+//   2. Client POSTs { method: "notifications/initialized" } → server returns 204
+//   3. Client POSTs { method: "tools/list" } → server returns tool definitions
+//   4. Client POSTs { method: "tools/call", params: { name, arguments } } → server executes & returns result
+// ─────────────────────────────────────────────────────────────────────────────
+
+// CORS headers for cross-origin requests from gemini.google.com
+const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Accept, Authorization, Mcp-Session-Id, x-user-id',
+  'Access-Control-Expose-Headers': 'Mcp-Session-Id',
 };
 
-// Helper function to return JSON responses with correct CORS headers
-function corsResponse(data: any, status = 200) {
+function jsonResponse(data: any, status = 200, extraHeaders: Record<string, string> = {}) {
   return NextResponse.json(data, {
     status,
-    headers: CORS_HEADERS,
+    headers: { ...CORS_HEADERS, ...extraHeaders },
   });
 }
 
-// Handle OPTIONS preflight requests
+// ─── OPTIONS (CORS Preflight) ────────────────────────────────────────────────
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
@@ -26,112 +39,135 @@ export async function OPTIONS() {
   });
 }
 
-// Global in-memory map of active SSE clients
-// Note: In Cloud Run, instances run concurrently and share this map.
-const sseClients = new Map<string, ReadableStreamDefaultController>();
+// ─── GET (SSE stream for server-initiated notifications — optional) ──────────
+// Gemini may open a GET to listen for server-initiated messages.
+// We don't push notifications, so we just keep the stream alive.
+export async function GET() {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      // Send an initial comment to confirm the stream is alive
+      controller.enqueue(encoder.encode(': ok\n\n'));
+    },
+    cancel() {
+      // Client disconnected
+    },
+  });
 
-// Helper to authenticate the user and get their uid securely
-async function getAuthenticatedUserId(req: NextRequest, isToolCall: boolean): Promise<string> {
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      ...CORS_HEADERS,
+    },
+  });
+}
+
+// ─── DELETE (Session termination) ────────────────────────────────────────────
+export async function DELETE() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: CORS_HEADERS,
+  });
+}
+
+// ─── Helper: resolve userId from request ─────────────────────────────────────
+async function getAuthenticatedUserId(req: NextRequest, required: boolean): Promise<string> {
+  // 1. Try Firebase ID token
   const authHeader = req.headers.get('Authorization');
-  
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     try {
       const decodedToken = await getAuth().verifyIdToken(token);
-      if (decodedToken?.uid) {
-        return decodedToken.uid;
-      }
+      if (decodedToken?.uid) return decodedToken.uid;
     } catch (err) {
       console.error('Error verifying Firebase ID token:', err);
     }
   }
 
-  // Get userId from custom headers or query params (essential for Gemini Spark URL binding)
+  // 2. Try query param or custom header
   const urlUserId = req.nextUrl.searchParams.get('userId');
   const headerUserId = req.headers.get('x-user-id');
   const resolvedId = urlUserId || headerUserId;
+  if (resolvedId) return resolvedId;
 
-  if (resolvedId) {
-    return resolvedId;
+  if (required) {
+    throw new Error('Unauthorized: Provide userId as a query parameter or a Bearer token.');
   }
-
-  if (isToolCall) {
-    throw new Error('Unauthorized: Missing valid user ID. Please provide userId in the query parameter (e.g. ?userId=YOUR_USER_ID) or Authorization header.');
-  }
-
   return '';
 }
 
-// Define the exposed tools matching the MCP standard
+// ─── MCP Tool Definitions ────────────────────────────────────────────────────
 const MCP_TOOLS = [
   {
     name: 'get_workout_history',
     description: 'Retrieves a list of recent logged workouts for the authenticated user, including exercises, weights, reps, dates, and volumes.',
     inputSchema: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
-        limit: { 
-          type: 'number', 
-          description: 'Maximum number of recent workouts to retrieve (default: 10, max: 50)' 
-        }
-      }
-    }
+        limit: {
+          type: 'number',
+          description: 'Maximum number of recent workouts to retrieve (default: 10, max: 50)',
+        },
+      },
+    },
   },
   {
     name: 'get_user_stats',
-    description: 'Retrieves the authenticated user\'s profile statistics, including current streak, experience points (XP), lifetime volume, and leaderboard statistics.',
+    description: "Retrieves the authenticated user's profile statistics, including current streak, experience points (XP), lifetime volume, and leaderboard statistics.",
     inputSchema: {
-      type: 'object',
-      properties: {}
-    }
+      type: 'object' as const,
+      properties: {},
+    },
   },
   {
     name: 'suggest_workout',
-    description: 'Suggests a workout routine based on the user\'s fitness goals and current weekly progress.',
+    description: "Suggests a workout routine based on the user's fitness goals and current weekly progress.",
     inputSchema: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
         fitnessGoals: {
           type: 'array',
           items: { type: 'string' },
-          description: 'List of fitness goals (e.g. Build Muscle, Strength, Cardio, Endurance)'
+          description: 'List of fitness goals (e.g. Build Muscle, Strength, Cardio, Endurance)',
         },
         weeklyWorkoutGoal: {
           type: 'number',
-          description: 'Target number of workouts per week (1-7)'
+          description: 'Target number of workouts per week (1-7)',
         },
         workoutsThisWeek: {
           type: 'number',
-          description: 'Workouts already completed since Monday'
-        }
+          description: 'Workouts already completed since Monday',
+        },
       },
-      required: ['fitnessGoals', 'weeklyWorkoutGoal', 'workoutsThisWeek']
-    }
+      required: ['fitnessGoals', 'weeklyWorkoutGoal', 'workoutsThisWeek'],
+    },
   },
   {
     name: 'log_workout',
     description: 'Logs a completed workout for the user, storing details about exercises, sets, weights, reps, and duration.',
     inputSchema: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
-        workoutName: { 
-          type: 'string', 
-          description: 'Name of the workout (e.g., Upper Body Focus, Evening Run)' 
+        workoutName: {
+          type: 'string',
+          description: 'Name of the workout (e.g., Upper Body Focus, Evening Run)',
         },
-        duration: { 
-          type: 'string', 
-          description: 'Duration description (e.g. "45 min", "20 min")' 
+        duration: {
+          type: 'string',
+          description: 'Duration description (e.g. "45 min", "20 min")',
         },
-        activityType: { 
-          type: 'string', 
+        activityType: {
+          type: 'string',
           enum: ['resistance', 'calisthenics', 'run', 'walk', 'cycle', 'hiit'],
-          description: 'The type of exercise activity performed' 
+          description: 'The type of exercise activity performed',
         },
-        rating: { 
-          type: 'number', 
-          minimum: 1, 
-          maximum: 5, 
-          description: 'User rating of the workout out of 5 stars' 
+        rating: {
+          type: 'number',
+          minimum: 1,
+          maximum: 5,
+          description: 'User rating of the workout out of 5 stars',
         },
         exercises: {
           type: 'array',
@@ -149,17 +185,17 @@ const MCP_TOOLS = [
                     reps: { type: 'number' },
                     weight: { type: 'number' },
                     duration: { type: 'number', description: 'Duration in seconds' },
-                    type: { type: 'string', enum: ['normal', 'warmup', 'drop', 'failure'] }
-                  }
-                }
-              }
+                    type: { type: 'string', enum: ['normal', 'warmup', 'drop', 'failure'] },
+                  },
+                },
+              },
             },
-            required: ['exerciseName', 'sets']
-          }
+            required: ['exerciseName', 'sets'],
+          },
         },
-        volume: { 
-          type: 'number', 
-          description: 'Total weight volume in lbs (optional, will be calculated from exercises if not provided)' 
+        volume: {
+          type: 'number',
+          description: 'Total weight volume in lbs (optional, calculated from exercises if omitted)',
         },
         cardioMetrics: {
           type: 'object',
@@ -169,254 +205,227 @@ const MCP_TOOLS = [
             distanceUnit: { type: 'string', enum: ['mi', 'km'] },
             avgPace: { type: 'string' },
             avgHeartRate: { type: 'number' },
-            calories: { type: 'number' }
-          }
-        }
+            calories: { type: 'number' },
+          },
+        },
       },
-      required: ['workoutName', 'duration', 'activityType']
-    }
-  }
+      required: ['workoutName', 'duration', 'activityType'],
+    },
+  },
 ];
 
-// Handle GET requests (establishes the Server-Sent Events stream for MCP)
-export async function GET(req: NextRequest) {
-  const urlUserId = req.nextUrl.searchParams.get('userId') || '';
-  const sessionId = Math.random().toString(36).substring(7);
-  
-  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'frepo.app';
-  const protocol = req.headers.get('x-forwarded-proto') || 'https';
-  // Define the POST messages url containing the sessionId and userId
-  const postUrl = `${protocol}://${host}/api/mcp?sessionId=${sessionId}&userId=${urlUserId}`;
+// ─── Tool Execution Logic ────────────────────────────────────────────────────
+async function executeTool(name: string, args: any, userId: string) {
+  const firestore = getServerFirestore();
 
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    start(controller) {
-      sseClients.set(sessionId, controller);
-      // Immediately send the endpoint mapping event
-      controller.enqueue(encoder.encode(`event: endpoint\ndata: ${postUrl}\n\n`));
-    },
-    cancel() {
-      sseClients.delete(sessionId);
-    }
-  });
+  switch (name) {
+    case 'get_workout_history': {
+      const limitVal = Math.min(args?.limit || 10, 50);
+      const snapshot = await firestore
+        .collection('users')
+        .doc(userId)
+        .collection('workoutLogs')
+        .orderBy('date', 'desc')
+        .limit(limitVal)
+        .get();
 
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
-      ...CORS_HEADERS
+      const logs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      return { content: [{ type: 'text', text: JSON.stringify(logs, null, 2) }] };
     }
-  });
+
+    case 'get_user_stats': {
+      const docSnap = await firestore.doc(`users/${userId}/profile/main`).get();
+      if (!docSnap.exists) {
+        return { content: [{ type: 'text', text: `No profile found for user ${userId}.` }] };
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(docSnap.data(), null, 2) }] };
+    }
+
+    case 'suggest_workout': {
+      const histSnap = await firestore
+        .collection('users')
+        .doc(userId)
+        .collection('workoutLogs')
+        .orderBy('date', 'desc')
+        .limit(7)
+        .get();
+
+      const recentHistory = histSnap.docs.map((doc) => {
+        const d = doc.data();
+        return {
+          date: d.date,
+          name: d.workoutName,
+          volume: d.volume || 0,
+          muscleGroups: d.exercises?.flatMap((e: any) => e.targetMuscles || []) || [],
+          activityType: d.activityType || 'resistance',
+          duration: d.duration,
+        };
+      });
+
+      const suggestion = await suggestWorkoutSetup({
+        fitnessGoals: args.fitnessGoals || [],
+        workoutHistory: recentHistory,
+        weeklyWorkoutGoal: args.weeklyWorkoutGoal,
+        workoutsThisWeek: args.workoutsThisWeek,
+      });
+
+      return { content: [{ type: 'text', text: JSON.stringify(suggestion, null, 2) }] };
+    }
+
+    case 'log_workout': {
+      const { workoutName, duration, activityType, rating, exercises, volume, cardioMetrics } = args;
+
+      let calculatedVolume = volume || 0;
+      if (!volume && exercises && Array.isArray(exercises)) {
+        calculatedVolume = exercises.reduce((total: number, ex: any) => {
+          return total + (ex.sets || []).reduce((sum: number, set: any) => {
+            if (set.type === 'warmup') return sum;
+            return sum + (set.weight || 0) * (set.reps || 0);
+          }, 0);
+        }, 0);
+      }
+
+      const logDoc = {
+        userId,
+        workoutName,
+        date: new Date().toISOString(),
+        duration,
+        activityType: activityType || 'resistance',
+        volume: calculatedVolume,
+        rating: rating || null,
+        ...(exercises ? { exercises } : {}),
+        ...(cardioMetrics ? { cardioMetrics } : {}),
+      };
+
+      const docRef = await firestore
+        .collection('users')
+        .doc(userId)
+        .collection('workoutLogs')
+        .add(logDoc);
+
+      return {
+        content: [{
+          type: 'text',
+          text: `Successfully logged workout "${workoutName}" (ID: ${docRef.id}, volume: ${calculatedVolume} lbs).`,
+        }],
+      };
+    }
+
+    default:
+      throw new Error(`Unknown tool: ${name}`);
+  }
 }
 
-// Handle POST requests (receives JSON-RPC messages and routes responses back via the GET stream)
+// ─── POST (Main Streamable HTTP handler) ─────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const sessionId = req.nextUrl.searchParams.get('sessionId');
     const body = await req.json();
     const { method, params, id } = body;
 
-    let jsonRpcResponse: any = null;
-
-    // 1. Handle MCP discovery
-    if (method === 'tools/list') {
-      jsonRpcResponse = {
-        jsonrpc: '2.0',
-        id,
-        result: { tools: MCP_TOOLS }
-      };
-    }
-
-    // 2. Handle MCP tool executions
-    else if (method === 'tools/call') {
-      let userId = '';
-      try {
-        userId = await getAuthenticatedUserId(req, true);
-      } catch (authErr: any) {
-        jsonRpcResponse = {
+    // ── 1. initialize ────────────────────────────────────────────────────────
+    if (method === 'initialize') {
+      const sessionId = randomUUID();
+      return jsonResponse(
+        {
           jsonrpc: '2.0',
           id,
-          error: { code: -32001, message: authErr.message }
-        };
-      }
-
-      if (!jsonRpcResponse) {
-        const { name, arguments: args } = params || {};
-        const firestore = getServerFirestore();
-
-        if (name === 'get_workout_history') {
-          const limitVal = Math.min(args?.limit || 10, 50);
-          const snapshot = await firestore
-            .collection('users')
-            .doc(userId)
-            .collection('workoutLogs')
-            .orderBy('date', 'desc')
-            .limit(limitVal)
-            .get();
-
-          const logs = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-
-          jsonRpcResponse = {
-            jsonrpc: '2.0',
-            id,
-            result: {
-              content: [{ type: 'text', text: JSON.stringify(logs, null, 2) }]
-            }
-          };
-        }
-
-        else if (name === 'get_user_stats') {
-          const docRef = firestore.doc(`users/${userId}/profile/main`);
-          const docSnap = await docRef.get();
-
-          if (!docSnap.exists) {
-            jsonRpcResponse = {
-              jsonrpc: '2.0',
-              id,
-              result: {
-                content: [{ type: 'text', text: `No profile statistics found for user ID: ${userId}` }]
-              }
-            };
-          } else {
-            jsonRpcResponse = {
-              jsonrpc: '2.0',
-              id,
-              result: {
-                content: [{ type: 'text', text: JSON.stringify(docSnap.data(), null, 2) }]
-              }
-            };
-          }
-        }
-
-        else if (name === 'suggest_workout') {
-          const historySnapshot = await firestore
-            .collection('users')
-            .doc(userId)
-            .collection('workoutLogs')
-            .orderBy('date', 'desc')
-            .limit(7)
-            .get();
-
-          const recentHistory = historySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              date: data.date,
-              name: data.workoutName,
-              volume: data.volume || 0,
-              muscleGroups: data.exercises?.flatMap((e: any) => e.targetMuscles || []) || [],
-              activityType: data.activityType || 'resistance',
-              duration: data.duration
-            };
-          });
-
-          const suggestion = await suggestWorkoutSetup({
-            fitnessGoals: args.fitnessGoals || [],
-            workoutHistory: recentHistory,
-            weeklyWorkoutGoal: args.weeklyWorkoutGoal,
-            workoutsThisWeek: args.workoutsThisWeek,
-          });
-
-          jsonRpcResponse = {
-            jsonrpc: '2.0',
-            id,
-            result: {
-              content: [{ type: 'text', text: JSON.stringify(suggestion, null, 2) }]
-            }
-          };
-        }
-
-        else if (name === 'log_workout') {
-          const { workoutName, duration, activityType, rating, exercises, volume, cardioMetrics } = args;
-
-          let calculatedVolume = volume || 0;
-          if (!volume && exercises && Array.isArray(exercises)) {
-            calculatedVolume = exercises.reduce((total: number, ex: any) => {
-              return total + (ex.sets || []).reduce((sum: number, set: any) => {
-                if (set.type === 'warmup') return sum;
-                return sum + (set.weight || 0) * (set.reps || 0);
-              }, 0);
-            }, 0);
-          }
-
-          const logDoc = {
-            userId,
-            workoutName,
-            date: new Date().toISOString(),
-            duration,
-            activityType: activityType || 'resistance',
-            volume: calculatedVolume,
-            rating: rating || null,
-            ...(exercises ? { exercises } : {}),
-            ...(cardioMetrics ? { cardioMetrics } : {})
-          };
-
-          const docRef = await firestore
-            .collection('users')
-            .doc(userId)
-            .collection('workoutLogs')
-            .add(logDoc);
-
-          jsonRpcResponse = {
-            jsonrpc: '2.0',
-            id,
-            result: {
-              content: [{
-                type: 'text',
-                text: `Successfully logged workout "${workoutName}" with ID ${docRef.id} and volume ${calculatedVolume} lbs.`
-              }]
-            }
-          };
-        }
-
-        else {
-          jsonRpcResponse = {
-            jsonrpc: '2.0',
-            id,
-            error: { code: -32601, message: `Method not found: ${name}` }
-          };
-        }
-      }
+          result: {
+            protocolVersion: '2024-11-05',
+            capabilities: {
+              tools: { listChanged: false },
+            },
+            serverInfo: {
+              name: 'tonal-tracker-mcp',
+              version: '1.0.0',
+            },
+          },
+        },
+        200,
+        { 'Mcp-Session-Id': sessionId }
+      );
     }
 
-    if (!jsonRpcResponse) {
-      jsonRpcResponse = {
+    // ── 2. notifications/initialized ─────────────────────────────────────────
+    if (method === 'notifications/initialized') {
+      // Notification — no response body required
+      return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+    }
+
+    // ── 3. notifications/cancelled ───────────────────────────────────────────
+    if (method === 'notifications/cancelled') {
+      return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+    }
+
+    // ── 4. ping ──────────────────────────────────────────────────────────────
+    if (method === 'ping') {
+      return jsonResponse({ jsonrpc: '2.0', id, result: {} });
+    }
+
+    // ── 5. tools/list ────────────────────────────────────────────────────────
+    if (method === 'tools/list') {
+      return jsonResponse({
         jsonrpc: '2.0',
         id,
-        error: { code: -32600, message: 'Invalid Request' }
-      };
+        result: { tools: MCP_TOOLS },
+      });
     }
 
-    // Standard SSE transport flow: Send response over the active GET SSE stream
-    if (sessionId && sseClients.has(sessionId)) {
-      const controller = sseClients.get(sessionId);
-      if (controller) {
-        try {
-          const encoder = new TextEncoder();
-          controller.enqueue(encoder.encode(`event: message\ndata: ${JSON.stringify(jsonRpcResponse)}\n\n`));
-          
-          return new Response(null, {
-            status: 202,
-            headers: CORS_HEADERS
-          });
-        } catch (err) {
-          console.error('Failed to push SSE message:', err);
-        }
+    // ── 6. resources/list (empty — we expose no resources) ───────────────────
+    if (method === 'resources/list') {
+      return jsonResponse({
+        jsonrpc: '2.0',
+        id,
+        result: { resources: [] },
+      });
+    }
+
+    // ── 7. prompts/list (empty — we expose no prompts) ───────────────────────
+    if (method === 'prompts/list') {
+      return jsonResponse({
+        jsonrpc: '2.0',
+        id,
+        result: { prompts: [] },
+      });
+    }
+
+    // ── 8. tools/call ────────────────────────────────────────────────────────
+    if (method === 'tools/call') {
+      const userId = await getAuthenticatedUserId(req, true);
+      const { name, arguments: args } = params || {};
+
+      try {
+        const result = await executeTool(name, args || {}, userId);
+        return jsonResponse({ jsonrpc: '2.0', id, result });
+      } catch (toolErr: any) {
+        return jsonResponse({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            content: [{ type: 'text', text: `Error: ${toolErr.message}` }],
+            isError: true,
+          },
+        });
       }
     }
 
-    // Direct HTTP JSON-RPC fallback response
-    return corsResponse(jsonRpcResponse);
-
+    // ── Unknown method ───────────────────────────────────────────────────────
+    return jsonResponse(
+      {
+        jsonrpc: '2.0',
+        id: id ?? null,
+        error: { code: -32601, message: `Method not found: ${method}` },
+      },
+      200
+    );
   } catch (error: any) {
-    console.error('MCP Server Route Error:', error);
-    const errResp = {
-      jsonrpc: '2.0',
-      error: { code: -32603, message: error.message || 'Internal error' }
-    };
-    return corsResponse(errResp, 500);
+    console.error('MCP POST error:', error);
+    return jsonResponse(
+      {
+        jsonrpc: '2.0',
+        id: null,
+        error: { code: -32603, message: error.message || 'Internal server error' },
+      },
+      500
+    );
   }
 }
